@@ -1,0 +1,2 @@
+mkdir: cannot create directory `../../../Prj/Linux/lib': No such file or directory
+make: *** [../../../Prj/Linux/lib] Error 1

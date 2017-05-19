@@ -1,0 +1,7 @@
+lock
+debug
+nocrtscts
+name CARD
+password CARD
+idle 0
+local

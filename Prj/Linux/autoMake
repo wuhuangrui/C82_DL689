@@ -1,0 +1,20 @@
+echo "make 2>&1 |tee err"
+make 2>&1 |tee err
+
+echo "arm-linux-strip clmain"
+arm-linux-strip bin/clmain
+
+#echo "cp *"
+rm -f clou/lib/*
+cp -f lib/*.so clou/lib/
+cp -f bin/clmain ./clou/
+
+echo "rm clou.tgz"
+rm -f clou.tgz
+
+echo "tar zcvf clou.tgz clou/"
+tar zcvf clou.tgz clou/
+
+echo "chmod 777 clou.tgz"
+chmod 777 clou.tgz
+
