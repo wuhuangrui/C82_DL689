@@ -153,15 +153,8 @@ int GetFileTransAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wBufSi
 		WORD wBLen = (g_FileBlkTrans.wTotalBlks+1)/8;
 		if ((g_FileBlkTrans.wTotalBlks+1)%8 != 0)
 			wBLen ++;
-		//for (i=0; i<wBLen-1; i++)
 		for (i=0; i<wBLen; i++)
 			*p++ = g_FileBlkTrans.bBlkStatus[i];
-		//for (i=0; i<8; i++)//最后字节顺序取反
-		//{
-		//	if ((g_FileBlkTrans.bBlkStatus[wBLen-1]&(0x01<<i)) != 0)
-		//	*p |= 0x80>>i;
-		//}
-		//p++;
 		if ((p - pbBuf) <= wBufSize)
 			return p - pbBuf;
 		else
@@ -371,8 +364,8 @@ int FileBlkTransMethod8(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 			if(UpdFile()>0)
 			{
 				DTRACE(DB_FAPROTO, ("TransFile:UpdFile OK !!!\r\n"));
-				g_dwExtCmdClick = GetClick();
-				g_dwExtCmdFlg = FLG_HARD_RST;
+				//g_dwExtCmdClick = GetClick();
+				//g_dwExtCmdFlg = FLG_HARD_RST;
 			}
 			
 		}
@@ -452,9 +445,9 @@ int UpdFile()
 		for(i=0; i<j; i++)
 		{
 			memset(bFileHead, 0x00, sizeof(bFileHead));
-			//PartReadFile(USER_DATA_PATH"clou.tgz", g_FileBlkTrans->dwFileHeadlen+i*sizeof(bFileHead), bFileHead, sizeof(bFileHead));
 			PartReadFile(USER_DATA_PATH"FileTrans.tmp", i*sizeof(bFileHead), bFileHead, sizeof(bFileHead));
-			PartWriteFile(USER_DATA_PATH"clou.tgz", i*sizeof(bFileHead), bFileHead, sizeof(bFileHead));
+			//PartWriteFile(USER_DATA_PATH"clou.tgz", i*sizeof(bFileHead), bFileHead, sizeof(bFileHead));
+			PartWriteFile("/mnt/data/clmain.tgz", i*sizeof(bFileHead), bFileHead, sizeof(bFileHead));
 			if (g_FileBlkTrans.bChkType == 0)//默认为0,即CRC16校验
 				wCrc = get_crc_16( wCrc, bFileHead, sizeof(bFileHead));
 		}
@@ -462,9 +455,9 @@ int UpdFile()
 		if(j > 0)
 		{
 			memset(bFileHead, 0x00, sizeof(bFileHead));
-			//PartReadFile(USER_DATA_PATH"clou.tgz", g_FileBlkTrans->dwFileHeadlen+i*sizeof(bFileHead), bFileHead, j);
 			PartReadFile(USER_DATA_PATH"FileTrans.tmp", i*sizeof(bFileHead), bFileHead, j);
-			PartWriteFile(USER_DATA_PATH"clou.tgz", i*sizeof(bFileHead), bFileHead, sizeof(bFileHead));
+			//PartWriteFile(USER_DATA_PATH"clou.tgz", i*sizeof(bFileHead), bFileHead, sizeof(bFileHead));
+			PartWriteFile("/mnt/data/clmain.tgz", i*sizeof(bFileHead), bFileHead, sizeof(bFileHead));
 			if (g_FileBlkTrans.bChkType == 0)//默认为0,即CRC16校验
 				wCrc = get_crc_16( wCrc, bFileHead, j);
 		}
@@ -481,7 +474,16 @@ int UpdFile()
 		}
 		DTRACE(DB_FAPROTO, ("TransFile:CRC OK !!!\r\n"));
 #ifndef SYS_WIN		
-		
+#if 1
+//升级文件改为升clmain和\或驱动文件，再加上update脚本一起压缩的包
+		char szTmp[128];
+
+		sprintf(szTmp, "tar zxvf /mnt/data/clmain.tgz -C /mnt/data/");
+		system(szTmp);
+		sprintf(szTmp, "source /mnt/data/clmain/update&");
+		system(szTmp);
+		return 1;
+#else
 		//if (g_RemoteDown.m_dwFileSize>=0)//其它文件
 		//{
 			
@@ -516,7 +518,8 @@ int UpdFile()
 					DTRACE(DB_FAPROTO,  ("Linux Updated : started!Updated Parameter\n"));
 					DTRACE(DB_FAPROTO,  ("Linux Updated : End!Updated Parameter\n"));
 					char szTmp[128];
-					sprintf(szTmp, "cp %s /mnt/app/clou.tgz", USER_DATA_PATH"clou.tgz");
+					//sprintf(szTmp, "cp %s /mnt/app/clou.tgz", USER_DATA_PATH"clou.tgz");
+					sprintf(szTmp, "cp %s /mnt/app/oob/clou.tgz", USER_DATA_PATH"clou.tgz");//湖南的
 					system(szTmp);
 					DeleteFile(USER_DATA_PATH"clou.tgz");
 					//DeleteFile(USER_DATA_PATH"downinfo.dat");//这个文件先不删，可能主站还会有读取
@@ -534,6 +537,7 @@ int UpdFile()
 			}*/
 			
 		//}	
+#endif		
 #else
 		//DeleteFile(USER_DATA_PATH"clou.tgz");
 		return 1;

@@ -35,6 +35,8 @@
 #include "Esam.h"
 #include "StatMgr.h"
 #include "ParaMgr.h"
+#include "FaAPI.h"
+
 
 extern CStatMgr g_StatMgr;
 BYTE g_bComEngDataFmt[3] = {0x01, 0x05, DT_DB_LONG};	//组合有功
@@ -53,7 +55,7 @@ BYTE g_bFreqDataFmt[] = {0x01, 0x01, DT_LONG_U};
 BYTE g_bVarDmdFmt[] = {DT_DB_LONG};							//需量
 BYTE g_bPwrPrice[1] = {DT_DB_LONG_U};	//电价
 BYTE g_bRtcVolFmt[] = {DT_LONG_U};
-BYTE g_bMtrRunStateFmt[] = {DT_ARRAY, 0x07, DT_BIT_STR, 0x10,LRF};	//电表运行状态字
+BYTE g_bMtrBlkRunStateFmt[5] = {DT_ARRAY, 0x07, DT_BIT_STR, 0x10,LRF};	//电表运行状态字
 BYTE g_bMtrSubRunStateFmt[3] = {DT_BIT_STR, 0x10,LRF};	//电表运行状态字1~7
 
 BYTE g_bVoltDistortionDataFmt[] = {0x01, 0x03, DT_LONG};		//电压波形失真度
@@ -1957,7 +1959,7 @@ ToaMap g_OIConvertClass[] =
 	{0x20110200,	4,		MAP_SYSDB,		0x2011,	  PN0,   0,		g_bRtcVolFmt, sizeof(g_bRtcVolFmt), NULL},	//时钟电池电压
 	{0x20120200,	4,		MAP_SYSDB,		0x2012,   PN0,	 0, 	g_bRtcVolFmt, sizeof(g_bRtcVolFmt), NULL},	//停电抄表电池电压
 
-	{0x20140200,	6,		MAP_SYSDB,		0x2014,   PN0,	 0, 	g_bMtrRunStateFmt, sizeof(g_bMtrRunStateFmt), NULL},	//电表运行状态字
+	{0x20140200,	6,		MAP_SYSDB,		0x2014,   PN0,	 0, 	g_bMtrBlkRunStateFmt, sizeof(g_bMtrBlkRunStateFmt), NULL},	//电表运行状态字
 
 	{0x20170200,	6,		MAP_SYSDB,		0x2017,	  PN0,   0,		g_bVarDmdFmt,				sizeof(g_bVarDmdFmt),		NULL},//当前有功需量
 	{0x20180200,	6,		MAP_SYSDB,		0x2018,	  PN0,   0,		g_bVarDmdFmt,				sizeof(g_bVarDmdFmt),		NULL},//当前无功需量
@@ -4947,6 +4949,8 @@ int DelCommonMethod128(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 int ClrCommonMethod129(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	char pszTabName[32];
+
+	DelSchData();
 
 	for (WORD wIndex=1; wIndex<TASK_NUM; wIndex++)
 	{

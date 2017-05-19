@@ -2232,7 +2232,7 @@ WORD GetCurveData(Toad645Map tOad645Map, BYTE* pbSrcBuf, BYTE* pbDstBuf)
 		return 0;
 	}
 
-	return OIFmtDataExt(bBuf, iRet, pbDstBuf, tOad645Map.pFmt, tOad645Map.wFmtLen, tOad645Map.dwOAD);
+	return OIFmtDataExt(bBuf, tOad645Map.w645Len, pbDstBuf, tOad645Map.pFmt, tOad645Map.wFmtLen, tOad645Map.dwOAD);
 }
 
 //描述：读取2007版645的曲线数据

@@ -77,6 +77,52 @@ static BYTE g_bFillByte[] = {0x00, 0x00, 0xff, 0xee,
 #define FMT_ERR_LEN			3	//长度错误
 #define FMT_ERR_UNK_TYPE	4	//未知类型
 
+
+//描述：获取格式的有效长度（去掉RLF\RLV\LRF\LRV长度），对应g_OIConvertClass中的fmt格式
+//参数：@pFmt 对应g_OIConvertClass.fmt格式
+//		@wFmtLen 对应g_OIConvertClass.wFmtLen格式长度
+//		@pwRetFmtLen 返回格式的有效长度
+//返回：-1失败
+int OoGetDataTypeFmtValidLen(BYTE *pFmt, WORD wFmtLen, WORD *pwRetFmtLen)
+{
+	int iLen;
+	BYTE *pFmt0 = pFmt;
+	BYTE bFmt;
+	WORD wValidFmtLen = 0;
+	WORD wTmpValidFmtLen = 0;
+
+	bFmt = *pFmt++;
+	wValidFmtLen++;
+	switch (bFmt)
+	{
+	case DT_ARRAY:
+		pFmt++;	//DT_ARRAY成员个数
+		wValidFmtLen++;
+		iLen = OoGetDataTypeFmtValidLen(pFmt, wFmtLen-(pFmt-pFmt0), &wTmpValidFmtLen);
+		if (iLen < 0)
+			goto ERR_RET;
+		pFmt += iLen;
+		wValidFmtLen += wTmpValidFmtLen;
+		break;
+	case DT_BIT_STR:
+		pFmt++;	//DT_BIT_STR成员个数
+		wValidFmtLen++;
+		pFmt++;	//去掉RLF\RLV\LRF\LRV长度
+		break;
+	//TODO:有需要再添加
+	default:
+		goto ERR_RET;
+	}
+	
+	*pwRetFmtLen = wValidFmtLen;
+	iLen = pFmt - pFmt0;
+	pFmt = pFmt0;
+	return iLen;
+ERR_RET:
+	return -1;
+}
+
+
 //描述: 取得数据项本身的长度
 //参数：@ bType	数据类型，同Data的数据类型定义
 //	   @ pbSrc数据项目描述，可以OAD、ROAD、CSD
@@ -3617,7 +3663,8 @@ int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen
 					pbDst += bByteLen;
 				}
 
-				pbSrc += (bLen + 7) / 8 + 1;			//长度+内容
+				//pbSrc += (bLen + 7) / 8 + 1;			//长度+内容
+				pbSrc += (bLen + 7) / 8;			//长度+内容
 			}
 			break;
 

@@ -262,3 +262,87 @@ uint64 OoLong64UnsignedTouUint64(BYTE* pbBuf)
 	return ((uint64 )pbBuf[0]<<56) | ((uint64 )pbBuf[1]<<48) | ((uint64 )pbBuf[2]<<40) | ((uint64 )pbBuf[3]<<32) | 
 				((uint64 )pbBuf[4]<<24) | ((uint64 )pbBuf[5]<<16) | ((uint64 )pbBuf[6]<<8) | pbBuf[7];
 }
+
+
+int OoStdTypeToInt(BYTE *pbData)
+{
+	BYTE  type = *pbData;
+	BYTE  *pbPtr = ++pbData;
+	int iRet = 0;
+	
+	
+	switch(type)
+	{
+	case DT_ARRAY:
+	case DT_STRUCT:
+	case DT_OCT_STR:
+	case DT_VIS_STR:
+	case DT_UTF8_STR:
+	case DT_BIT_STR:
+	case DT_DATE:
+	case DT_TIME:
+	case DT_DATE_TIME:
+	case DT_DATE_TIME_S:
+	case DT_ROAD:
+	case DT_TI:
+	case DT_TSA:
+	case DT_MAC:
+	case DT_RN:
+	case DT_REGION:
+	case DT_SCALE_UNIT:
+	case DT_RSD:
+	case DT_CSD:
+	case DT_MS:
+	case DT_SID:
+	case DT_SID_MAC:
+	case DT_COMDCB:
+	case DT_RCSD:
+	case DT_FLOAT64:
+	case DT_LONG64:
+	case DT_LONG64_U:
+		iRet = -1;
+		break;
+
+	case DT_ENUM:
+	case DT_INT:
+	case DT_UNSIGN:
+	case DT_BOOL:
+		iRet = *pbPtr;
+		break;
+
+	case DT_NULL:
+		iRet = 0;
+		break;
+	case DT_DB_LONG:
+	case DT_DB_LONG_U:
+		iRet = OoDoubleLongUnsignedToDWord(pbPtr);
+		break;
+
+	case DT_LONG:
+	case DT_LONG_U:
+		iRet = OoLongToInt16(pbPtr);
+		break;
+
+
+
+	case DT_FLOAT32:
+		iRet = OoDoubleLongUnsignedToDWord(pbPtr);
+		break;
+
+
+	case DT_OI:
+		iRet = OoOiToWord(pbPtr);
+		break;
+	case DT_OAD:
+	case DT_OMD:
+		iRet = OoOadToDWord(pbPtr);
+		break;
+
+	default:
+		iRet = -1;
+		break;
+	}
+
+	return iRet;
+	
+}

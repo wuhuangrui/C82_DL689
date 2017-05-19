@@ -347,7 +347,7 @@ TItemDesc g_VariableDesc[] =   //变量类对象
     {0x2012, 	3, 			DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//停电抄表电池电压
     {0x2013, 	11, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//时钟电池工作时间
 
-    {0x2014, 	11, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//电能表运行状态字
+    {0x2014, 	30, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//电能表运行状态字
     {0x2015, 	11, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//对称密匙状态字
     {0x2016, 	11, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//证书状态字
     {0x2017, 	5, 			DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//当前有功需量

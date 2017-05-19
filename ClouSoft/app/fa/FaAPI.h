@@ -205,6 +205,7 @@ TThreadRet Do485MeterSearch(void* pvPara);
 extern void FaResetData();
 extern void FaResetDataPara();
 extern void FaResetAllDataPara();
+extern void DelSchData();
 #ifdef EN_CCT
 extern void FaResetCctData();
 extern void FaResetCctPara();

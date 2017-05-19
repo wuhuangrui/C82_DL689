@@ -37,6 +37,6 @@ WORD OoInt16ToLong(int16 val, BYTE* pbBuf);
 WORD OoWordToLongUnsigned(WORD val, BYTE* pbBuf);
 WORD OoInt64ToLong64(int64 val, BYTE* pbBuf);
 WORD OoUint64ToLong64Unsigned(uint64 val, BYTE* pbBuf);
-
+int OoStdTypeToInt(BYTE *pbData);
 
 #endif	//OOFMT_H

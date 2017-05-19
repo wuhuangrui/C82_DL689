@@ -1840,6 +1840,117 @@ bool IsSpecOobAttrDescOAD(BYTE* pbOAD)
 	return fRet;
 }
 
+
+
+static int selector2_60000200(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, BYTE* pbBuf, WORD wBufSize, WORD* pwRetNum)
+{
+	TTime tStartTime;
+	TTime tEndTime;
+	DWORD dwStartSec;
+	DWORD dwEndSec;
+	DWORD dwOAD;
+	DWORD dwSubOAD;
+	BYTE  bSubIdx=0, bType=0, *p=0;
+	BYTE bBuf[1024], bDataType=0;
+	WORD wFmtLen=0, wDataLen=0;
+	int iRet=0, iTotalLen=0, iStartValue=0, iEndValue=0, iUnitValue=0, iDataLen=0, iTmpValue=0;
+	BYTE *pbStart = pbBuf;
+
+	
+	
+
+
+	dwOAD = OoOadToDWord(pbOAD);
+	dwSubOAD = OoOadToDWord(pbRSD);
+	pbRSD += 4;
+	bSubIdx = dwSubOAD & 0xff;
+	const ToaMap* pOI = GetOIMap(dwOAD & 0xFFFFFF00);
+	bSubIdx = dwSubOAD & 0xff;
+       
+
+	*pwRetNum = 0;
+
+	if (pOI == NULL)
+	{
+		DTRACE(DB_FAPROTO, ("selector2_60000200: pOI is NULL, dwOAD=0x%08x.\n", dwOAD));
+		return -1;
+	}
+
+	if (bSubIdx != 1)	//档案信息只能用到子属性1，其它为结构体，无法访问
+	{
+		DTRACE(DB_FAPROTO, ("selector2_60000200: dwOAD=0x%08x subidx=%d invalid.\n", dwOAD, bSubIdx));
+		return -1;
+	}
+
+	 //起始值 		 Data，
+	 bDataType = *pbRSD;
+	 iDataLen = OoGetDataTypeLen(pbRSD);
+	 iStartValue = OoStdTypeToInt(pbRSD);
+	 if (iDataLen < 0 || iStartValue == -1)
+	 	goto error_1;
+
+	 //pbRSD++;
+	 pbRSD += iDataLen;
+	 //结束值 		 Data，
+	 iDataLen = OoGetDataTypeLen(pbRSD);
+	 iEndValue = OoStdTypeToInt(pbRSD);
+	 if (iDataLen < 0 || iEndValue == -1)
+	 	goto error_1;
+	 //pbRSD++;
+	 pbRSD += iDataLen;
+	 //数据间隔		 Data
+	 iDataLen = OoGetDataTypeLen(pbRSD);
+	 iUnitValue = OoStdTypeToInt(pbRSD);
+	 if (iDataLen < 0 || iUnitValue == -1)
+	 	goto error_1;
+	// pbRSD++;
+	 pbRSD += iDataLen;
+	
+	
+	for (WORD i=0; i<POINT_NUM; i++)
+	{
+		memset(bBuf, 0, sizeof(bBuf));
+		if (((iRet=ReadItemEx(BANK0, i, pOI->wID, bBuf))>0) && !IsAllAByte(bBuf, 0, sizeof(bBuf)))
+		{
+			p = OoGetField(bBuf+1, pOI->pFmt, pOI->wFmtLen, bSubIdx-1, &wDataLen, &bType);	//+1:0x6000档案的第一个自己为整个采集单元的数据长度
+			if (p != NULL)
+			{
+				if (bDataType == *p)  //比较数据类型
+				{
+					iTmpValue = OoStdTypeToInt(p);
+					if (iTotalLen > wBufSize)
+					{
+						DTRACE(DB_FAPROTO, ("selector2_60000200: Buffer overflow, iRet=%d, wBufSize=%d.\n", iRet, wBufSize));
+						goto error_1;
+					}
+					else if (iStartValue <= iTmpValue && iTmpValue <= iEndValue)
+					{
+						
+						memcpy(pbBuf, bBuf+1, bBuf[0]);
+						iTotalLen += bBuf[0];
+						pbBuf += bBuf[0];
+						*pwRetNum += 1;
+					}
+				}
+			}
+			else
+			{
+				DTRACE(DB_FAPROTO, ("selector2_60000200: i=%d, pointer is Null!!!!\n", i));
+			}
+		}
+	}
+
+
+	return pbBuf-pbStart;
+
+error_1:
+	*pwRetNum = 0;
+	return -1;
+	
+	
+}
+
+
 int SpecReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int* piStart, BYTE* pbBuf, WORD wBufSize, WORD* pwRetNum)
 {
 	int iRet;
@@ -2008,6 +2119,8 @@ int SpecReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int* piStart, BYTE* p
 		dwSubOAD = OoOadToDWord(pbRSD);
 		pbRSD += 4;
 		bSubIdx = dwSubOAD & 0xff;
+		BYTE  *pbStart;
+
 		const ToaMap* pOI = GetOIMap(dwOAD & 0xFFFFFF00);
 		if (pOI == NULL)
 		{
@@ -2040,6 +2153,15 @@ int SpecReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int* piStart, BYTE* p
 			dwStartSec = TimeToSeconds(tStartTime);
 			dwEndSec = TimeToSeconds(tEndTime);
 			iRet = GetSchMtrResult(piStart, pbBuf, wBufSize, dwStartSec, dwEndSec);
+			if (iRet < 0)
+				goto SpecReadRecord_ret;
+			//*pwRetNum = pbBuf[1];
+			pbBuf += iRet;
+			break;
+	  case 0x60000200:
+			//*pbBuf++ = 01;
+			//pbStart=  pbBuf;
+			iRet = selector2_60000200(pbOAD, pbRSD-4, pbRCSD, pbBuf, wBufSize, pwRetNum);
 			if (iRet < 0)
 				goto SpecReadRecord_ret;
 			//*pwRetNum = pbBuf[1];
@@ -2490,8 +2612,10 @@ bool OoCopyDataIsValid(BYTE *pbBuf, WORD wLen)
 int OoCopySrcData(BYTE *pbSrc, BYTE *pFmt, WORD wFmtLen, BYTE *pbDst, WORD *pwRetSrcOffset)
 {
 	const ToaMap* pOAMap;
-	int iTypeLen, iDataLen, iRet;
+	int iTypeLen, iDataLen, iRet, iLen;
 	DWORD dwOIAtt;
+	WORD wVlidFmtLen;
+
 	BYTE *pbSrc0 = pbSrc;
 	BYTE *pbDst0 = pbDst;
 	BYTE bArryNum, bIndex;
@@ -2509,7 +2633,11 @@ int OoCopySrcData(BYTE *pbSrc, BYTE *pFmt, WORD wFmtLen, BYTE *pbDst, WORD *pwRe
 			return -1;
 		iDataLen = iRet;
 		pStartFmt = pOAMap->pFmt;
-		pEndFmt = pOAMap->pFmt + pOAMap->wFmtLen;
+		if ((iLen=OoGetDataTypeFmtValidLen(pOAMap->pFmt, pOAMap->wFmtLen, &wVlidFmtLen)) > 0)
+			pEndFmt = pOAMap->pFmt + wVlidFmtLen - 1;
+		else
+			pEndFmt = pOAMap->pFmt + pOAMap->wFmtLen;
+
 		fMapSuc = true;
 	}
 	else if (bIndex != 0)	//读子属性
@@ -2542,7 +2670,12 @@ int OoCopySrcData(BYTE *pbSrc, BYTE *pFmt, WORD wFmtLen, BYTE *pbDst, WORD *pwRe
 				else
 				{
 					pStartFmt = pbFmt;
-					pEndFmt = pbFmt + wFmtLen;
+
+					if ((iLen=OoGetDataTypeFmtValidLen(pOAMap->pFmt, pOAMap->wFmtLen, &wVlidFmtLen)) > 0)
+						pEndFmt = pbFmt + wVlidFmtLen - 1;
+					else
+						pEndFmt = pbFmt + pOAMap->wFmtLen;
+
 					fMapSuc = true;
 				}
 			}

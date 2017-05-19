@@ -22,8 +22,10 @@ extern BYTE g_b645ExtStaFmt[4];
 extern BYTE g_bVoltDataFmt[3];
 extern BYTE g_bCurDataFmt[3];
 extern BYTE g_bPowerDataFmt[3];
+extern BYTE g_bVarDmdFmt[1];
 extern BYTE g_bCosDataFmt[3];
 extern BYTE g_bMtrSubRunStateFmt[3];
+extern BYTE g_bMtrBlkRunStateFmt[5];
 extern BYTE g_bFrzRecTimeFmt[1];
 extern BYTE g_bServAddrFmt[3];
 extern BYTE g_bPurchaseRate[1];
@@ -45,12 +47,13 @@ Toad645Map g_OodTo645ExtMap[] = {
 };
 
 Toad645Map g_OodTo645Map[] = {	
-	//dwOAD,		wID,			pFmt,					wFmtLen,			wOoLen,		w645Len
+		//dwOAD,		wID,			pFmt,					wFmtLen,			wOoLen,		w645Len
 	{0x00010200,	0x900f,		g_bComEngDataFmt,	sizeof(g_bComEngDataFmt),		27,			20},		//（当前）组合有功电能	
 
 	{0x00100200,	0x901f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（当前）正向有功电能
-	{0x00100201,	0x9010,		g_bEngTatolFmt,		sizeof(g_bEngTatolFmt),			7,			 5},		//（当前）正向有功总电能
+	{0x00100201,	0x9010,		g_bEngTatolFmt,		sizeof(g_bEngTatolFmt),			5,			 4},		//（当前）正向有功总电能
 	{0x00100202,	0x3701,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//正向有功电能曲线
+	{0x00100203,	0x3701,		g_bEngTatolFmt,		sizeof(g_bEngTatolFmt),			5,			 4},		//正向有功总电能曲线
 	{0x00100204,	0x9a1f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1次）日冻结正向有功电能					
 	{0x00100205,	0x941f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1结算日）月冻结正向有功电能
 	{0x00110200,	0x9070,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},	   //（当前）A相正向有功电能		
@@ -58,8 +61,9 @@ Toad645Map g_OodTo645Map[] = {
 	{0x00130200,	0x9072,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},	   //（当前）C相正向有功电能		
 
 	{0x00200200,	0x902f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（当前）反向有功电能		
-	{0x00200201,	0x9020,		g_bEngTatolFmt,		sizeof(g_bEngTatolFmt),			7,			 5},		//（当前）反向有功总电能
+	{0x00200201,	0x9020,		g_bEngTatolFmt,		sizeof(g_bEngTatolFmt),			5,			 4},		//（当前）反向有功总电能
 	{0x00200202,	0x3702,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//反向有功电能曲线
+	{0x00200203,	0x3702,		g_bEngTatolFmt,		sizeof(g_bEngTatolFmt),			5,			 4},		//反向有功总电能曲线
 	{0x00200204,	0x9a2f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1次）日冻结反向有功电能		
 	{0x00200205,	0x942f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1结算日）月冻结反向有功电能		
 	{0x00210200,	0x9080,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},	   //（当前）A相反向有功电能		
@@ -68,6 +72,7 @@ Toad645Map g_OodTo645Map[] = {
 
 	{0x00300200,	0x911f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（当前）正向（感性）无功电能					
 	{0x00300202,	0x3703,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//正向（感性）无功电能曲线
+	{0x00300203,	0x3703,		g_bEngTatolFmt,		sizeof(g_bEngTatolFmt),			5,			 4},		//正向（感性）无功总电能曲线
 	{0x00300204,	0x9b1f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1次）日冻结正向（感性）无功电能	
 	{0x00300205,	0x951f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1结算日）月冻结正向（感性）无功电能	
 	{0x00310200,	0x9170,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},	   //（当前）A相（感性）无功电能		
@@ -76,6 +81,7 @@ Toad645Map g_OodTo645Map[] = {
 
 	{0x00400200,	0x912f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（当前）反向（容性）无功电能
 	{0x00400202,	0x3704,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//反向（容性）无功电能曲线
+	{0x00400203,	0x3704,		g_bEngTatolFmt,		sizeof(g_bEngTatolFmt),			5,			 4},		//反向（容性）无功总电能曲线
 	{0x00400204,	0x9b2f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1次）日冻结反向（容性）无功电能
 	{0x00400205,	0x952f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1结算日）月冻结反向（容性）无功电能
 	{0x00410200,	0x9180,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},	   //（当前）A相（容性）无功电能		
@@ -84,18 +90,22 @@ Toad645Map g_OodTo645Map[] = {
 
 	{0x00500200,	0x913f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（当前）I象限（感性）无功电能					
 	{0x00500202,	0x3745,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//I象限（感性）无功电能曲线
+	{0x00500203,	0x3745,		g_bEngTatolFmt,		sizeof(g_bEngTatolFmt),			5,			 4},		//I象限（感性）无功总电能曲线
 	{0x00500204,	0x9b3f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1次）日冻结I象限（感性）无功电能
 	{0x00500205,	0x953f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1结算日）月冻结I象限（感性）无功电能
 	{0x00600200,	0x915f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（当前）II象限无功电能
 	{0x00600202,	0x3746,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//II象限无功电能曲线
+	{0x00600203,	0x3746,		g_bEngTatolFmt,		sizeof(g_bEngTatolFmt),			5,			 4},		//II象限无功总电能曲线
 	{0x00600204,	0x9b5f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1次）日冻结II象限无功电能
 	{0x00600205,	0x955f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1结算日）月冻结II象限无功电能
 	{0x00700200,	0x916f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（当前）III象限无功电能
 	{0x00700202,	0x3747,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//III象限无功电能曲线
+	{0x00700203,	0x3747,		g_bEngTatolFmt,		sizeof(g_bEngTatolFmt),			5,			 4},		//III象限无功总电能曲线
 	{0x00700204,	0x9b6f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1次）日冻结III象限无功电能
 	{0x00700205,	0x956f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1结算日）月冻结III象限无功电能
 	{0x00800200,	0x914f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（当前）IV象限（容性）无功电能	    
 	{0x00800202,	0x3748,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//IV象限（容性）无功电能曲线
+	{0x00800203,	0x3748,		g_bEngTatolFmt,		sizeof(g_bEngTatolFmt),			5,			 4},		//IV象限（容性）无功总电能曲线
 	{0x00800204,	0x9b4f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1次）日冻结IV象限（容性）无功电能
 	{0x00800205,	0x954f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//（上1结算日）月冻结IV象限（容性）无功电能
 
@@ -132,10 +142,17 @@ Toad645Map g_OodTo645Map[] = {
 	{0x20040202,	0x3681,		g_bPowerDataFmt,	sizeof(g_bPowerDataFmt),		22,			12},		//有功功率曲线
 	{0x20050200,	0xB64f,		g_bPowerDataFmt,	sizeof(g_bPowerDataFmt),		22,			12},		//（当前）无功功率
 	{0x20050202,	0x3685,		g_bPowerDataFmt,	sizeof(g_bPowerDataFmt),		22,			12},		//无功功率曲线
+
+	{0x20060200,	0xB67f,		g_bPowerDataFmt,	sizeof(g_bPowerDataFmt),		22,			12},	//瞬时视在功率数据块
+	{0x20060201,	0xB670,		g_bVarDmdFmt,		sizeof(g_bVarDmdFmt),			5,			4},		//瞬时总视在功率
+	{0x20060202,	0xB671,		g_bVarDmdFmt,		sizeof(g_bVarDmdFmt),			5,			4},		//瞬时A视在功率
+	{0x20060203,	0xB672,		g_bVarDmdFmt,		sizeof(g_bVarDmdFmt),			5,			4},		//瞬时B视在功率
+	{0x20060204,	0xB673,		g_bVarDmdFmt,		sizeof(g_bVarDmdFmt),			5,			4},		//瞬时C视在功率
+
 	{0x200A0200,	0xB65f,		g_bCosDataFmt,		sizeof(g_bCosDataFmt),			14,			8},			//功率因素
 	{0x200A0202,	0x3705,		g_bCosDataFmt,		sizeof(g_bCosDataFmt),			14,			8},			//功率因素曲线
 
-
+	{0x20140200,	0xc86f,		g_bMtrBlkRunStateFmt,	sizeof(g_bMtrBlkRunStateFmt),		30,		   14},			//电表运行状态字数据块
 	{0x20140201,	0xc860,		g_bMtrSubRunStateFmt,	sizeof(g_bMtrSubRunStateFmt),		4,			2},			//电表运行状态字1
 	{0x20140202,	0xc861,		g_bMtrSubRunStateFmt,	sizeof(g_bMtrSubRunStateFmt),		4,			2},			//电表运行状态字2
 	{0x20140203,	0xc862,		g_bMtrSubRunStateFmt,	sizeof(g_bMtrSubRunStateFmt),		4,			2},			//电表运行状态字3

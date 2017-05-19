@@ -1725,8 +1725,8 @@ GOTO_RSD10:	//方法10比较特殊
 
 int CFaProto::Get_request_record_list()
 {
-	static const int iApdu1Off = 16;
-	static const int iApdu2Off = 16;
+	static const int iApdu1Offset = 128;
+	static const int iApdu2Offset = 128;
 	TApduInfo tApduInfo;
 	int iBakStep;
 	WORD wRetNum;
@@ -1740,7 +1740,7 @@ int CFaProto::Get_request_record_list()
 	BYTE *pbRxPtr;
 
 	pApdu1 = pApdu0;
-	pApdu2 = pApdu1 + iApdu1Off;	//+16:
+	pApdu2 = pApdu1 + iApdu1Offset;	//+16:
 	while(m_AppComm.pbAskStart < m_AppComm.pbAskEnd)
 	{
 		if (m_AppComm.fNewServer)
@@ -1763,7 +1763,7 @@ int CFaProto::Get_request_record_list()
 		//从任务库中提取RCSD数据
 		wReqApduLen = tApduInfo.wOADLen + tApduInfo.wRSDLen + tApduInfo.wRCSDLen;	//APDU的请求信息长度（OAD\RSD\RCSD）
 		wRspApduLen = tApduInfo.wOADLen + tApduInfo.wRCSDLen;	//APDU的响应信息长度（OAD\RCSD）
-		pbRxPtr = pApdu2+iApdu2Off;
+		pbRxPtr = pApdu2+iApdu2Offset;
 		wRxMaxLen = sizeof(m_TxAPdu.bBuf) - (pApdu2-pApdu0) - wRspApduLen;	//10
 		iBakStep = m_AppComm.iStep;
 		wRetNum = 0;
@@ -1778,27 +1778,46 @@ int CFaProto::Get_request_record_list()
 			}
 			else
 			{
-				*pApdu2++ = GET_RECORD_LIST;
-				*pApdu2++ = m_AppComm.bPIID;
 				memcpy(pApdu2, tApduInfo.pbOAD, tApduInfo.wOADLen);	
 				pApdu2 += tApduInfo.wOADLen;
+
 				if (tApduInfo.wRCSDLen == 1)	//表是RCSD里有0个CSD,即表示全部
 				{
-					DWORD dwOAD;
-					*pApdu2++ = 0x01;	//1个RCSD
-					*pApdu2++ = 0x00;	//CSD里选择OAD
-					dwOAD = OoOadToDWord(tApduInfo.pbOAD);
-					dwOAD = dwOAD + 0x00010000;	//如0x60140200 + 0x00010000 = 0x60150200
-					pApdu2 += OoDWordToOad(dwOAD, pApdu2);
+					if (tApduInfo.pbRCSD[0] != 0) //表示已填充了RCSD中的所有CSD
+					{
+						int iRcsdLen;
+						//RCSD
+						iRcsdLen = ScanRCSD(tApduInfo.pbRCSD, false);	
+						memcpy(pApdu2, tApduInfo.pbRCSD, iRcsdLen);	
+						pApdu2 += iRcsdLen;
+						//*pApdu++ = 0x00;	//Data
+						//*pApdu++ = GetErrOfGet(nRet);	//对象不存在
+						*pApdu2++ = 0x01;	//Data
+						*pApdu2++ = 0x00;	//对象不存在
+					}
+					else
+					{
+						DWORD dwOAD;
+						*pApdu2++ = 0x01;	//1个RCSD
+						*pApdu2++ = 0x00;	//CSD里选择OAD
+						dwOAD = OoOadToDWord(tApduInfo.pbOAD);
+						dwOAD = dwOAD + 0x00010000;	//如0x60140200 + 0x00010000 = 0x60150200
+						pApdu2 += OoDWordToOad(dwOAD, pApdu2);
+						//*pApdu++ = 0x00;	//DAR
+						//*pApdu++ = GetErrOfGet(nRet);	//对象不存在
+						*pApdu2++ = 0x01;	//Data
+						*pApdu2++ = 0x00;	//对象不存在
+					}
 				}
 				else
 				{
 					memcpy(pApdu2, tApduInfo.pbRCSD, tApduInfo.wRCSDLen);	
 					pApdu2 += tApduInfo.wRCSDLen;
+					//*pApdu++ = 0x00;				//DAR
+					//*pApdu++ = GetErrOfGet(nRet);	//对象不存在
+					*pApdu2++ = 0x01;	//Data
+					*pApdu2++ = 0x00;	//对象不存在
 				}
-
-				*pApdu2++ = 0x00;				//DAR
-				*pApdu2++ = GetErrOfGet(nRet);	//对象不存在
 				bGetNum++;
 			}
 		}
@@ -1814,20 +1833,37 @@ int CFaProto::Get_request_record_list()
 			{
 				memcpy(pApdu2, tApduInfo.pbOAD, tApduInfo.wOADLen);	
 				pApdu2 += tApduInfo.wOADLen;
+				
 				if (tApduInfo.wRCSDLen == 1)	//表是RCSD里有0个CSD,即表示全部
 				{
-					DWORD dwOAD;
-					*pApdu2++ = 0x01;	//1个RCSD
-					*pApdu2++ = 0x00;	//CSD里选择OAD
-					dwOAD = OoOadToDWord(tApduInfo.pbOAD);
-					dwOAD = dwOAD + 0x00010000;	//如0x60140200 + 0x00010000 = 0x60150200
-					pApdu2 += OoDWordToOad(dwOAD, pApdu2);
+					if (tApduInfo.pbRCSD[0] != 0) //表示已填充了RCSD中的所有CSD
+					{
+						int iRcsdLen;
+						//RCSD
+						iRcsdLen = ScanRCSD(tApduInfo.pbRCSD, false);	
+						memcpy(pApdu2, tApduInfo.pbRCSD, iRcsdLen);	
+						pApdu2 += iRcsdLen;
+						//*pApdu++ = 0x00;	//Data
+						//*pApdu++ = GetErrOfGet(nRet);	//对象不存在
+						*pApdu2++ = 0x01;	//Data
+						*pApdu2++ = 0x00;	//对象不存在
+					}
+					else
+					{
+						DWORD dwOAD;
+						*pApdu2++ = 0x01;	//1个RCSD
+						*pApdu2++ = 0x00;	//CSD里选择OAD
+						dwOAD = OoOadToDWord(tApduInfo.pbOAD);
+						dwOAD = dwOAD + 0x00010000;	//如0x60140200 + 0x00010000 = 0x60150200
+						pApdu2 += OoDWordToOad(dwOAD, pApdu2);
+					}
 				}
 				else
 				{
-					memcpy(pApdu2, tApduInfo.pbRCSD, tApduInfo.wRCSDLen);
+					memcpy(pApdu2, tApduInfo.pbRCSD, tApduInfo.wRCSDLen);	
 					pApdu2 += tApduInfo.wRCSDLen;
 				}
+
 				*pApdu2++ = 0x01;	//Data
 				if (wRetNum != 0)
 					*pApdu2++ = (BYTE)wRetNum;
@@ -1847,8 +1883,8 @@ int CFaProto::Get_request_record_list()
 		*pApdu1++ = GET_RECORD_LIST;
 		*pApdu1++ = m_AppComm.bPIID;
 		*pApdu1++ = bGetNum;
-		memcpy(pApdu1, pApdu0+iApdu1Off, pApdu2-(pApdu0+iApdu1Off));
-		pApdu1 += (pApdu2-(pApdu0+iApdu1Off));
+		memcpy(pApdu1, pApdu0+iApdu1Offset, pApdu2-(pApdu0+iApdu1Offset));
+		pApdu1 += (pApdu2-(pApdu0+iApdu1Offset));
 	}
 	else	//分帧传输
 	{
@@ -1871,8 +1907,8 @@ int CFaProto::Get_request_record_list()
 		m_AppComm.wBlkNo++;
 		*pApdu1++ = 0x02;	//SEQUENCE OF A-ResultRecord
 		*pApdu1++ = bGetNum;
-		memcpy(pApdu1, pApdu0+iApdu1Off, pApdu2-(pApdu0+iApdu1Off));
-		pApdu1 += (pApdu2-(pApdu0+iApdu1Off));
+		memcpy(pApdu1, pApdu0+iApdu1Offset, pApdu2-(pApdu0+iApdu1Offset));
+		pApdu1 += (pApdu2-(pApdu0+iApdu1Offset));
 	}
 
 	*pApdu1++ = GetRptFlg();

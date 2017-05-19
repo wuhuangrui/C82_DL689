@@ -475,86 +475,86 @@ bool SaveTaskDataToDB(TMtrRdCtrl* pMtrRdCtrl, BYTE bType, TTaskSucFlg taskSucFlg
 					tTime.nSecond = 0;
 					break;
 				case 6:	//数据冻结时标 
-					int iRet;
-					DWORD dwFrzOAD;	//数据冻结时标
-					DWORD dwOAD;
-					WORD wDataOffset;
-					BYTE bArryNum;
-					BYTE bRsdNum;
-					BYTE *pTime;
-					BYTE bMemRec[512];
-
-					wDataOffset = 0;
-					dwFrzOAD = 0x20210200;
-					pbPtr = OoGetField(pbSch, pbDataFmt, wDataFmtLen, 3, &wLen, &bFmtType);	
-					if (pbPtr != NULL)
-					{
-						if (*pbPtr++ == DT_ARRAY)
-						{
-							bArryNum = *pbPtr++;
-							for (BYTE i=0; i<bArryNum; i++)
-							{				
-								if (*pbPtr++ == DT_CSD)
-								{
-									if (*pbPtr++ == 0)	//OAD
-									{
-										dwOAD = OoOadToDWord(pbPtr);
-										if (dwFrzOAD == dwOAD)
-											goto OK_FRZOAD;	
-										iRet = OoGetDataLen(DT_OAD, pbPtr);
-										if (iRet < 0)
-											goto ERR_FRZOAD;
-										wDataOffset += iRet;
-										pbPtr += 4;
-									}
-									else	//ROAD
-									{
-										dwOAD = OoOadToDWord(pbPtr);
-										if ((dwOAD&0xFF000000) == 0x50000000)	//表示冻结类对象
-										{
-											pbPtr += 4;
-											bRsdNum = *pbPtr++;
-											for (BYTE j=0; j<bRsdNum; j++)
-											{
-												dwOAD = OoOadToDWord(pbPtr);
-												if (dwFrzOAD == dwOAD)
-													goto OK_FRZOAD;
-												iRet = OoGetDataLen(DT_OAD, pbPtr);
-												if (iRet < 0)
-													goto ERR_FRZOAD;
-												wDataOffset += iRet;
-												pbPtr += 4;
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-ERR_FRZOAD:
-					DTRACE(DB_CRITICAL, ("SaveTaskDataToDB(): Can`t find dwFrzOAD=0x%08x.\n", dwFrzOAD));
-					return false;
-OK_FRZOAD:
-					memset(bMemRec, 0, sizeof(bMemRec));
-					iRet = ReadTmpRec(pMtrRdCtrl, bType, taskSucFlg.bTaskId, bMemRec);
-					if (iRet < 0)
-					{
-						DTRACE(DB_CRITICAL, ("SaveTaskDataToDB(): iRet=%d.\n", iRet));
-						goto ERR_FRZOAD;
-					}
-					pTime = bMemRec+wDataOffset;
-					if (*pTime == DT_DATE_TIME_S)
-					{
-						OoDateTimeSToTime(pTime+1, &tTime);
-						tTime.nSecond = 0;	//秒强制为0
-						break;
-					}
-					else
-					{
-						TraceBuf(DB_CRITICAL, "SaveTaskDataToDB(): err:", bMemRec, iRet);
-						TraceBuf(DB_CRITICAL, "SaveTaskDataToDB(): err:", pTime, 8);
-						return false;
-					}
+//					int iRet;
+//					DWORD dwFrzOAD;	//数据冻结时标
+//					DWORD dwOAD;
+//					WORD wDataOffset;
+//					BYTE bArryNum;
+//					BYTE bRsdNum;
+//					BYTE *pTime;
+//					BYTE bMemRec[512];
+//
+//					wDataOffset = 0;
+//					dwFrzOAD = 0x20210200;
+//					pbPtr = OoGetField(pbSch, pbDataFmt, wDataFmtLen, 3, &wLen, &bFmtType);	
+//					if (pbPtr != NULL)
+//					{
+//						if (*pbPtr++ == DT_ARRAY)
+//						{
+//							bArryNum = *pbPtr++;
+//							for (BYTE i=0; i<bArryNum; i++)
+//							{				
+//								if (*pbPtr++ == DT_CSD)
+//								{
+//									if (*pbPtr++ == 0)	//OAD
+//									{
+//										dwOAD = OoOadToDWord(pbPtr);
+//										if (dwFrzOAD == dwOAD)
+//											goto OK_FRZOAD;	
+//										iRet = OoGetDataLen(DT_OAD, pbPtr);
+//										if (iRet < 0)
+//											goto ERR_FRZOAD;
+//										wDataOffset += iRet;
+//										pbPtr += 4;
+//									}
+//									else	//ROAD
+//									{
+//										dwOAD = OoOadToDWord(pbPtr);
+//										if ((dwOAD&0xFF000000) == 0x50000000)	//表示冻结类对象
+//										{
+//											pbPtr += 4;
+//											bRsdNum = *pbPtr++;
+//											for (BYTE j=0; j<bRsdNum; j++)
+//											{
+//												dwOAD = OoOadToDWord(pbPtr);
+//												if (dwFrzOAD == dwOAD)
+//													goto OK_FRZOAD;
+//												iRet = OoGetDataLen(DT_OAD, pbPtr);
+//												if (iRet < 0)
+//													goto ERR_FRZOAD;
+//												wDataOffset += iRet;
+//												pbPtr += 4;
+//											}
+//										}
+//									}
+//								}
+//							}
+//						}
+//					}
+//ERR_FRZOAD:
+//					DTRACE(DB_CRITICAL, ("SaveTaskDataToDB(): Can`t find dwFrzOAD=0x%08x.\n", dwFrzOAD));
+//					return false;
+//OK_FRZOAD:
+//					memset(bMemRec, 0, sizeof(bMemRec));
+//					iRet = ReadTmpRec(pMtrRdCtrl, bType, taskSucFlg.bTaskId, bMemRec);
+//					if (iRet < 0)
+//					{
+//						DTRACE(DB_CRITICAL, ("SaveTaskDataToDB(): iRet=%d.\n", iRet));
+//						goto ERR_FRZOAD;
+//					}
+//					pTime = bMemRec+wDataOffset;
+//					if (*pTime == DT_DATE_TIME_S)
+//					{
+//						OoDateTimeSToTime(pTime+1, &tTime);
+//						tTime.nSecond = 0;	//秒强制为0
+//						break;
+//					}
+//					else
+//					{
+//						TraceBuf(DB_CRITICAL, "SaveTaskDataToDB(): err:", bMemRec, iRet);
+//						TraceBuf(DB_CRITICAL, "SaveTaskDataToDB(): err:", pTime, 8);
+//						return false;
+//					}
 					break;
 				case 7:	//相对上月月末0点0分
 					GetCurTime(&tTime);

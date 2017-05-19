@@ -17,6 +17,7 @@ BYTE OIGetStrLen(BYTE* pbStr, BYTE bLen, BYTE bFill);
 int OoReadAttr(WORD wOI, BYTE bAttr, BYTE* pbBuf, BYTE** ppFmt, WORD* pwFmtLen);
 int OoProReadAttr(WORD wOI, BYTE bAtrr, BYTE bIndex, BYTE* pbBuf, WORD wBufSize, int* piStart);
 int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bool fIsSecurityLayer);
+int OoGetDataTypeFmtValidLen(BYTE *pFmt, WORD wFmtLen, WORD *pwRetFmtLen);
 int OoGetDataTypeLen(BYTE* pbSrc);
 int ScanArray(BYTE* pbSrc, bool fRevOrder);
 int ScanMS(BYTE* pbSrc, bool fRevOrder);
