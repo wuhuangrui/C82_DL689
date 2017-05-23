@@ -1594,7 +1594,7 @@ struct MeterID {
 int post_deal_data_0x40000200(void *pbdata, int iDataLen)
 {
 	BYTE * pbTmp = (BYTE*)pbdata;
-	memmove((BYTE*)pbdata+5,pbdata+10,3);
+	memmove((BYTE*)pbTmp+5,pbTmp+10,3);
 	return 0;
 }
 
@@ -1659,7 +1659,7 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 	int iTxLen;
 	int iRet = -1, iTotalLen=0;
 	BYTE *pbData0 = pbData;
-	BYTE *pbDealData = NULL;
+	BYTE *pbPostDealData = NULL;
 	BYTE bNum;
 	int iNum;
 	struct MeterID *pMeterIDMap = NULL;
