@@ -4018,6 +4018,7 @@ void CStdReader::RunThread()
 		}
 
 		LockReader();
+		DTRACE(DB_CCT, ("LockReader start\r\n"));
 		CctRunStateCheck();
 		if (GetInitState())
 		{
@@ -4028,6 +4029,8 @@ void CStdReader::RunThread()
 			Sleep(100);
 
 		UnLockReader();
+		DTRACE(DB_CCT, ("LockReader end...\r\n"));
+
 		UpdThreadRunClick(iMonitorID);
 	}
 
