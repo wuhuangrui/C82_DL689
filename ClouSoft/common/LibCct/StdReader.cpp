@@ -1594,7 +1594,7 @@ struct MeterID {
 int post_deal_data_0x40000200(void *pbdata, int iDataLen)
 {
 	BYTE * pbTmp = (BYTE*)pbdata;
-	memmove((BYTE*)pbTmp+5,pbTmp+10,3);
+	memmove((BYTE*)pbTmp+6,pbTmp+10,3);
 	return 0;
 }
 
@@ -1707,6 +1707,7 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 			}
 
 			iRet = Afn13Fn01_RtFwd(bTsa, bTsaLen, bTxBuf, iTxLen+4, NULL, &tRdItem, pbData+1, tTMtrInfo.bProType, false, true);
+			
 			if (iRet > 2)
 			{
 				pbData[0] = 0x01;	//1×Ö½Úchoice
