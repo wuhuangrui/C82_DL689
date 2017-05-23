@@ -3265,6 +3265,7 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 			*pTxApdu++ = bObDscNum;
 			for (BYTE k=0; k<bObDscNum; k++)
 			{
+				DTRACE(DB_FAPROTO, ("FaProto::ProxyResponse: bObDscNum=%d\r\n", bObDscNum));
 				memset(bApdu, 0, sizeof(bApdu));
 				pbApdu = bApdu;
 				memcpy(pbApdu, pbRx, 4);
@@ -3285,7 +3286,10 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 				pbRx += 4;
 
 				if (GetCurTime() - dwLastTime > wTimeOut)
+				{
+					DTRACE(DB_FAPROTO, ("FaProto::PROXY_GET_REQ_LIST timeout here\r\n"));
 					goto ProxyResponse_ret;
+				}
 			}
 			break;
 		case PROXY_SET_REQ_LIST:

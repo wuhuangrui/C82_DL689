@@ -1296,7 +1296,7 @@ int CStdReader::Set_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE 
 			iLen = OoScanData(pApdu+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType1);
 			if (iLen < 0)
 			{
-				DTRACE(DB_FAPROTO, ("DirAskProxy(): OoScanData error, bType=%d, bChoice=%d, dwOAD=%08x.\n", bType, bChoice, OoOadToDWord(pApdu)));
+				DTRACE(DB_FAPROTO, ("CStdReader::Set_OAD_to_645_meter(): OoScanData error, bType=%d, bChoice=%d, dwOAD=%08x.\n", bType, bChoice, OoOadToDWord(pApdu)));
 				break;
 			}
 
@@ -1341,7 +1341,7 @@ int CStdReader::Set_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE 
 			iLen = OoScanData(pApdu+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType1);
 			if (iLen < 0)
 			{
-				DTRACE(DB_FAPROTO, ("DirAskProxy(): OoScanData error, bType=%d, bChoice=%d, dwOAD=%08x.\n", bType, bChoice, OoOadToDWord(pApdu)));
+				DTRACE(DB_FAPROTO, ("CStdReader::Set_OAD_to_645_meter(): OoScanData error, bType=%d, bChoice=%d, dwOAD=%08x.\n", bType, bChoice, OoOadToDWord(pApdu)));
 				break;
 			}
 			pApdu += 4;
@@ -1446,7 +1446,7 @@ int CStdReader::Act_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE 
 			iLen = OoScanData(pApdu+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType1);
 			if (iLen < 0)
 			{
-				DTRACE(DB_FAPROTO, ("DirAskProxy(): OoScanData error, bType=%d, bChoice=%d, dwOAD=%08x.\n", bType, bChoice, OoOadToDWord(pApdu)));
+				DTRACE(DB_FAPROTO, ("CStdReader::Set_OAD_to_645_meter(): OoScanData error, bType=%d, bChoice=%d, dwOAD=%08x.\n", bType, bChoice, OoOadToDWord(pApdu)));
 				break;
 			}
 
@@ -1491,7 +1491,7 @@ int CStdReader::Act_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE 
 			iLen = OoScanData(pApdu+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType1);
 			if (iLen < 0)
 			{
-				DTRACE(DB_FAPROTO, ("DirAskProxy(): OoScanData error, bType=%d, bChoice=%d, dwOAD=%08x.\n", bType, bChoice, OoOadToDWord(pApdu)));
+				DTRACE(DB_FAPROTO, ("CStdReader::Set_OAD_to_645_meter(): OoScanData error, bType=%d, bChoice=%d, dwOAD=%08x.\n", bType, bChoice, OoOadToDWord(pApdu)));
 				break;
 			}
 			pApdu += 4;
@@ -1834,7 +1834,7 @@ int CStdReader::Read_RecordData_from_645_meter(BYTE bType, BYTE bChoice, BYTE* b
 		else	//ROAD 暂不考虑该情况
 		{
 			*pbData++ = 0x00;
-			DTRACE(DB_FAPROTO, ("DirAskProxy(): OoScanData error, bType=%d, bChoice=%d, dwOAD=%08x.\n", bType, bChoice, OoOadToDWord(pApdu)));
+			DTRACE(DB_FAPROTO, ("CStdReader::Set_OAD_to_645_meter(): OoScanData error, bType=%d, bChoice=%d, dwOAD=%08x.\n", bType, bChoice, OoOadToDWord(pApdu)));
 			break;
 		}
 	}
