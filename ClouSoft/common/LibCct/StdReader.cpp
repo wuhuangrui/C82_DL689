@@ -1591,8 +1591,14 @@ struct MeterID {
 	int (*DataDealFunction)(void *pdata, int DataLen);
 };
 
+int post_deal_data_0x40000200(void *pdata, int dataLen)
+{
+	memmove(pdata+5,pdata+10,3);
+	return 0;
+}
+
 struct MeterID MeterIDMap[] = {
-	{0x40000200, {0x40000200, 0x40000209, 0}, NULL},
+	{0x40000200, {0x40000200, 0x40000209, 0}, post_deal_data_0x40000200},
 	{0, {0}, NULL},
 };
 
@@ -1650,8 +1656,9 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 	TOobMtrInfo tTMtrInfo;
 	DWORD *pdwOADTmp = NULL;
 	int iTxLen;
-	int iRet = -1;
+	int iRet = -1, iTotalLen=0;
 	BYTE *pbData0 = pbData;
+	BYTE *pbDealData = NULL;
 	BYTE bNum;
 	int iNum;
 	struct MeterID *pMeterIDMap = NULL;
@@ -1693,7 +1700,10 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 			bTxBuf[3] = iTxLen;
 			//fill the origin OAD
 			if (iCount == 0)
+			{
 				pbData += OoDWordToOad(dwOriginOAD, pbData);
+				pbPostDealData = pbData;
+			}
 
 			iRet = Afn13Fn01_RtFwd(bTsa, bTsaLen, bTxBuf, iTxLen+4, NULL, &tRdItem, pbData+1, tTMtrInfo.bProType, false, true);
 			if (iRet > 2)
@@ -1701,10 +1711,12 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 				pbData[0] = 0x01;	//1×Ö½Úchoice
 				iRet += 1;
 				pbData += iRet;
+				iTotalLen += iRet;
 			}
 			else
 			{
 				pbData[0] = DAR;
+				iTotalLen = 1;
 			}
 
 			DTRACE(DB_FAPROTO,("Read_OneOAD_from_645_meter: iRet=%d\r\n", iRet));
@@ -1718,8 +1730,10 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 	if (pMeterIDMap != NULL)
 	{
 		if (pMeterIDMap->DataDealFunction != NULL)
-			pMeterIDMap->DataDealFunction(pbData0, iRet);
+			pMeterIDMap->DataDealFunction(pbPostDealData, iRet);
 	}
+
+	DTRACE(DB_FAPROTO,("Read_OneOAD_from_645_meter: iRet=%d\r\n", iRet));
 
 	return iRet;
 
