@@ -1591,9 +1591,10 @@ struct MeterID {
 	int (*DataDealFunction)(void *pdata, int DataLen);
 };
 
-int post_deal_data_0x40000200(void *pdata, int dataLen)
+int post_deal_data_0x40000200(void *pbdata, int iDataLen)
 {
-	memmove(pdata+5,pdata+10,3);
+	BYTE * pbTmp = (BYTE*)pbdata;
+	memmove((BYTE*)pbdata+5,pbdata+10,3);
 	return 0;
 }
 
