@@ -79,7 +79,7 @@
 
 //从节点同步模式
 #define CCT_NO_SYNC					0x00    //不需要下发从节点信息
-#define CCT_NEED_SYNC				0x01    //需要下发从节点信息
+
 
 //路由模块通信方式
 #define CCT_RD_TYPE_PLC				0x01    //窄带电力线载波
@@ -288,7 +288,15 @@ public:
 
 	bool Afn11Fn06_StopSlaveNodeRpt();
 
+	int DirAskProxy(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pApdu, WORD wApduLen, WORD wTimeOut, BYTE* pbData);
 private:
+
+	int Set_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pInApdu, WORD wInApduLen, WORD wTimeOut, BYTE* pbData);
+	int Act_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pInApdu, WORD wInApduLen, WORD wTimeOut, BYTE* pbData);
+	int Do_uplink_request_to_698_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pInApdu, WORD wInApduLen, WORD wTimeOut, BYTE* pbData);
+	int Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pInApdu, WORD wInApduLen, WORD wTimeOut, BYTE* pbData);
+	int Read_RecordData_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pInApdu, WORD wInApduLen, WORD wTimeOut, BYTE* pbData);
+
 
 	bool RtCtrl(BYTE bFn);
 
@@ -314,7 +322,6 @@ public:
 
 	int DirectReadMeterData(WORD wMtrSn, BYTE *pbBuf);
 
-	int DirAskProxy(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pApdu, WORD wApduLen, WORD wTimeOut, BYTE* pbData);
 
 //////////////////////////////ProtoProc//////////////////////////////////////
 	WORD Make645Frm(BYTE* pbFrm, const BYTE* pbAddr, BYTE bCmd, BYTE bDataLen);
