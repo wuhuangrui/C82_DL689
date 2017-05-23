@@ -2046,7 +2046,7 @@ ToaMap g_OIConvertClass[] =
 	{0x22030200,	6,		MAP_SYSDB,		0x2203,	  PN0,	 0,		g_bOnTimeFmt,			sizeof(g_bOnTimeFmt),		NULL},//供电时间
 	{0x22040200,	6,		MAP_SYSDB,		0x2204,	  PN0,	 0,		g_bResetTimesFmt,		sizeof(g_bResetTimesFmt),	NULL},//复位次数
 
-	{0x23010200,	23,		MAP_SYSDB,		0x2301,	  PN1,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加配置表 支持4个测量点配置
+	{0x23010200,	23,		MAP_SYSDB,		0x2301,	  PN1,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpCfgFmt),		NULL},//总加配置表 支持4个测量点配置
 	{0x23010300,	23,		MAP_SYSDB,		0x2302,	  PN1,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加有功功率
 	{0x23010400,	23,		MAP_SYSDB,		0x2303,	  PN1,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加无功功率
 	{0x23010500,	23,		MAP_SYSDB,		0x2304,	  PN1,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加滑差时间内平均有功功率
@@ -2064,7 +2064,7 @@ ToaMap g_OIConvertClass[] =
 	{0x23011100,	23,		MAP_SYSDB,		0x2310,	  PN1,	 0,		g_bGrpCtrlStaCurFmt,	sizeof(g_bGrpCtrlStaCurFmt),NULL},//总加组当前控制状态
 	{0x23011200,	23,		MAP_SYSDB,		0x2311,	  PN1,	 0,		g_bGrpDataUnitFmt,		sizeof(g_bGrpDataUnitFmt),	NULL},//换算及单位
 
-	{0x23020200,	23,		MAP_SYSDB,		0x2301,	  PN2,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加配置表 支持4个测量点配置
+	{0x23020200,	23,		MAP_SYSDB,		0x2301,	  PN2,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpCfgFmt),		NULL},//总加配置表 支持4个测量点配置
 	{0x23020300,	23,		MAP_SYSDB,		0x2302,	  PN2,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加有功功率
 	{0x23020400,	23,		MAP_SYSDB,		0x2303,	  PN2,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加无功功率
 	{0x23020500,	23,		MAP_SYSDB,		0x2304,	  PN2,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加滑差时间内平均有功功率
@@ -2082,7 +2082,7 @@ ToaMap g_OIConvertClass[] =
 	{0x23021100,	23,		MAP_SYSDB,		0x2310,	  PN2,	 0,		g_bGrpCtrlStaCurFmt,	sizeof(g_bGrpCtrlStaCurFmt),NULL},//总加组当前控制状态
 	{0x23021200,	23,		MAP_SYSDB,		0x2311,	  PN2,	 0,		g_bGrpDataUnitFmt,		sizeof(g_bGrpDataUnitFmt),	NULL},//换算及单位
 
-	{0x23030200,	23,		MAP_SYSDB,		0x2301,	  PN3,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加配置表 支持4个测量点配置
+	{0x23030200,	23,		MAP_SYSDB,		0x2301,	  PN3,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpCfgFmt),		NULL},//总加配置表 支持4个测量点配置
 	{0x23030300,	23,		MAP_SYSDB,		0x2302,	  PN3,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加有功功率
 	{0x23030400,	23,		MAP_SYSDB,		0x2303,	  PN3,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加无功功率
 	{0x23030500,	23,		MAP_SYSDB,		0x2304,	  PN3,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加滑差时间内平均有功功率
@@ -2100,7 +2100,7 @@ ToaMap g_OIConvertClass[] =
 	{0x23031100,	23,		MAP_SYSDB,		0x2310,	  PN3,	 0,		g_bGrpCtrlStaCurFmt,	sizeof(g_bGrpCtrlStaCurFmt),NULL},//总加组当前控制状态
 	{0x23031200,	23,		MAP_SYSDB,		0x2311,	  PN3,	 0,		g_bGrpDataUnitFmt,		sizeof(g_bGrpDataUnitFmt),	NULL},//换算及单位
 
-	{0x23040200,	23,		MAP_SYSDB,		0x2301,	  PN4,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加配置表 支持4个测量点配置
+	{0x23040200,	23,		MAP_SYSDB,		0x2301,	  PN4,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpCfgFmt),		NULL},//总加配置表 支持4个测量点配置
 	{0x23040300,	23,		MAP_SYSDB,		0x2302,	  PN4,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加有功功率
 	{0x23040400,	23,		MAP_SYSDB,		0x2303,	  PN4,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加无功功率
 	{0x23040500,	23,		MAP_SYSDB,		0x2304,	  PN4,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加滑差时间内平均有功功率
@@ -2118,7 +2118,7 @@ ToaMap g_OIConvertClass[] =
 	{0x23041100,	23,		MAP_SYSDB,		0x2310,	  PN4,	 0,		g_bGrpCtrlStaCurFmt,	sizeof(g_bGrpCtrlStaCurFmt),NULL},//总加组当前控制状态
 	{0x23041200,	23,		MAP_SYSDB,		0x2311,	  PN4,	 0,		g_bGrpDataUnitFmt,		sizeof(g_bGrpDataUnitFmt),	NULL},//换算及单位
 
-	{0x23050200,	23,		MAP_SYSDB,		0x2301,	  PN5,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加配置表 支持4个测量点配置
+	{0x23050200,	23,		MAP_SYSDB,		0x2301,	  PN5,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpCfgFmt),		NULL},//总加配置表 支持4个测量点配置
 	{0x23050300,	23,		MAP_SYSDB,		0x2302,	  PN5,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加有功功率
 	{0x23050400,	23,		MAP_SYSDB,		0x2303,	  PN5,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加无功功率
 	{0x23050500,	23,		MAP_SYSDB,		0x2304,	  PN5,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加滑差时间内平均有功功率
@@ -2136,7 +2136,7 @@ ToaMap g_OIConvertClass[] =
 	{0x23051100,	23,		MAP_SYSDB,		0x2310,	  PN5,	 0,		g_bGrpCtrlStaCurFmt,	sizeof(g_bGrpCtrlStaCurFmt),NULL},//总加组当前控制状态
 	{0x23051200,	23,		MAP_SYSDB,		0x2311,	  PN5,	 0,		g_bGrpDataUnitFmt,		sizeof(g_bGrpDataUnitFmt),	NULL},//换算及单位
 
-	{0x23060200,	23,		MAP_SYSDB,		0x2301,	  PN6,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加配置表 支持4个测量点配置
+	{0x23060200,	23,		MAP_SYSDB,		0x2301,	  PN6,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpCfgFmt),		NULL},//总加配置表 支持4个测量点配置
 	{0x23060300,	23,		MAP_SYSDB,		0x2302,	  PN6,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加有功功率
 	{0x23060400,	23,		MAP_SYSDB,		0x2303,	  PN6,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加无功功率
 	{0x23060500,	23,		MAP_SYSDB,		0x2304,	  PN6,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加滑差时间内平均有功功率
@@ -2154,7 +2154,7 @@ ToaMap g_OIConvertClass[] =
 	{0x23061100,	23,		MAP_SYSDB,		0x2310,	  PN6,	 0,		g_bGrpCtrlStaCurFmt,	sizeof(g_bGrpCtrlStaCurFmt),NULL},//总加组当前控制状态
 	{0x23061200,	23,		MAP_SYSDB,		0x2311,	  PN6,	 0,		g_bGrpDataUnitFmt,		sizeof(g_bGrpDataUnitFmt),	NULL},//换算及单位
 
-	{0x23070200,	23,		MAP_SYSDB,		0x2301,	  PN7,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加配置表 支持4个测量点配置
+	{0x23070200,	23,		MAP_SYSDB,		0x2301,	  PN7,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpCfgFmt),		NULL},//总加配置表 支持4个测量点配置
 	{0x23070300,	23,		MAP_SYSDB,		0x2302,	  PN7,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加有功功率
 	{0x23070400,	23,		MAP_SYSDB,		0x2303,	  PN7,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加无功功率
 	{0x23070500,	23,		MAP_SYSDB,		0x2304,	  PN7,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加滑差时间内平均有功功率
@@ -2172,7 +2172,7 @@ ToaMap g_OIConvertClass[] =
 	{0x23071100,	23,		MAP_SYSDB,		0x2310,	  PN7,	 0,		g_bGrpCtrlStaCurFmt,	sizeof(g_bGrpCtrlStaCurFmt),NULL},//总加组当前控制状态
 	{0x23071200,	23,		MAP_SYSDB,		0x2311,	  PN7,	 0,		g_bGrpDataUnitFmt,		sizeof(g_bGrpDataUnitFmt),	NULL},//换算及单位
 
-	{0x23080200,	23,		MAP_SYSDB,		0x2301,	  PN8,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加配置表 支持4个测量点配置
+	{0x23080200,	23,		MAP_SYSDB,		0x2301,	  PN8,	 0,		g_bGrpCfgFmt,			sizeof(g_bGrpCfgFmt),		NULL},//总加配置表 支持4个测量点配置
 	{0x23080300,	23,		MAP_SYSDB,		0x2302,	  PN8,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加有功功率
 	{0x23080400,	23,		MAP_SYSDB,		0x2303,	  PN8,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加无功功率
 	{0x23080500,	23,		MAP_SYSDB,		0x2304,	  PN8,	 0,		g_bGrpPowFmt,			sizeof(g_bGrpPowFmt),		NULL},//总加滑差时间内平均有功功率
@@ -3092,7 +3092,7 @@ ToaMap g_OIConvertClass[] =
 	{0x60028000,	11,		MAP_SYSDB,		0x600A,	  PN0,   0,		NULL,												0},	//清空搜表结果
 	{0x60028100,	11,		MAP_SYSDB,		0x600B,	  PN0,   0,		NULL,												0},	//清空跨台区搜表结果
 
-	{0x60120200,	1,		MAP_TASKDB,		0x6012,	  PN0,   0,		g_bTskUnitFmtDesc+2,	sizeof(g_bTskUnitFmtDesc)-2},
+	{0x60120200,	1,		MAP_TASKDB,		0x6012,	  PN0,   0,		g_bTskUnitFmtDesc/*g_bTskUnitFmtDesc+2*/,	sizeof(g_bTskUnitFmtDesc)/*sizeof(g_bTskUnitFmtDesc)-2*/},
 	{0x60140200,	1,		MAP_TASKDB,		0x6014,	  PN0,   0,		g_bCommFmtDesc+2,		sizeof(g_bCommFmtDesc)-2},
 	{0x60160200,	1,		MAP_TASKDB,		0x6016,	  PN0,   0,		g_bEvtFmtDesc+2,		sizeof(g_bEvtFmtDesc)-2},
 	{0x60180200,	1,		MAP_TASKDB,		0x6018,	  PN0,   0,		g_bTranFmtDesc+2,		sizeof(g_bTranFmtDesc)-2},
@@ -3505,6 +3505,14 @@ TOmMap g_OmMap[] =
 	{0x24010200,	12,				NULL,		NULL,						OnRunPulseCmd,					NULL},	//运行
 	{0x24010300,	12,		g_bAddPulseCfgFmt,	sizeof(g_bAddPulseCfgFmt),	OnAddPulseCfgCmd,				NULL},	//添加一个冻结关联对象属性
 	{0x24010400,	12,		g_bDelPulseCfgFmt,	sizeof(g_bDelPulseCfgFmt),	OnDelPulseCfgCmd,				NULL},	//添加一个冻结关联对象属性
+	{0x24017f00,	12,		g_bPulseCfgFmt,		sizeof(g_bPulseCfgFmt),		BatAddPulseCfgCmd,				NULL}, //自定义 批量添加脉冲关联属性
+	{0x24027f00,	12,		g_bPulseCfgFmt,		sizeof(g_bPulseCfgFmt),		BatAddPulseCfgCmd,				NULL}, //自定义 批量添加脉冲关联属性
+	{0x24037f00,	12,		g_bPulseCfgFmt,		sizeof(g_bPulseCfgFmt),		BatAddPulseCfgCmd,				NULL}, //自定义 批量添加脉冲关联属性
+	{0x24047f00,	12,		g_bPulseCfgFmt,		sizeof(g_bPulseCfgFmt),		BatAddPulseCfgCmd,				NULL}, //自定义 批量添加脉冲关联属性
+	{0x24057f00,	12,		g_bPulseCfgFmt,		sizeof(g_bPulseCfgFmt),		BatAddPulseCfgCmd,				NULL}, //自定义 批量添加脉冲关联属性
+	{0x24067f00,	12,		g_bPulseCfgFmt,		sizeof(g_bPulseCfgFmt),		BatAddPulseCfgCmd,				NULL}, //自定义 批量添加脉冲关联属性
+	{0x24077f00,	12,		g_bPulseCfgFmt,		sizeof(g_bPulseCfgFmt),		BatAddPulseCfgCmd,				NULL}, //自定义 批量添加脉冲关联属性
+	{0x24087f00,	12,		g_bPulseCfgFmt,		sizeof(g_bPulseCfgFmt),		BatAddPulseCfgCmd,				NULL}, //自定义 批量添加脉冲关联属性
 #endif
 	//----dwOM----wClass-----------pFmt-------------wFmtLen-----------------DoMethod----------------------pvAddon-------
 	{0x30000100,	24,		g_bResetEvtFmt,		sizeof(g_bResetEvtFmt),						DoTermEvtMethod1,			NULL},	//复位

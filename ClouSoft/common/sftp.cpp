@@ -267,7 +267,8 @@ int CSftp::ReadFirst(BYTE* pbRx, BYTE* pbTx)
 			return 2;
 		}
 		
-		WORD wMycrc = get_crc_16(0, pbTx, wUpLen);
+		//WORD wMycrc = get_crc_16(0, pbTx, wUpLen);
+		WORD wMycrc = CheckCrc16(pbTx, wUpLen);
 		//printf("SFTP::FirstRead CRC =%d\n",wMycrc);
 		pbTx -=4;
 		
@@ -356,7 +357,8 @@ int CSftp::ReadNext(BYTE* pbRx, BYTE* pbTx)
 		return 2;
 	}
 	
-	WORD wMycrc = get_crc_16(0, pbTx, wUpLen);
+	//WORD wMycrc = get_crc_16(0, pbTx, wUpLen);
+	WORD wMycrc = CheckCrc16(pbTx, wUpLen);
 	//printf("SFTP::ReadNext CRC =%d\n",wMycrc);
 	pbTx -=4;
 	
@@ -439,7 +441,8 @@ int CSftp::WriteFirst(BYTE* pbRx, BYTE* pbTx)
 		}
 		
 		pbRx += 2;	
-		WORD wMycrc = get_crc_16(0, pbRx, wDownLen);
+		//WORD wMycrc = get_crc_16(0, pbRx, wDownLen);
+		WORD wMycrc = CheckCrc16(pbRx, wDownLen);
 		if(wMycrc != wRcrc)
 		{
 			DTRACE(DB_FAPROTO, ("CSftp::WriteFirst : CRC Check Error\n"));
@@ -571,7 +574,8 @@ int CSftp::WriteNext(BYTE* pbRx, BYTE* pbTx)
 
 	pbRx += 2;
 	
-	WORD wMycrc = get_crc_16(0, pbRx, wDownLen);
+	//WORD wMycrc = get_crc_16(0, pbRx, wDownLen);
+	WORD wMycrc = CheckCrc16(pbRx, wDownLen);
 	if(wMycrc != wRcrc)
 	{
 		DTRACE(DB_FAPROTO, ("CSftp::WriteNext : CRC Check Error\n"));
@@ -691,7 +695,7 @@ int CSftp::TransferFinish(BYTE* pbRx, BYTE* pbTx)
 		return 2;
 	}
 	
-	WORD wMycrc = 0;
+	WORD wMycrc = PPPINITFCS16;
 	
 /////////////////////////////////////		
 	for(int i=0; i<m_dwFileSize/512; i++)
@@ -711,7 +715,8 @@ int CSftp::TransferFinish(BYTE* pbRx, BYTE* pbTx)
 	    {
 			memcpy(pbbuf, m_pbDataBuf+i*512, 512);
 	    }
-		wMycrc = get_crc_16(wMycrc, pbbuf, 512);
+		//wMycrc = get_crc_16(wMycrc, pbbuf, 512);
+		wMycrc = pppfcs16(wMycrc, pbbuf, 512);
 		//printf("SFTP:: %d crc = %x\n",i,wMycrc);
 	}
 	
@@ -721,8 +726,12 @@ int CSftp::TransferFinish(BYTE* pbRx, BYTE* pbTx)
 	    	read(f, pbbuf, m_dwFileSize%512);
 	    else
 			memcpy(pbbuf, m_pbDataBuf+m_dwFileSize-m_dwFileSize%512, m_dwFileSize%512);
-		wMycrc = get_crc_16(wMycrc, pbbuf, m_dwFileSize%512);
+		//wMycrc = get_crc_16(wMycrc, pbbuf, m_dwFileSize%512);
+		wMycrc = pppfcs16(wMycrc, pbbuf, m_dwFileSize%512);
+		
 	}
+	wMycrc ^= 0xffff; 
+
 	delete[] pbbuf;
 ////////////////////////////////////
 	

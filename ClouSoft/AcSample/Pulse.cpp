@@ -1015,6 +1015,39 @@ int OnAddPulseCfgCmd(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPa
 		return 1;
 	}
 }
+int BatAddPulseCfgCmd(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
+{
+	WORD wLen;
+	const ToaMap *pOadMap;
+	BYTE *pbFeildFmt;
+	WORD wFeildLen;
+	BYTE bPnNum, bType;
+	int iTmpLen = iParaLen;
+	BYTE* pbTmp = pbPara;
+	DWORD dwOAD;
+	pbTmp++; //数组类型
+	bPnNum = *pbTmp++; //元素个数
+	iTmpLen -= 2;
+	dwOAD = wOI;
+	dwOAD = (dwOAD<<16) + 0x0400;
+	pOadMap = GetOIMap(dwOAD);
+	for (BYTE i=0; i<bPnNum; i++)
+	{
+		pbTmp = OoGetField(pbPara, pOadMap->pFmt, pOadMap->wFmtLen, i, &wLen, &bType, &pbFeildFmt, &wFeildLen);
+		if (OnAddPulseCfgCmd(wOI, bMethod, bOpMode, pbTmp, wLen, pvAddon, pbFeildFmt, wFeildLen, pbRes) == 1)
+		{
+			iTmpLen -= wLen;
+		}
+		else
+		{
+			return -1;
+		}
+	}
+	if (iTmpLen == 0)
+		return 0;
+	else
+		return -1;
+}
 
 //方法4：删除脉冲输入单元
 //参数∷=脉冲输入端口号OAD
