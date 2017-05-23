@@ -4495,7 +4495,8 @@ int DoClass11Method129_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 		return -1;
 	if (*pbPara++ != DT_TSA)
 		return -1;
-	tMtrInfo.bTsaLen = *pbPara++;
+	pbPara++;
+	tMtrInfo.bTsaLen = *pbPara++ + 1;
 	memcpy(tMtrInfo.bTsa, pbPara, tMtrInfo.bTsaLen);
 	pbPara += tMtrInfo.bTsaLen;
 	if (*pbPara++ != DT_ENUM)
@@ -4528,10 +4529,11 @@ int DoClass11Method129_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 		return -1;
 	tMtrInfo.wRateCurr = OoOiToWord(pbPara);	pbPara += 2;
 
+	*piRetLen = pbPara - pbPara0;
 	if (SetMeterInfo(wPn, tMtrInfo))
 	{
 		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
-		DTRACE(DB_FAPROTO, ("Delete meter successful.\n"));
+		DTRACE(DB_FAPROTO, ("Update meter successful.\n"));
 		SetDelayInfo(INFO_MTR_UPDATE);
 		pbRes[0] = DAR_SUCC;
 		return 1;
@@ -4563,13 +4565,14 @@ int DoClass11Method130_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 		return -1;
 	if (*pbPara++ != DT_TSA)
 		return -1;
-	tMtrInfo.bAcqTsaLen = *pbPara++;
+	pbPara++;
+	tMtrInfo.bAcqTsaLen = *pbPara++ + 1;
 	memcpy(tMtrInfo.bAcqTsa, pbPara, tMtrInfo.bAcqTsaLen);
 	pbPara += tMtrInfo.bAcqTsaLen;
 	if (*pbPara++ != DT_OCT_STR)
 		return -1;
 	tMtrInfo.bAssetLen = *pbPara++;
-	memcpy(tMtrInfo.bTsa, pbPara, tMtrInfo.bAssetLen);
+	memcpy(tMtrInfo.bAsset, pbPara, tMtrInfo.bAssetLen);
 	pbPara += tMtrInfo.bAssetLen;
 	if (*pbPara++ != DT_LONG_U)
 		return -1;
@@ -4579,6 +4582,8 @@ int DoClass11Method130_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 		return -1;
 	tMtrInfo.wCT = OoLongUnsignedToWord(pbPara);
 	pbPara += 2;
+	*piRetLen = pbPara - pbPara0;
+	
 	if (SetMeterInfo(wPn, tMtrInfo))
 	{
 		pbRes[0] = DAR_SUCC;
@@ -4587,7 +4592,7 @@ int DoClass11Method130_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 
 	TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
 
-	DTRACE(DB_FAPROTO, ("Delete meter successful.\n"));
+	DTRACE(DB_FAPROTO, ("Update meter successful.\n"));
 	SetDelayInfo(INFO_MTR_UPDATE);
 
 	return -1;
