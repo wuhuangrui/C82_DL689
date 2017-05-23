@@ -45,6 +45,7 @@
 #include "DCSample.h"
 #include "CalcPulse.h"
 #include <signal.h>
+#include "segment_debug.h"
 #endif
 
 
@@ -2583,6 +2584,7 @@ extern void SimuAcData();
 TThreadRet MainThread(void* pvPara)
 {
 	SysInitDebug();	//初始化不同系统下调试最低层的部分
+	sys_signal_setup();
 	InitDrivers(HW_CL790D82);
 	InitThreadMonitor(); //初始化线程监控
 	int iMonitorID = ReqThreadMonitorID("main-thrd", 60*60);	//申请线程监控ID,更新间隔为10分钟
