@@ -2302,8 +2302,8 @@ int CFaProto::Act_Response_Normal()
 		if (iRet>=0 && m_AppComm.fNewServer)
 		{
 			*pApdu++ = DR_ERROK;	//DAR--ok
-			memcpy(pApdu, pbRxBuf, iRet);
-			pApdu += iRet;
+			//memcpy(pApdu, pbRxBuf, iRet);	//liuxin20170523фа╠н
+			//pApdu += iRet;
 		}
 		else
 		{
@@ -2364,8 +2364,8 @@ int CFaProto::Act_Response_List()
 			{
 				*pApdu++ = DR_ERROK;	//DAR--ok
 				*pApdu++ = 0;
-				memcpy(pApdu, pbRxBuf, iRet);
-				pApdu += iRet;
+				//memcpy(pApdu, pbRxBuf, iRet);	//liuxin20170523фа╠н
+				//pApdu += iRet;
 			}
 			else
 			{
