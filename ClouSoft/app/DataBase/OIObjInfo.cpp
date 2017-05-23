@@ -4464,7 +4464,7 @@ int DoClass11Method128_AddMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 			if (iScanLen < 0)
 				return -1;
 
-			if (DoClass11Method127_AddMeter(wOI, bMethod, bOpMode, pbPara, iScanLen, pvAddon, pFmt, wFmtLen, pbRes) < 0)
+			if (DoClass11Method127_AddMeter(wOI, bMethod, bOpMode, pbPara, iScanLen, pvAddon, pFmt, wFmtLen, pbRes, piRetLen) < 0)
 				return -1;
 
 			pbPara += iScanLen;
