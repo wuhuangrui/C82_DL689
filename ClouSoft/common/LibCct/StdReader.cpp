@@ -39,24 +39,10 @@ CStdReader::CStdReader()
 	memset((BYTE*)&m_TRunStateInfo, 0, sizeof(m_TRunStateInfo));
 	memset((BYTE*)&m_TRtStat, 0, sizeof(m_TRtStat));
 
-	BYTE bBuf[32];
-	memset(bBuf, 0, sizeof(bBuf));
-	if (OoReadAttr(0x4001, 0x02, bBuf, NULL, NULL) <= 0 || IsAllAByte(bBuf, 0x00, 2))
-	{
-		char *pszDefAddr = "\x11\x22\x33\x44\x55\x66";
-		memcpy(m_TRtStat.bTermAddr, pszDefAddr, strlen(pszDefAddr));
-	}
-	else
-	{
-		BYTE bTsaLen;
-		bTsaLen = bBuf[1];
-		if (bTsaLen > 6)
-			bTsaLen = 6;
-		memcpy(m_TRtStat.bTermAddr, &bBuf[2], bTsaLen);
-	}
+    GetRooterTermAddr(m_TRtStat.bTermAddr,m_TRtStat.bTermLen);
 
 	GetCurTime(&m_TRunStateInfo.tLastUdpTime);	
-	m_TRtStat.bTermLen = 0x06;
+	
 	m_fRxComlpete = false;
 
 	m_iPn = -1;
@@ -324,6 +310,10 @@ bool CStdReader::Afn05Fn01_SetMainNodeAddr()
 
 	DTRACE(DB_CCT, ("AFN05-F1: Set router addr.\n"));
 	memset(bData, 0, sizeof(bData));
+    if(IsAllAByte(m_TRtStat.bTermAddr, 0x00, 6))
+    {
+        GetRooterTermAddr(m_TRtStat.bTermAddr,m_TRtStat.bTermLen);
+    }
 	memcpy(bData, m_TRtStat.bTermAddr, 6);
 	wTxLen = Make1376_2Frm(NULL, 0, bCtrl, bR, AFN_CTRL, FN(1), bData, 6, bTxBuf);
 	ClearRcv();
@@ -3644,33 +3634,42 @@ bool CStdReader::WaitMtrReport()
 	if (m_fRightNowSchMtr)
 	{
 		int iKeptTime = GetRightNowSchMtrKeepTime();
-		if(iKeptTime == 0)	//0表示不限时间直至搜表结束
+
+		if(iKeptTime <= 0)	//0表示不限时间直至搜表结束
 			iKeptTime = 120;	//给个120min
 
 		if (GetClick() - m_dwStartBoardCastClk > iKeptTime*60)	//立即启动搜表结束
 			return true;
 	}
 
-	if (GetClick() - m_dwLastRptMtrClk > 10*60)
+	if (GetClick() - m_dwLastRptMtrClk >= 10*60)
 	{
 		BYTE bBuf[128];
 
 		memset(bBuf, 0, sizeof(bBuf));
-		if (Afn10Fn04_QueryRtRunInfo(bBuf) < 0)
-			return true;
-
-		if (bBuf[0] & 0x01)	//Bit0=1,为路由完成标志
-			m_fRptSchMtrEnd = true;
-
-		if (bBuf[13]==0x08 && bBuf[14]==0x08 && bBuf[15]==0x08)	//青岛鼎信要求AFN=10 F4返回的数据中，三相工作步骤均为08时载波从节点主动注册认为结束
-			m_fRptSchMtrEnd = true;
+		if (Afn10Fn04_QueryRtRunInfo(bBuf)>0)
+        {
+		    if ((bBuf[0] & 0x03)==0x01)	//Bit0=1,为路由完成标志
+            {      
+			    m_fRptSchMtrEnd = true;
+            }
+                /*
+            if (bBuf[13]==0x08 && bBuf[14]==0x08 && bBuf[15]==0x08)	//青岛鼎信要求AFN=10 F4返回的数据中，三相工作步骤均为08时载波从节点主动注册认为结束
+            {// 这种判断是否通用，需要确认
+                m_fRptSchMtrEnd = true;            
+            }
+            */
+        }			
 
 		if (m_fRptSchMtrEnd)
+        {      
 			return true;
+        }
 
 		m_dwLastRptMtrClk = GetClick();
 
-		StartNodeActive();	//超过10分钟，再次启动从节点注册
+        //是否再次激活从节点主动注册有待商榷，对于中电华瑞、深国电宽带载波，相当于重启一次搜表
+		//StartNodeActive();	//超过10分钟，再次启动从节点注册
 	}
 
 	if (m_fRptSchMtrEnd)
@@ -3969,7 +3968,10 @@ void CStdReader::DoAutoRead()
 void CStdReader::CctRunStateCheck()
 {
 	if (GetInfo(INFO_PLC_MOD_CHANGED))
+    {   
 		memset((BYTE*)&m_TRtStat, 0, sizeof(m_TRtStat));
+        GetRooterTermAddr(m_TRtStat.bTermAddr,m_TRtStat.bTermLen);
+    }
 
 	if (GetInfo(INFO_SYNC_MTR))	
 		m_TRtStat.fSyncAddr = false;
@@ -4018,7 +4020,6 @@ void CStdReader::RunThread()
 		}
 
 		LockReader();
-		DTRACE(DB_CCT, ("LockReader start\r\n"));
 		CctRunStateCheck();
 		if (GetInitState())
 		{
@@ -4029,8 +4030,7 @@ void CStdReader::RunThread()
 			Sleep(100);
 
 		UnLockReader();
-		DTRACE(DB_CCT, ("LockReader end...\r\n"));
-		Sleep(1000);
+		Sleep(1000);    // don't lock fast. add some delay time. add by whr 20170523
 		UpdThreadRunClick(iMonitorID);
 	}
 

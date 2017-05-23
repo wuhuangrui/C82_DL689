@@ -161,6 +161,8 @@ BYTE DecodeRouterMtrAddr(BYTE *pbTsa, BYTE bTsaLen);
 
 WORD RouterMtrAddrConvertPn(BYTE *pbTsa);
 
+void GetRooterTermAddr(BYTE *pbTermAddr, BYTE &bTermAddrLen);
+
 void PrintInfo(TRdItem *pRdItem, TMtrPara* pMtrPara);
 
 #endif 

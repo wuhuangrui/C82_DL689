@@ -1521,6 +1521,30 @@ WORD RouterMtrAddrConvertPn(BYTE *pbTsa)
 	return wPn;
 }
 
+void GetRooterTermAddr(BYTE *pbTermAddr, BYTE &bTermAddrLen)
+{
+	BYTE bBuf[32];
+	memset(bBuf, 0, sizeof(bBuf));
+	if (OoReadAttr(0x4001, 0x02, bBuf, NULL, NULL) <= 0 || IsAllAByte(bBuf, 0x00, 2) )
+	{
+		char *pszDefAddr = "\x11\x22\x33\x44\x55\x66";
+		memcpy(pbTermAddr, pszDefAddr, strlen(pszDefAddr));
+	}
+	else
+	{
+		BYTE bTsaLen;
+		bTsaLen = bBuf[1];
+		if (bTsaLen > 6)
+        {      
+			bTsaLen = 6;
+        }
+		memcpy(pbTermAddr, &bBuf[2], bTsaLen);
+	}
+    
+    bTermAddrLen = 0x06;
+}
+
+
 void PrintInfo(TRdItem *pRdItem, TMtrPara *pMtrPara)
 {
 	char szTsa[32] = {0};

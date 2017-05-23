@@ -14692,8 +14692,13 @@ int SetMPBasicPara(void *arg)
 			wPn = MtrSnToPn(iMpNo);
 			if (!GetMeterInfo(wPn, &tTMtrInfo))
 			{
-				MessageBox("该电表未配置!", KEY_ESC, 3000);
-				return -1;
+				if(MessageBox("该电表未配置!", KEY_ESC, 3000))
+                {
+                }
+                else
+                {
+				    return -1;
+                }
 			}
 
 			while(1)
