@@ -1655,6 +1655,7 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 	BYTE bNum;
 	int iNum;
 	struct MeterID *pMeterIDMap = NULL;
+	DWORD dwOriginOAD;
 
 	bTxBuf[0] = PRO_TYPE_TRANS;
 	bTxBuf[1] = 0x00;	//通信延时相关标识
@@ -1664,7 +1665,7 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 	if (GetMeterInfo(bTsa, bTsaLen, &tTMtrInfo) < 0)
 		return -1;
 
-	tRdItem.dwOAD = OoOadToDWord(pInApdu);
+	dwOriginOAD = tRdItem.dwOAD = OoOadToDWord(pInApdu);
 	pInApdu += 4;
 
 	//search the internal map table OAD and number of OAD in the table.
@@ -1690,7 +1691,10 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 		if (iTxLen > 0)
 		{
 			bTxBuf[3] = iTxLen;
-			pbData += OoDWordToOad(tRdItem.dwOAD, pbData);
+			//fill the origin OAD
+			if (iCount == 0)
+				pbData += OoDWordToOad(dwOriginOAD, pbData);
+
 			iRet = Afn13Fn01_RtFwd(bTsa, bTsaLen, bTxBuf, iTxLen+4, NULL, &tRdItem, pbData+1, tTMtrInfo.bProType, false, true);
 			if (iRet > 2)
 			{
@@ -1702,6 +1706,8 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 			{
 				pbData[0] = DAR;
 			}
+
+			DTRACE(DB_FAPROTO,("Read_OneOAD_from_645_meter: iRet=%d\r\n", iRet));
 		}
 	}
 	UnLockDirRd();
