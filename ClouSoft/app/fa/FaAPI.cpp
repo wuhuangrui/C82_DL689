@@ -1753,6 +1753,7 @@ void DelSchPara()
 	system("rm -rf /mnt/data/data/RptSch*");
 	system("rm -rf /mnt/data/data/AcqRule*");
 	system("rm -rf /mnt/data/data/RptSch*");
+    system("rm -rf /mnt/data/data/TaskCfgUnit_*");    
 #endif
 }
 
@@ -2510,6 +2511,7 @@ void FaClearEnergy()
 void InitApp()
 {
 	g_StatMgr.Init();	 //Í³¼Æ
+	ReSetParamKeepReadFile();
 }
 #ifdef EN_INMTR
 void DoAmpHour();

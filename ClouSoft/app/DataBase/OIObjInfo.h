@@ -220,6 +220,7 @@ int MulPortCfgMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 int CctTransmitMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen=NULL);
 
 int ResetStatAll(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen);
-
+int ReSetParamKeepSaveFile(BYTE* pbPara);
+int ReSetParamKeepReadFile();
 
 #endif

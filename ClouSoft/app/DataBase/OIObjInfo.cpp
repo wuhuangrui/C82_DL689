@@ -4335,6 +4335,8 @@ int DoDevInterfaceClass19(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, in
 		SetInfo(INFO_CLASS19_METHOD_DATA_INIT);
 		break;
 	case 0x43000400:	//设备接口类19--恢复出厂参数
+		//将需要保留的参数做成配置文件
+        ReSetParamKeepSaveFile(pbPara);		
 		SetInfo(INFO_CLASS19_METHOD_RST_FACT_PARA);
 		break;
 	case 0x43000500:	//设备接口类19--事件初始化
@@ -6201,5 +6203,97 @@ int ResetStatAll(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLe
 {
 	g_StatMgr.ResetStat(wOI);
 	return 0;
+}
+
+// 参数初始化时，将需要保持的OAD 存盘
+int ReSetParamKeepSaveFile(BYTE* pbPara)
+{
+    BYTE bOADNum = 0;
+    TApduInfo tApduInfo;
+    int iStart = -1;
+    BYTE bBuf[2048];
+    BYTE bBufFileHead[16];
+    int iReadLen = 0;
+    DWORD dwOffSet = 0;
+    
+    if (*pbPara++ == DT_ARRAY) // 数组
+    {
+        bBufFileHead[0] = DT_ARRAY;
+        bOADNum = *pbPara++; // 数组元素个数
+        bBufFileHead[1] = bOADNum;
+        PartWriteFile(USER_PARA_PATH "KeepOAD.dat", 0, bBufFileHead, 2);
+        dwOffSet+=2;
+        for(int i=0; i<bOADNum;i++)
+        {
+            if(*pbPara++==DT_OAD)
+            {
+                bBuf[0] = DT_OAD;
+                memcpy(bBuf+1, pbPara,4);  // OAD
+                tApduInfo.wOI = OoOiToWord(pbPara);
+        		pbPara += 2;
+        		tApduInfo.bAttr = *pbPara++;
+        		tApduInfo.bIndex = *pbPara++;       
+                iReadLen = OoProReadAttr(tApduInfo.wOI, tApduInfo.bAttr, tApduInfo.bIndex, bBuf+7, sizeof(bBuf)-7, &iStart);
+                if(iReadLen>0)
+                {
+                    WordToByte((WORD)iReadLen, bBuf+5);                    
+                }
+                else
+                {
+                    iReadLen = 0;
+                    WordToByte((WORD)iReadLen, bBuf+5);
+                }
+                PartWriteFile(USER_PARA_PATH "KeepOAD.dat", dwOffSet, bBuf, iReadLen+7);
+                dwOffSet += iReadLen+7;
+            }            
+        }
+    }
+
+    return 0;
+}
+
+// 参数初始化后，将需要保持的OAD写入bank及文件
+int ReSetParamKeepReadFile()
+{
+    BYTE bOADNum = 0;
+    TApduInfo tApduInfo;
+    int iStart = -1;
+    BYTE bBuf[2048];
+    BYTE bBufFileHead[16];
+    WORD wReadLen = 0;
+    DWORD dwOffSet = 0;
+    bool fIsOk = false;
+
+    fIsOk = PartReadFile(USER_PARA_PATH "KeepOAD.dat", 0, bBufFileHead, 2);
+    dwOffSet+=2;
+
+    if (fIsOk  && bBufFileHead[0] == DT_ARRAY) // 数组
+    {
+        bOADNum = bBufFileHead[1]; // 数组元素个数        
+        
+        for(int i=0; i<bOADNum;i++)
+        {
+            fIsOk = PartReadFile(USER_PARA_PATH "KeepOAD.dat", dwOffSet, bBuf, 7);
+            dwOffSet += 7;
+            if(fIsOk && bBuf[0] ==DT_OAD)
+            {
+                tApduInfo.wOI = OoOiToWord(bBuf+1);
+        		tApduInfo.bAttr = bBuf[3];
+        		tApduInfo.bIndex = bBuf[4];                  
+                wReadLen = ByteToWord(bBuf+5);
+
+                fIsOk = PartReadFile(USER_PARA_PATH "KeepOAD.dat", dwOffSet, bBuf, wReadLen);
+                dwOffSet += wReadLen;
+                if(fIsOk)
+                {
+                    OoProWriteAttr(tApduInfo.wOI, tApduInfo.bAttr, tApduInfo.bIndex, bBuf, wReadLen, &iStart);
+                }                
+            }            
+        }
+    }
+
+    DeleteFile(USER_PARA_PATH "KeepOAD.dat");   
+
+    return 0;
 }
 
