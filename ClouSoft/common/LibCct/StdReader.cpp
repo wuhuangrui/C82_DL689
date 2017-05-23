@@ -1595,7 +1595,7 @@ int post_deal_data_0x40000200(void *pbdata, int iDataLen)
 {
 	BYTE * pbTmp = (BYTE*)pbdata;
 	memmove((BYTE*)pbTmp+6,pbTmp+10,3);
-	return 0;
+	return 9;
 }
 
 struct MeterID MeterIDMap[] = {
@@ -1732,7 +1732,7 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 	if (pMeterIDMap != NULL)
 	{
 		if (pMeterIDMap->DataDealFunction != NULL)
-			pMeterIDMap->DataDealFunction(pbPostDealData, iRet);
+			iRet = pMeterIDMap->DataDealFunction(pbPostDealData, iRet);
 	}
 
 	DTRACE(DB_FAPROTO,("Read_OneOAD_from_645_meter: iRet=%d\r\n", iRet));
