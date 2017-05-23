@@ -37,7 +37,11 @@
 #include "ParaMgr.h"
 #include "FaAPI.h"
 
+#ifdef SYS_LINUX 
 #include "segment_debug.h"
+#else 
+#define SYSTEM_DEBUG_STEP(x)  (0)
+#endif
 
 extern CStatMgr g_StatMgr;
 BYTE g_bComEngDataFmt[3] = {0x01, 0x05, DT_DB_LONG};	//组合有功
