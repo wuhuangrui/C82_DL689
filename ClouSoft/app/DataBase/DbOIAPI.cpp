@@ -2006,9 +2006,9 @@ int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bo
 			//	if (!(iDataLen >= wLen))
 			//		wLen = iDataLen;	
 				if (fIsSecurityLayer)
-					iSrcLen = OoWriteField(bSrc, iSrcLen, pbFmt, wFmtLen, bIndex-1, pbBuf, wLen-4);	//-4: 4字节OAD，Esam加密没有时间标签
+					iSrcLen = OoWriteField(bSrc, iSrcLen, pbFmt, wFmtLen, bIndex-1, pbBuf, wLen);	//-4: 4字节OAD，Esam加密没有时间标签
 				else
-					iSrcLen = OoWriteField(bSrc, iSrcLen, pbFmt, wFmtLen, bIndex-1, pbBuf, wLen-5);	//-5: 4字节OAD + 1字节时间标签
+					iSrcLen = OoWriteField(bSrc, iSrcLen, pbFmt, wFmtLen, bIndex-1, pbBuf, wLen);	//-5: 4字节OAD + 1字节时间标签	//此处应该在外面处理wLen参数传进来OAD和时间标签就已经去掉了
 				if (iSrcLen > 0)
 					return OoProWriteAttr(wOI, bAttr, 0, bSrc, iSrcLen, fIsSecurityLayer);
 			}
