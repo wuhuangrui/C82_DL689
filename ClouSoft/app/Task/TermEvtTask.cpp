@@ -7175,18 +7175,14 @@ bool UpdateEvtRptState(DWORD dwCnOAD, TEvtMsg* pEvtMsg, BYTE bRptState)
 				bCnNum = *(pbRec+1);
 				if (bCnNum >= CN_RPT_NUM)
 					bCnNum = CN_RPT_NUM;
+
 				for(i=0; i<bCnNum; i++)
 				{	
 					dwRecCnOAD = OoDoubleLongUnsignedToDWord(pbRec+5+i*9);
-					if ((dwCnOAD&0xff000000) == 0x45000000)	//要与函数SendEvtMsg()相匹配
-					{	dwRecCnOAD &=0xff000000;
-						dwCnOAD &=0xff000000;
-					}
-					else
-					{	
-						dwRecCnOAD &=0xffff0000;
-						dwCnOAD &=0xffff0000;
-					}
+
+					dwRecCnOAD &= 0xffff0000;
+					dwCnOAD &= 0xffff0000;
+
 					if (dwCnOAD == dwRecCnOAD)
 						*(pbRec+10+i*9) |= bRptState;
 				}
