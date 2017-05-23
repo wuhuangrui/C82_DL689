@@ -1,13 +1,13 @@
 /*********************************************************************************************************
- * Copyright (c) 2016,ÉîÛÚ¿ÆÂ½µç×Ó¿Æ¼¼¹É·ÝÓÐÏÞ¹«Ë¾
- * All rights reserved.
- *
- * ÎÄ¼þÃû³Æ£ºOIObjInfo.h
- * Õª    Òª£º±¾ÎÄ¼þÖ÷ÒªÊµÏÖËùÓÐÊý¾ÝOIÊý¾ÝµÄ¸ñÊ½¶¨Òå
- * µ±Ç°°æ±¾£º1.0
- * ×÷    Õß£º¿×³É²¨
- * Íê³ÉÈÕÆÚ£º2016Äê9ÔÂ
- *********************************************************************************************************/
+* Copyright (c) 2016,ÉîÛÚ¿ÆÂ½µç×Ó¿Æ¼¼¹É·ÝÓÐÏÞ¹«Ë¾
+* All rights reserved.
+*
+* ÎÄ¼þÃû³Æ£ºOIObjInfo.h
+* Õª    Òª£º±¾ÎÄ¼þÖ÷ÒªÊµÏÖËùÓÐÊý¾ÝOIÊý¾ÝµÄ¸ñÊ½¶¨Òå
+* µ±Ç°°æ±¾£º1.0
+* ×÷    Õß£º¿×³É²¨
+* Íê³ÉÈÕÆÚ£º2016Äê9ÔÂ
+*********************************************************************************************************/
 #include <fcntl.h>
 #include <stdio.h>
 #include "stdafx.h"
@@ -105,30 +105,30 @@ BYTE gbMeterTypeString[] = {DT_VIS_STR, 32, RLV};
 
 //ÖÕ¶Ë¹ã²¥Ð£Ê±²ÎÊý
 BYTE bTermBroadTime[] = {DT_STRUCT, 2,
-							DT_TIME,	//ÖÕ¶Ë¹ã²¥Ð£Ê±Æô¶¯Ê±¼ä
-							DT_BOOL,	//ÊÇ·ñÆôÓÃ
+DT_TIME,	//ÖÕ¶Ë¹ã²¥Ð£Ê±Æô¶¯Ê±¼ä
+DT_BOOL,	//ÊÇ·ñÆôÓÃ
 };
 
 //ÖÕ¶Ëµ¥µØÖ·¹ã²¥Ð£Ê±²ÎÊý
 BYTE bSigAddrBroadTime[] = {DT_STRUCT, 3,
-							//DT_INT,	//Ê±ÖÓÎó²îãÐÖµ 
-							DT_UNSIGN,	//Ê±ÖÓÎó²îãÐÖµ 
-							DT_TIME,	//ÖÕ¶Ë¹ã²¥Ð£Ê±Æô¶¯Ê±¼ä
-							DT_BOOL,	//ÊÇ·ñÆôÓÃ
+//DT_INT,	//Ê±ÖÓÎó²îãÐÖµ 
+DT_UNSIGN,	//Ê±ÖÓÎó²îãÐÖµ 
+DT_TIME,	//ÖÕ¶Ë¹ã²¥Ð£Ê±Æô¶¯Ê±¼ä
+DT_BOOL,	//ÊÇ·ñÆôÓÃ
 };
 
 
 BYTE g_bEleDevDsc[] = {DT_VIS_STR, 0x10,RLV,};	//µçÆøÉè±¸¡ª¡ªÉè±¸ÃèÊö·û
 BYTE g_bEleVerInfo[] = {DT_STRUCT, 0x06, 
-							DT_VIS_STR, 0x04,RLF, 
-							DT_VIS_STR, 0x04,RLF, 
-							DT_VIS_STR, 0x06,RLF, 
-							DT_VIS_STR, 0x04,RLF, 
-							DT_VIS_STR, 0x06,RLF, 
-							DT_VIS_STR, 0x08,RLF};	//µçÆøÉè±¸¡ª¡ª°æ±¾ÐÅÏ¢
+DT_VIS_STR, 0x04,RLF, 
+DT_VIS_STR, 0x04,RLF, 
+DT_VIS_STR, 0x06,RLF, 
+DT_VIS_STR, 0x04,RLF, 
+DT_VIS_STR, 0x06,RLF, 
+DT_VIS_STR, 0x08,RLF};	//µçÆøÉè±¸¡ª¡ª°æ±¾ÐÅÏ¢
 BYTE g_bManufactureDate[] = {DT_DATE_TIME_S};	//µçÆøÉè±¸¡ª¡ªÉú²úÈÕÆÚ
 BYTE g_bMastProType[] = {DT_ARRAY, 0x01,
-							DT_VIS_STR, 0x09, RLV,};	//µçÆøÉè±¸¡ª¡ªÐ­Òé¹æÔ¼ÀàÐÍ
+DT_VIS_STR, 0x09, RLV,};	//µçÆøÉè±¸¡ª¡ªÐ­Òé¹æÔ¼ÀàÐÍ
 BYTE g_bRptFlowFlg[] = {DT_BOOL};	//µçÆøÉè±¸¡ª¡ªÔÊÐí¸úËæÉÏ±¨
 BYTE g_bRptFlg[] = {DT_BOOL};	//µçÆøÉè±¸¡ª¡ªÔÊÐíÖ÷¶¯ÉÏ±¨
 BYTE g_bMastCall[] = {DT_BOOL};	//µçÆøÉè±¸¡ª¡ªÔÊÐíÓëÖ÷Õ¾Í¨»°
@@ -142,11 +142,11 @@ BYTE g_DialIp[] = {DT_OCT_STR, 0x04, RLF};	//²¦ºÅIP
 
 BYTE g_bAdjTimeModeFmt[] = {DT_ENUM};	//ÈÕÆÚÊ±¼ä£¬ÊôÐÔ3£¬Ð£Ê±Ä£Ê½
 BYTE g_bPreAdjParaFmt[] = {DT_STRUCT, 0x05,
-								DT_UNSIGN, 
-								DT_UNSIGN, 
-								DT_UNSIGN, 
-								DT_UNSIGN, 
-								DT_UNSIGN,};//ÈÕÆÚÊ±¼ä£¬ÊôÐÔ4£¬¾«×¼Ð£Ê±²ÎÊý	
+DT_UNSIGN, 
+DT_UNSIGN, 
+DT_UNSIGN, 
+DT_UNSIGN, 
+DT_UNSIGN,};//ÈÕÆÚÊ±¼ä£¬ÊôÐÔ4£¬¾«×¼Ð£Ê±²ÎÊý	
 
 // ÊÂ¼þÏà¹Ø¸ñÊ½
 BYTE g_bEvtDmdFmt[] = {DT_DB_LONG};							//ÐèÁ¿
@@ -195,9 +195,9 @@ BYTE g_bEvtMaxDmdFmt[] = {DT_DB_LONG_U};			//³¬ÏÞÆÚ¼äÕýÏòÓÐ¹¦ÐèÁ¿×î´óÖµ  double-
 BYTE g_bEvtMaxDmdDateFmt[] = {DT_DATE_TIME_S};			//³¬ÏÞÆÚ¼äÐèÁ¿×î´óÖµ·¢ÉúÊ±¼ä  date_time_s
 BYTE g_bEvtClearrOMDFmt[] = {DT_ARRAY, EVT_CLR_OMD_NUM, DT_OMD};			//³¬ÏÞÆÚ¼äÐèÁ¿×î´óÖµ·¢ÉúÊ±¼ä  date_time_s
 BYTE g_bChnRptStateFmt[] = { DT_ARRAY, CN_RPT_NUM,
-									DT_STRUCT, 0x02, 
-										DT_OAD, 
-										DT_UNSIGN,
+DT_STRUCT, 0x02, 
+DT_OAD, 
+DT_UNSIGN,
 };
 BYTE g_bAddEvtOadFmt[] = {DT_ARRAY, EVT_ADDOAD_MAXNUM,DT_OAD};
 BYTE g_bAddEvtOIFmt[] = {DT_ARRAY, EVT_ADDOAD_MAXNUM,DT_OI};
@@ -227,24 +227,24 @@ BYTE g_bEvtMtrClkErrFmt[] = {DT_INT};
 
 
 BYTE g_bEvtYXParamFmt[] = {DT_ARRAY, 0x10,
-								DT_STRUCT, 0x04,	//±¸×¢£º½á¹¹ÌåÖÐµÄ³ÉÔ±¸öÊýÐèÒª¸ü¸Ä
-									DT_LONG_U,	//ÊÂ¼þ¼ÇÂ¼ÐòºÅ
-									DT_DATE_TIME_S,	//ÊÂ¼þ·¢ÉúÊ±¼ä
-									DT_DATE_TIME_S,	//ÊÂ¼þ½áÊøÊ±¼ä
-									//ÎÞÊÂ¼þ·¢ÉúÔ´
-									DT_ARRAY, 0x04,	//Í¨µÀÉÏ±¨×´Ì¬
-										DT_OAD,	
-									//¾ßÌåµÄÊý¾ÝÄÚÈÝÔÙÌí¼Ó
+DT_STRUCT, 0x04,	//±¸×¢£º½á¹¹ÌåÖÐµÄ³ÉÔ±¸öÊýÐèÒª¸ü¸Ä
+DT_LONG_U,	//ÊÂ¼þ¼ÇÂ¼ÐòºÅ
+DT_DATE_TIME_S,	//ÊÂ¼þ·¢ÉúÊ±¼ä
+DT_DATE_TIME_S,	//ÊÂ¼þ½áÊøÊ±¼ä
+//ÎÞÊÂ¼þ·¢ÉúÔ´
+DT_ARRAY, 0x04,	//Í¨µÀÉÏ±¨×´Ì¬
+DT_OAD,	
+//¾ßÌåµÄÊý¾ÝÄÚÈÝÔÙÌí¼Ó
 };	//ÖÕ¶Ë×´Ì¬Á¿±äÎ»ÊÂ¼þ ÊôÐÔ2
 
 BYTE g_bMtrExcIc7ValNumFmt[] = {DT_ARRAY, 0x01, 
-										DT_STRUCT, 0x02, 
+DT_STRUCT, 0x02, 
 #ifdef MTREXC_ADDR_TPYE_TSA
-										DT_TSA,
+DT_TSA,
 #else
-										DT_OCT_STR, TSA_LEN, RLV,//ÐèÒª¶ÁÈ¡Í£µçÊÂ¼þµçÄÜ±í---70	RLV		
+DT_OCT_STR, TSA_LEN, RLV,//ÐèÒª¶ÁÈ¡Í£µçÊÂ¼þµçÄÜ±í---70	RLV		
 #endif	
-											DT_STRUCT, 0x02, DT_DB_LONG_U, DT_DB_LONG_U};		//µ±Ç°Öµ¼ÇÂ¼±í,IC7,ÓÐÊÂ¼þ·¢ÉúÔ´
+DT_STRUCT, 0x02, DT_DB_LONG_U, DT_DB_LONG_U};		//µ±Ç°Öµ¼ÇÂ¼±í,IC7,ÓÐÊÂ¼þ·¢ÉúÔ´
 
 #ifdef GW_OOB_DEBUG_0x31050600
 BYTE g_bMtrExcClockkErrFmt[] = {DT_STRUCT, 0x01, DT_LONG_U};//µçÄÜ±íÊ±ÖÓ³¬²îÊÂ¼þ ÊôÐÔ6£¬ÅäÖÃ²ÎÊý
@@ -253,53 +253,53 @@ BYTE g_bMtrExcClockkErrFmt[] = {DT_STRUCT, 0x02, DT_LONG_U, DT_UNSIGN};//µçÄÜ±íÊ
 #endif
 
 BYTE g_bEvtTermPwrOffFmt[] = {DT_STRUCT, 0x02, 
-								DT_STRUCT, 0x04,	//Í£µçÊý¾Ý²É¼¯ÅäÖÃ²ÎÊý	--18
-									DT_BIT_STR, 0x08, RLV,	//²É¼¯±êÖ¾
-									DT_UNSIGN,	//Í£µçÊÂ¼þ³­¶ÁÊ±¼ä¼ä¸ô£¨Ð¡Ê±£©
-									DT_UNSIGN,	//Í£µçÊÂ¼þ³­¶ÁÊ±¼äÏÞÖµ£¨·ÖÖÓ£©
-									DT_ARRAY, SAMPLE_MTR_NUM,	
+DT_STRUCT, 0x04,	//Í£µçÊý¾Ý²É¼¯ÅäÖÃ²ÎÊý	--18
+DT_BIT_STR, 0x08, RLV,	//²É¼¯±êÖ¾
+DT_UNSIGN,	//Í£µçÊÂ¼þ³­¶ÁÊ±¼ä¼ä¸ô£¨Ð¡Ê±£©
+DT_UNSIGN,	//Í£µçÊÂ¼þ³­¶ÁÊ±¼äÏÞÖµ£¨·ÖÖÓ£©
+DT_ARRAY, SAMPLE_MTR_NUM,	
 #ifdef MTREXC_ADDR_TPYE_TSA
-										DT_TSA,
+DT_TSA,
 #else
-										DT_OCT_STR, TSA_LEN, RLV,//ÐèÒª¶ÁÈ¡Í£µçÊÂ¼þµçÄÜ±í---70	RLV		
+DT_OCT_STR, TSA_LEN, RLV,//ÐèÒª¶ÁÈ¡Í£µçÊÂ¼þµçÄÜ±í---70	RLV		
 #endif
-								DT_STRUCT, 0x06,	//Í£µçÊÂ¼þÕç±ðÏÞÖµ²ÎÊý---------20
-									DT_LONG_U,	//Í£µçÊ±¼ä×îÐ¡ÓÐÐ§¼ä¸ô(·ÖÖÓ) 
-									DT_LONG_U,	//Í£µçÊ±¼ä×î´óÓÐÐ§¼ä¸ô(·ÖÖÓ)
-									DT_LONG_U,	//Í£µçÊÂ¼þÆðÖ¹Ê±¼äÆ«²îÏÞÖµ(·ÖÖÓ)
-									DT_LONG_U,	//Í£µçÊÂ¼þÊ±¼äÇø¶ÎÆ«²îÏÞÖµ(·ÖÖÓ) 
-									DT_LONG_U,	//Í£µç·¢ÉúµçÑ¹ÏÞÖµ 
-									DT_LONG_U,	//Í£µç»Ö¸´µçÑ¹ÏÞÖµ
+DT_STRUCT, 0x06,	//Í£µçÊÂ¼þÕç±ðÏÞÖµ²ÎÊý---------20
+DT_LONG_U,	//Í£µçÊ±¼ä×îÐ¡ÓÐÐ§¼ä¸ô(·ÖÖÓ) 
+DT_LONG_U,	//Í£µçÊ±¼ä×î´óÓÐÐ§¼ä¸ô(·ÖÖÓ)
+DT_LONG_U,	//Í£µçÊÂ¼þÆðÖ¹Ê±¼äÆ«²îÏÞÖµ(·ÖÖÓ)
+DT_LONG_U,	//Í£µçÊÂ¼þÊ±¼äÇø¶ÎÆ«²îÏÞÖµ(·ÖÖÓ) 
+DT_LONG_U,	//Í£µç·¢ÉúµçÑ¹ÏÞÖµ 
+DT_LONG_U,	//Í£µç»Ö¸´µçÑ¹ÏÞÖµ
 };	//ÖÕ¶ËÍ£ÉÏµç²ÎÊý£¬ÊôÐÔ6
 
 
 BYTE g_bMtrExcEnergyDecFmt[] = { DT_STRUCT, 0x01, DT_UNSIGN };	//µçÄÜ±íÊ¾¶ÈÏÂ½µ£¬ÊôÐÔ6
 BYTE g_bMtrExcEnergyErrFmt[] = { DT_STRUCT, 
 #ifdef GW_OOB_DEBUG_0x310C0600
-								0x01,DT_DB_LONG_U,
+0x01,DT_DB_LONG_U,
 #else
-								0x02, DT_DB_LONG_U, DT_UNSIGN 
+0x02, DT_DB_LONG_U, DT_UNSIGN 
 #endif
-								};  //µçÄÜÁ¿³¬²îÊÂ¼þ
+};  //µçÄÜÁ¿³¬²îÊÂ¼þ
 BYTE g_bMtrExcEnergyFlowFmt[] = { DT_STRUCT, 
 #ifdef GW_OOB_DEBUG_0x310D0600
-					0x01, DT_DB_LONG_U
+0x01, DT_DB_LONG_U
 #else
-					0x02, DT_DB_LONG_U, DT_UNSIGN 
+0x02, DT_DB_LONG_U, DT_UNSIGN 
 #endif
-								};  //µçÄÜÁ¿·É×ßÊÂ¼þ
+};  //µçÄÜÁ¿·É×ßÊÂ¼þ
 BYTE g_bMtrExcEnergyStopFmt[] = { DT_STRUCT, 
 #ifdef GW_OOB_DEBUG_0x310E0600
-					0x01, DT_TI
+0x01, DT_TI
 #else
-					0x02, DT_TI, DT_UNSIGN 
+0x02, DT_TI, DT_UNSIGN 
 #endif
 };  //µçÄÜÁ¿Í£×ßÊÂ¼þ
 BYTE g_bMtrExcMtrRdFailFmt[] = { DT_STRUCT, 
 #ifdef GW_OOB_DEBUG_0x310F0600
-				0x01, DT_UNSIGN
+0x01, DT_UNSIGN
 #else
-				0x02, DT_UNSIGN, DT_UNSIGN 
+0x02, DT_UNSIGN, DT_UNSIGN 
 #endif
 };  //µçÄÜ³­±íÊ§°ÜÊÂ¼þ
 BYTE g_bEvtMthFluOverFmt[] = {DT_STRUCT, 0x01, DT_DB_LONG_U,};	//ÔÂÍ¨ÐÅÁ÷Á¿³¬ÏÞÊÂ¼þ
@@ -309,83 +309,83 @@ BYTE g_bMtrDataChgFmt[] = { DT_STRUCT, 0x01, DT_UNSIGN };	//µçÄÜ±íÊý¾Ý±ä¸ü¼à¿Ø¼Ç
 
 // ¶³½áÏà¹Ø¸ñÊ½
 BYTE g_bFrzParaFmt[] = { DT_ARRAY, CAP_OAD_NUM,	//Êý×é¼°ÔªËØ¸öÊý
-							 DT_STRUCT,0x03,		//½á¹¹¼°³ÉÔ±¸öÊý
-									 DT_LONG_U,		//ÖÜÆÚ long-unsigned
-									 DT_OAD,		//OAD
-									 DT_LONG_U,		//Éî¶È long-unsigned
+DT_STRUCT,0x03,		//½á¹¹¼°³ÉÔ±¸öÊý
+DT_LONG_U,		//ÖÜÆÚ long-unsigned
+DT_OAD,		//OAD
+DT_LONG_U,		//Éî¶È long-unsigned
 };
 BYTE g_bFrzRecIndexFmt[] = {0x6};
 BYTE g_bFrzRecTimeFmt[1] = {0x1c};
 
 BYTE g_bPnParaFmt[] = {DT_STRUCT, 0x04, 	//Ìí¼ÓÒ»¸ö²É¼¯µµ°¸ÅäÖÃµ¥Ôª
-								DT_LONG_U, 
-								DT_STRUCT, 0x0a, 
-									DT_TSA, //16, RLV, //TSA
-									DT_ENUM, //emu-----²¨ÌØÂÊ
-									DT_ENUM, //emu-----¹æÔ¼ÀàÐÍ
-									DT_OAD, //OAD----¶Ë¿Ú
-									DT_OCT_STR, 32, RLV, //ÃÜÂë£¬±ä³¤£¬×î³¤32×Ö½Ú
-									DT_UNSIGN, //·ÑÂÊ¸öÊý
-									DT_UNSIGN, //---------ÓÃ»§ÀàÐÍ
-									DT_ENUM, //emu----½ÓÏß·½Ê½
-									DT_LONG_U,	//¶î¶¨µçÑ¹
-									DT_LONG_U,	//¶î¶¨µçÁ÷
-								DT_STRUCT, 0x04, 
-								DT_TSA, //16, RLV, //TSA
-									DT_OCT_STR, 16, RLV, //octing
-									DT_LONG_U, //PT
-									DT_LONG_U, //CT
+DT_LONG_U, 
+DT_STRUCT, 0x0a, 
+DT_TSA, //16, RLV, //TSA
+DT_ENUM, //emu-----²¨ÌØÂÊ
+DT_ENUM, //emu-----¹æÔ¼ÀàÐÍ
+DT_OAD, //OAD----¶Ë¿Ú
+DT_OCT_STR, 32, RLV, //ÃÜÂë£¬±ä³¤£¬×î³¤32×Ö½Ú
+DT_UNSIGN, //·ÑÂÊ¸öÊý
+DT_UNSIGN, //---------ÓÃ»§ÀàÐÍ
+DT_ENUM, //emu----½ÓÏß·½Ê½
+DT_LONG_U,	//¶î¶¨µçÑ¹
+DT_LONG_U,	//¶î¶¨µçÁ÷
+DT_STRUCT, 0x04, 
+DT_TSA, //16, RLV, //TSA
+DT_OCT_STR, 16, RLV, //octing
+DT_LONG_U, //PT
+DT_LONG_U, //CT
 #if 0
-								DT_ARRAY, MAX_MTR_ANNEX,
-									DT_STRUCT, 0x02, //½á¹¹Ìå
-										DT_OAD, //OAD
-										128, 100, RLV, 	//-----DataÀïÃæÇ¶Ì×data£¬À©Õ¹Ò»¸öÊý¾ÝÀàÐÍ128£¬×ödata
+DT_ARRAY, MAX_MTR_ANNEX,
+DT_STRUCT, 0x02, //½á¹¹Ìå
+DT_OAD, //OAD
+128, 100, RLV, 	//-----DataÀïÃæÇ¶Ì×data£¬À©Õ¹Ò»¸öÊý¾ÝÀàÐÍ128£¬×ödata
 #else 
-								DT_MTR_ANNEX,
+DT_MTR_ANNEX,
 #endif
 };
 
 //ËÑ±íÊ±³¤
 BYTE g_bSchMtrTimeFmt[] = {DT_LONG_U};
- 
+
 //ÎÞÏß¹«ÍøÍ¨Ñ¶½Ó¿ÚÅäÖÃ²ÎÊý
 BYTE g_bGprsCommCfg[] = {DT_STRUCT, 0x0C, 
-							DT_ENUM, 		//¹¤×÷Ä£Ê½
-							DT_ENUM, 	//ÔÚÏß·½Ê½
-							DT_ENUM, 	//Á¬½Ó·½Ê½
-							DT_ENUM, 	//Á¬½ÓÓ¦ÓÃ·½Ê½
-							DT_ARRAY, 8, //Ö¡Ìý¶Ë¿ÚÁÐ±í
-								DT_LONG_U,
-							DT_VIS_STR, 32, RLV,  //APN,×î´ó32×Ö½Ú
-							DT_VIS_STR, 32, RLV, //ÓÃ»§Ãû,×î´ó32×Ö½Ú
-							DT_VIS_STR, 32, RLV, //ÃÜÂë,×î´ó32×Ö½Ú
-							DT_OCT_STR, 4,	RLF,//´úÀí·þÎñÆ÷µØÖ·
-							DT_LONG_U, 		//´úÀí¶Ë¿Ú
-							DT_UNSIGN,  //³¬Ê±Ê±¼ä¼°ÖØ·¢´ÎÊý
-							DT_LONG_U, 		//ÐÄÌøÖÜÆÚ
+DT_ENUM, 		//¹¤×÷Ä£Ê½
+DT_ENUM, 	//ÔÚÏß·½Ê½
+DT_ENUM, 	//Á¬½Ó·½Ê½
+DT_ENUM, 	//Á¬½ÓÓ¦ÓÃ·½Ê½
+DT_ARRAY, 8, //Ö¡Ìý¶Ë¿ÚÁÐ±í
+DT_LONG_U,
+DT_VIS_STR, 32, RLV,  //APN,×î´ó32×Ö½Ú
+DT_VIS_STR, 32, RLV, //ÓÃ»§Ãû,×î´ó32×Ö½Ú
+DT_VIS_STR, 32, RLV, //ÃÜÂë,×î´ó32×Ö½Ú
+DT_OCT_STR, 4,	RLF,//´úÀí·þÎñÆ÷µØÖ·
+DT_LONG_U, 		//´úÀí¶Ë¿Ú
+DT_UNSIGN,  //³¬Ê±Ê±¼ä¼°ÖØ·¢´ÎÊý
+DT_LONG_U, 		//ÐÄÌøÖÜÆÚ
 };
 
 //ÒÔÌ«ÍøÍ¨ÐÅ²ÎÊý
 BYTE g_bEthCommCfg[] = {DT_STRUCT, 0x08, 
-							DT_ENUM, 		//¹¤×÷Ä£Ê½
-							DT_ENUM, 	//Á¬½Ó·½Ê½
-							DT_ENUM, 	//Á¬½ÓÓ¦ÓÃ·½Ê½
-							DT_ARRAY, 8, //Ö¡Ìý¶Ë¿ÚÁÐ±í
-								DT_LONG_U,
-							DT_OCT_STR, 4,	RLF,//´úÀí·þÎñÆ÷µØÖ·
-							DT_LONG_U, 		//´úÀí¶Ë¿Ú
-							DT_UNSIGN,  //³¬Ê±Ê±¼ä¼°ÖØ·¢´ÎÊý
-							DT_LONG_U, 		//ÐÄÌøÖÜÆÚ
+DT_ENUM, 		//¹¤×÷Ä£Ê½
+DT_ENUM, 	//Á¬½Ó·½Ê½
+DT_ENUM, 	//Á¬½ÓÓ¦ÓÃ·½Ê½
+DT_ARRAY, 8, //Ö¡Ìý¶Ë¿ÚÁÐ±í
+DT_LONG_U,
+DT_OCT_STR, 4,	RLF,//´úÀí·þÎñÆ÷µØÖ·
+DT_LONG_U, 		//´úÀí¶Ë¿Ú
+DT_UNSIGN,  //³¬Ê±Ê±¼ä¼°ÖØ·¢´ÎÊý
+DT_LONG_U, 		//ÐÄÌøÖÜÆÚ
 };
 
 //ÒÔÌ«ÍøÍøÂçÅäÖÃ
 BYTE g_bEthNetCfg[] = {DT_STRUCT, 0x06,
-							DT_ENUM,	//IPÅäÖÃ·½Ê½ DHCP£¨0£©,¾²Ì¬£¨1£©£¬PPPoE£¨2£©
-							DT_OCT_STR, 0x08, RLV,	//IPµØÖ·
-							DT_OCT_STR, 0x08, RLV,	//×ÓÍøÑÚÂë
-							DT_OCT_STR, 0x08, RLV,	//Íø¹ØµØÖ·
-							DT_VIS_STR, 0x20, RLV,	//PPPoEÓÃ»§Ãû
-							DT_VIS_STR, 0x20, RLV,	//PPPoEÃÜÂë
+DT_ENUM,	//IPÅäÖÃ·½Ê½ DHCP£¨0£©,¾²Ì¬£¨1£©£¬PPPoE£¨2£©
+DT_OCT_STR, 0x08, RLV,	//IPµØÖ·
+DT_OCT_STR, 0x08, RLV,	//×ÓÍøÑÚÂë
+DT_OCT_STR, 0x08, RLV,	//Íø¹ØµØÖ·
+DT_VIS_STR, 0x20, RLV,	//PPPoEÓÃ»§Ãû
+DT_VIS_STR, 0x20, RLV,	//PPPoEÃÜÂë
 };
 
 //MACµØÖ·
@@ -393,33 +393,33 @@ BYTE g_bEthMacCfg[] = {DT_MAC, 0x06, RLV};
 
 
 BYTE g_bMastCommPara[] = {DT_ARRAY, MAX_MAINIP_NUM,	//×î¶à2¸öÖ÷Õ¾µØÖ·
-								DT_STRUCT, 0x02,
-									DT_OCT_STR, 4, RLF,	//IPµØÖ·
-									DT_LONG_U,	//¶Ë¿Ú 
-							};
+DT_STRUCT, 0x02,
+DT_OCT_STR, 4, RLF,	//IPµØÖ·
+DT_LONG_U,	//¶Ë¿Ú 
+};
 BYTE g_bSmsCommPara[] = {DT_STRUCT, 0x03, 
-							DT_VIS_STR, 16, RLV, 	//¶ÌÐÅÖÐÐÄºÅÂë
-							DT_ARRAY, MAX_SMS_MAIN_NUM,
-								DT_VIS_STR, 16, RLV, 	//Ö÷Õ¾ºÅÂë
-							DT_ARRAY, MAX_SMS_SEND_NUM, 
-								DT_VIS_STR, 16, RLV,	//¶ÌÐÅÍ¨ÖªÄ¿µÄºÅÂë
-						};
+DT_VIS_STR, 16, RLV, 	//¶ÌÐÅÖÐÐÄºÅÂë
+DT_ARRAY, MAX_SMS_MAIN_NUM,
+DT_VIS_STR, 16, RLV, 	//Ö÷Õ¾ºÅÂë
+DT_ARRAY, MAX_SMS_SEND_NUM, 
+DT_VIS_STR, 16, RLV,	//¶ÌÐÅÍ¨ÖªÄ¿µÄºÅÂë
+};
 BYTE g_bVerInfo[] = {0x02, 0x06,
-						10, 4,	//³§ÉÌ´úÂë
-						10, 4,	//Èí¼þ°æ±¾ºÅ
-						10, 6,	//Èí¼þ°æ±¾ÈÕÆÚ
-						10, 4,	//Ó²¼þ°æ±¾ºÅ
-						10, 6,	//Ó²¼þ°æ±¾ÈÕÆÚ
-						10, 8,	//³§¼ÒÀ©Õ¹ÐÅÏ¢
-					};
+10, 4,	//³§ÉÌ´úÂë
+10, 4,	//Èí¼þ°æ±¾ºÅ
+10, 6,	//Èí¼þ°æ±¾ÈÕÆÚ
+10, 4,	//Ó²¼þ°æ±¾ºÅ
+10, 6,	//Ó²¼þ°æ±¾ÈÕÆÚ
+10, 8,	//³§¼ÒÀ©Õ¹ÐÅÏ¢
+};
 
 //·þÎñÆ÷µØÖ·SA
 BYTE g_bServAddrFmt[3] = {DT_OCT_STR, 0x10, RLV};  
 
 //£¨µ±Ç°£©Ç®°üÎÄ¼þ
 BYTE g_bCurWalletFile[] = {DT_STRUCT, 0x02,
-							DT_DB_LONG_U,
-							DT_DB_LONG_U,
+DT_DB_LONG_U,
+DT_DB_LONG_U,
 };
 
 //£¨µ±Ç°£©Í¸Ö§½ð¶î
@@ -436,49 +436,49 @@ BYTE g_bCliCode[] = {DT_OCT_STR, 0x10, RLV};
 
 //Éè±¸µØÀíÎ»ÖÃ
 BYTE g_bDevLocat[] = {DT_STRUCT, 3,
-						DT_STRUCT, 4,	//¾­¶È
-							DT_ENUM ,	//·½Î»
-							DT_UNSIGN,	//¶È
-							DT_UNSIGN,	//·Ö
-							DT_UNSIGN,	//Ãë
-						DT_STRUCT, 4,	//Î³¶È
-							DT_ENUM ,	//·½Î»
-							DT_UNSIGN,	//¶È
-							DT_UNSIGN,	//·Ö
-							DT_UNSIGN,	//Ãë
-						DT_DB_LONG_U,	//¸ß¶È£¨cm£©
+DT_STRUCT, 4,	//¾­¶È
+DT_ENUM ,	//·½Î»
+DT_UNSIGN,	//¶È
+DT_UNSIGN,	//·Ö
+DT_UNSIGN,	//Ãë
+DT_STRUCT, 4,	//Î³¶È
+DT_ENUM ,	//·½Î»
+DT_UNSIGN,	//¶È
+DT_UNSIGN,	//·Ö
+DT_UNSIGN,	//Ãë
+DT_DB_LONG_U,	//¸ß¶È£¨cm£©
 };
 
 //×éµØÖ·
 BYTE g_bGroupAddr[] = {DT_ARRAY, 0x0a,
-						DT_OCT_STR, TSA_LEN, RLV,
+DT_OCT_STR, TSA_LEN, RLV,
 };
 
 //Ê±ÖÓÔ´
 BYTE g_bClkSrc[] = {DT_STRUCT, 2,
-						DT_ENUM,	//Ê±ÖÓÔ´
-						DT_ENUM,	//×´Ì¬
+DT_ENUM,	//Ê±ÖÓÔ´
+DT_ENUM,	//×´Ì¬
 };
 
 //LCD²ÎÊý
 BYTE g_bDispParam[] = {DT_STRUCT, 7,
-							DT_UNSIGN,	//ÉÏµçÈ«ÏÔÊ±¼ä
-							DT_LONG_U,	//±³¹âµãÁÁÊ±¼ä 
-							DT_LONG_U,	//ÏÔÊ¾²é¿´±³¹âµãÁÁÊ±¼ä 
-							DT_LONG_U,	//ÓÐµç°´¼üÆÁÄ»×¤Áô×î´óÊ±¼ä
-							DT_UNSIGN,	//ÎÞµç°´¼üÆÁÄ»×¤Áô×î´óÊ±¼ä
-							DT_UNSIGN,	//ÏÔÊ¾µçÄÜÐ¡ÊýÎ»Êý
-							DT_UNSIGN,	//ÏÔÊ¾¹¦ÂÊ£¨×î´óÐèÁ¿£©Ð¡ÊýÎ»Êý
+DT_UNSIGN,	//ÉÏµçÈ«ÏÔÊ±¼ä
+DT_LONG_U,	//±³¹âµãÁÁÊ±¼ä 
+DT_LONG_U,	//ÏÔÊ¾²é¿´±³¹âµãÁÁÊ±¼ä 
+DT_LONG_U,	//ÓÐµç°´¼üÆÁÄ»×¤Áô×î´óÊ±¼ä
+DT_UNSIGN,	//ÎÞµç°´¼üÆÁÄ»×¤Áô×î´óÊ±¼ä
+DT_UNSIGN,	//ÏÔÊ¾µçÄÜÐ¡ÊýÎ»Êý
+DT_UNSIGN,	//ÏÔÊ¾¹¦ÂÊ£¨×î´óÐèÁ¿£©Ð¡ÊýÎ»Êý
 };
 
 
 //Ê±ÇøÊ±¶ÎÊý
 BYTE g_bTimeZoneDayChartParam[] = {DT_STRUCT, 5,
-							DT_UNSIGN,	//ÄêÊ±ÇøÊý(p¡Ü14)
-							DT_UNSIGN,	//ÈÕÊ±¶Î±íÊý£¨q¡Ü8£© 
-							DT_UNSIGN,	//ÈÕÊ±¶ÎÊý(Ã¿ÈÕÇÐ»»Êý)£¨m¡Ü14£©
-							DT_UNSIGN,	//·ÑÂÊÊý£¨k¡Ü63£©
-							DT_UNSIGN,	//¹«¹²¼ÙÈÕÊý£¨n¡Ü254£©
+DT_UNSIGN,	//ÄêÊ±ÇøÊý(p¡Ü14)
+DT_UNSIGN,	//ÈÕÊ±¶Î±íÊý£¨q¡Ü8£© 
+DT_UNSIGN,	//ÈÕÊ±¶ÎÊý(Ã¿ÈÕÇÐ»»Êý)£¨m¡Ü14£©
+DT_UNSIGN,	//·ÑÂÊÊý£¨k¡Ü63£©
+DT_UNSIGN,	//¹«¹²¼ÙÈÕÊý£¨n¡Ü254£©
 };
 
 //Á½Ì×Ê±Çø±íÇÐ»»Ê±¼ä
@@ -488,319 +488,319 @@ BYTE g_bDayChartSwitchTimeParam[] = {DT_DATE_TIME_S};
 
 //¹«¹²¼ÙÈÕ±í
 BYTE g_bHolidayParam[] = {DT_ARRAY, MAX_HOLIDAY_NUM,
-							DT_STRUCT, 2,
-								DT_DATE,	//ÈÕÆÚ
-								DT_UNSIGN,	//ÈÕÊ±¶Î±íºÅ
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
-							DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT, 2,
+DT_DATE,	//ÈÕÆÚ
+DT_UNSIGN,	//ÈÕÊ±¶Î±íºÅ
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
+DT_STRUCT,	2, DT_DATE,	DT_UNSIGN,
 };
 
 //ÖÜÐÝÈÕÌØÕ÷×Ö
 BYTE g_bRestStatusParam[] = {DT_BIT_STR,
-							8,	
+8,	
 };
 //ÖÜÐÝÈÕáŠÓÃµÄÈÕÊ±¶Î±íºÅ
 BYTE g_bRestDayChartParam[] = {DT_UNSIGN};
 
 //µ±Ç°/±¸ÓÃÌ×Ê±Çø±í
 BYTE g_bZoneNumParam[] = {DT_ARRAY, MAX_ZONE_NUM,
-							DT_STRUCT, 3,
-							DT_UNSIGN,	//ÔÂ
-							DT_UNSIGN,	//ÈÕ 
-							DT_UNSIGN,	//ÈÕÊ±¶Î±íºÅ
-							DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-							DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-							DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-							DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-							DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-							DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-							DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-							DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-							DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-							DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-							DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-							DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-							DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT, 3,
+DT_UNSIGN,	//ÔÂ
+DT_UNSIGN,	//ÈÕ 
+DT_UNSIGN,	//ÈÕÊ±¶Î±íºÅ
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
 };
 //µ±Ç°/±¸ÓÃÌ×ÈÕÊ±¶Î±í
 BYTE g_bDayChartParam[] = {DT_ARRAY, MAX_DAY_CHART_NUM,
-								DT_ARRAY, RATE_PERIOD_NUM,
-									DT_STRUCT, 3,
-									DT_UNSIGN,	//Ê±
-									DT_UNSIGN,	//·Ö 
-									DT_UNSIGN,	//·ÑÂÊºÅ
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
-								DT_ARRAY, RATE_PERIOD_NUM,
-									DT_STRUCT, 3,
-									DT_UNSIGN,	//Ê±
-									DT_UNSIGN,	//·Ö 
-									DT_UNSIGN,	//·ÑÂÊºÅ
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
-								DT_ARRAY, RATE_PERIOD_NUM,
-									DT_STRUCT, 3,
-									DT_UNSIGN,	//Ê±
-									DT_UNSIGN,	//·Ö 
-									DT_UNSIGN,	//·ÑÂÊºÅ
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
-								DT_ARRAY, RATE_PERIOD_NUM,
-									DT_STRUCT, 3,
-									DT_UNSIGN,	//Ê±
-									DT_UNSIGN,	//·Ö 
-									DT_UNSIGN,	//·ÑÂÊºÅ
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
-								DT_ARRAY, RATE_PERIOD_NUM,
-									DT_STRUCT, 3,
-									DT_UNSIGN,	//Ê±
-									DT_UNSIGN,	//·Ö 
-									DT_UNSIGN,	//·ÑÂÊºÅ
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
-								DT_ARRAY, RATE_PERIOD_NUM,
-									DT_STRUCT, 3,
-									DT_UNSIGN,	//Ê±
-									DT_UNSIGN,	//·Ö 
-									DT_UNSIGN,	//·ÑÂÊºÅ
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
-								DT_ARRAY, RATE_PERIOD_NUM,
-									DT_STRUCT, 3,
-									DT_UNSIGN,	//Ê±
-									DT_UNSIGN,	//·Ö 
-									DT_UNSIGN,	//·ÑÂÊºÅ
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
-								DT_ARRAY, RATE_PERIOD_NUM,
-									DT_STRUCT, 3,
-									DT_UNSIGN,	//Ê±
-									DT_UNSIGN,	//·Ö 
-									DT_UNSIGN,	//·ÑÂÊºÅ
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
-									DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
+DT_ARRAY, RATE_PERIOD_NUM,
+DT_STRUCT, 3,
+DT_UNSIGN,	//Ê±
+DT_UNSIGN,	//·Ö 
+DT_UNSIGN,	//·ÑÂÊºÅ
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
+DT_ARRAY, RATE_PERIOD_NUM,
+DT_STRUCT, 3,
+DT_UNSIGN,	//Ê±
+DT_UNSIGN,	//·Ö 
+DT_UNSIGN,	//·ÑÂÊºÅ
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
+DT_ARRAY, RATE_PERIOD_NUM,
+DT_STRUCT, 3,
+DT_UNSIGN,	//Ê±
+DT_UNSIGN,	//·Ö 
+DT_UNSIGN,	//·ÑÂÊºÅ
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
+DT_ARRAY, RATE_PERIOD_NUM,
+DT_STRUCT, 3,
+DT_UNSIGN,	//Ê±
+DT_UNSIGN,	//·Ö 
+DT_UNSIGN,	//·ÑÂÊºÅ
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
+DT_ARRAY, RATE_PERIOD_NUM,
+DT_STRUCT, 3,
+DT_UNSIGN,	//Ê±
+DT_UNSIGN,	//·Ö 
+DT_UNSIGN,	//·ÑÂÊºÅ
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
+DT_ARRAY, RATE_PERIOD_NUM,
+DT_STRUCT, 3,
+DT_UNSIGN,	//Ê±
+DT_UNSIGN,	//·Ö 
+DT_UNSIGN,	//·ÑÂÊºÅ
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
+DT_ARRAY, RATE_PERIOD_NUM,
+DT_STRUCT, 3,
+DT_UNSIGN,	//Ê±
+DT_UNSIGN,	//·Ö 
+DT_UNSIGN,	//·ÑÂÊºÅ
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
+DT_ARRAY, RATE_PERIOD_NUM,
+DT_STRUCT, 3,
+DT_UNSIGN,	//Ê±
+DT_UNSIGN,	//·Ö 
+DT_UNSIGN,	//·ÑÂÊºÅ
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
+DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
 };
 
 
 //ÎÞÏß¹«ÍøÊôÐÔ2£ºÍ¨ÐÅÅäÖÃ
 BYTE g_bGprs2Fmt[] = {0x02, 0x0C, 
-								0x16,      //¹¤×÷Ä£Ê½
-								0x16,      //ÔÚÏß·½Ê½
-								0x16,      //Á¬½Ó·½Ê½
-								0x16,      //Á¬½ÓÓ¦ÓÃ·½Ê½
-								0x12,      //ÕìÌý¶Ë¿ÚÁÐ±í
-								0x0A, 0x20,//APN
-								0x0A, 0x20,//ÓÃ»§Ãû
-								0x0A, 0x20,//ÃÜÂë
-								0x09, 0x04,//´úÀí·þÎñÆ÷µØÖ·
-								0x12,      //´úÀí¶Ë¿Ú
-								0x04,      //³¬Ê±Ê±¼ä¼°ÖØ·¢´ÎÊý
-								0x12};     //ÐÄÌøÖÜÆÚ
+0x16,      //¹¤×÷Ä£Ê½
+0x16,      //ÔÚÏß·½Ê½
+0x16,      //Á¬½Ó·½Ê½
+0x16,      //Á¬½ÓÓ¦ÓÃ·½Ê½
+0x12,      //ÕìÌý¶Ë¿ÚÁÐ±í
+0x0A, 0x20,//APN
+0x0A, 0x20,//ÓÃ»§Ãû
+0x0A, 0x20,//ÃÜÂë
+0x09, 0x04,//´úÀí·þÎñÆ÷µØÖ·
+0x12,      //´úÀí¶Ë¿Ú
+0x04,      //³¬Ê±Ê±¼ä¼°ÖØ·¢´ÎÊý
+0x12};     //ÐÄÌøÖÜÆÚ
 
 //ÎÞÏß¹«ÍøÊôÐÔ3£ºÖ÷Õ¾Í¨ÐÅ²ÎÊý±í
 BYTE g_bGprs3Fmt[] = {0x01, 0x01, 0x02, 0x02, 
-										0x09, 0x04, //Ö÷Õ¾IPµØÖ·£¬³¤¶ÈÎª4
-										0x12};      //Ö÷Õ¾¶Ë¿Ú            
+0x09, 0x04, //Ö÷Õ¾IPµØÖ·£¬³¤¶ÈÎª4
+0x12};      //Ö÷Õ¾¶Ë¿Ú            
 //ÎÞÏß¹«ÍøÊôÐÔ4£º¶ÌÐÅÍ¨ÐÅ²ÎÊý
 BYTE g_bGprs4Fmt[] = {0x02, 0x03, 
-								0x0a, 0x10,  //¶ÌÐÅÖÐÐÄºÅÂë
-								0x0a, 0x10,  //Ö÷Õ¾ºÅÂë
-								0x0a, 0x10}; //¶ÌÐÅÍ¨ÖªÄ¿µÄºÅÂë   
+0x0a, 0x10,  //¶ÌÐÅÖÐÐÄºÅÂë
+0x0a, 0x10,  //Ö÷Õ¾ºÅÂë
+0x0a, 0x10}; //¶ÌÐÅÍ¨ÖªÄ¿µÄºÅÂë   
 
 //ÒÔÌ«ÍøÊôÐÔ2£ºÍ¨ÐÅÅäÖÃ
 BYTE g_bEth2Fmt[] = {0x02, 0x08, 
-								0x16,		//¹¤×÷Ä£Ê½
-								0x16,		//Á¬½Ó·½Ê½
-								0x16,		//Á¬½ÓÓ¦ÓÃ·½Ê½
-								0x12,		//ÕìÌý¶Ë¿ÚÁÐ±í
-								0x09, 0x04,  //´úÀí·þÎñÆ÷µØÖ· ,³¤¶ÈÎª4
-								0x12,		//´úÀí¶Ë¿Ú
-								0x04,		//³¬Ê±Ê±¼ä¼°ÖØ·¢´ÎÊý
-								0x12};		//ÐÄÌøÖÜÆÚ	
+0x16,		//¹¤×÷Ä£Ê½
+0x16,		//Á¬½Ó·½Ê½
+0x16,		//Á¬½ÓÓ¦ÓÃ·½Ê½
+0x12,		//ÕìÌý¶Ë¿ÚÁÐ±í
+0x09, 0x04,  //´úÀí·þÎñÆ÷µØÖ· ,³¤¶ÈÎª4
+0x12,		//´úÀí¶Ë¿Ú
+0x04,		//³¬Ê±Ê±¼ä¼°ÖØ·¢´ÎÊý
+0x12};		//ÐÄÌøÖÜÆÚ	
 
 //ÒÔÌ«ÍøÊôÐÔ3£ºÖ÷Õ¾Í¨ÐÅ²ÎÊý±í
 BYTE g_bEth3Fmt[] = {0x01, 0x01, 
-								0x02, 0x02, 
-											0x09, 0x04,    //Ö÷Õ¾IPµØÖ·£¬³¤¶ÈÎª4
-											0x12};         //Ö÷Õ¾¶Ë¿Ú    
+0x02, 0x02, 
+0x09, 0x04,    //Ö÷Õ¾IPµØÖ·£¬³¤¶ÈÎª4
+0x12};         //Ö÷Õ¾¶Ë¿Ú    
 
 //ÒÔÌ«ÍøÊôÐÔ4£ºÍøÂçÅäÖÃ
 BYTE g_bEth4Fmt[] = {0x02, 0x06, 
-								0x16,       //IPÅäÖÃ·½Ê½
-								0x09, 0x04, //IPµØÖ·
-								0x09, 0x04, //×ÓÍøÑÚÂë
-								0x09, 0x04, //Íø¹ØµØÖ·
-								0x09, 0x20, //PPPoEÓÃ»§Ãû
-								0x09, 0x20};//PPPoEÃÜÂë 
+0x16,       //IPÅäÖÃ·½Ê½
+0x09, 0x04, //IPµØÖ·
+0x09, 0x04, //×ÓÍøÑÚÂë
+0x09, 0x04, //Íø¹ØµØÖ·
+0x09, 0x20, //PPPoEÓÃ»§Ãû
+0x09, 0x20};//PPPoEÃÜÂë 
 
 //²É¼¯ÈÎÎñ¼à¿Øµ¥Ôª
 BYTE g_bTaskMoniUnit[] = {DT_STRUCT, 0x08,
-								DT_UNSIGN,	//ÈÎÎñID
-								DT_ENUM,	//ÈÎÎñÖ´ÐÐ×´Ì¬
-								DT_DATE_TIME_S,	//ÈÎÎñÖ´ÐÐ¿ªÊ¼Ê±¼ä 
-								DT_DATE_TIME_S,	//ÈÎÎñÖ´ÐÐ½áÊøÊ±¼ä 
-								DT_LONG_U,	//²É¼¯×ÜÊýÁ¿
-								DT_LONG_U,	//²É¼¯³É¹¦ÊýÁ¿ 
-								DT_LONG_U,	//ÒÑ·¢ËÍ±¨ÎÄÌõÊý
-								DT_LONG_U,	//ÒÑ½ÓÊÕ±¨ÎÄÌõÊý 
+DT_UNSIGN,	//ÈÎÎñID
+DT_ENUM,	//ÈÎÎñÖ´ÐÐ×´Ì¬
+DT_DATE_TIME_S,	//ÈÎÎñÖ´ÐÐ¿ªÊ¼Ê±¼ä 
+DT_DATE_TIME_S,	//ÈÎÎñÖ´ÐÐ½áÊøÊ±¼ä 
+DT_LONG_U,	//²É¼¯×ÜÊýÁ¿
+DT_LONG_U,	//²É¼¯³É¹¦ÊýÁ¿ 
+DT_LONG_U,	//ÒÑ·¢ËÍ±¨ÎÄÌõÊý
+DT_LONG_U,	//ÒÑ½ÓÊÕ±¨ÎÄÌõÊý 
 } ;
 
 /////////////////////////////////////////////////////////////////
 //¿ØÖÆ²ÎÊýºÍÊý¾Ý¸ñÊ½ÃèÊö
 BYTE g_bYkParaFmt[] = {DT_STRUCT, 2,
-						DT_DB_LONG_U,
-						DT_LONG_U};
+DT_DB_LONG_U,
+DT_LONG_U};
 BYTE g_bCtrlStaFmt[] = {DT_BIT_STR, 1, RLF};
 
 BYTE g_bGuarant02Fmt[] = {DT_ENUM};
 BYTE g_bGuarant03Fmt[] = {DT_LONG_U};
 BYTE g_bGuarant05Fmt[] = {DT_ARRAY, 24,
-							DT_STRUCT, 2,
-							DT_UNSIGN, DT_UNSIGN};
+DT_STRUCT, 2,
+DT_UNSIGN, DT_UNSIGN};
 
 BYTE g_bChineseInfoFmt[] = {DT_ARRAY, GB_MAXCOMCHNNOTE,  
-							DT_STRUCT, 0x04,
-							DT_UNSIGN,	//ÐòºÅ
-							DT_DATE_TIME_S,	//·¢²¼Ê±¼ä
-							DT_BOOL,	//ÒÑÔÄ¶Á±êÊ¶
-							DT_VIS_STR, 200, RLV 	//ÐÅÏ¢ÄÚÈÝ
+DT_STRUCT, 0x04,
+DT_UNSIGN,	//ÐòºÅ
+DT_DATE_TIME_S,	//·¢²¼Ê±¼ä
+DT_BOOL,	//ÒÑÔÄ¶Á±êÊ¶
+DT_VIS_STR, 200, RLV 	//ÐÅÏ¢ÄÚÈÝ
 };
 
 BYTE g_bSafeLimitFmt[] = {DT_LONG64}; //±£°²¶¨Öµ
 BYTE g_bCtrlPeriodFmt[] = {DT_ARRAY, 12,
-							DT_UNSIGN,							
+DT_UNSIGN,							
 }; //¿ØÖÆÊ±¶Î
 BYTE g_bTurnAlrTimeFmt[] = {DT_ARRAY, 8,
-							DT_UNSIGN,							
+DT_UNSIGN,							
 }; //ÂÖ´Î¸æ¾¯Ê±¼ä
 BYTE g_bPeriodCtrlParaFmt[] = {
-							DT_ARRAY, 8,
-							DT_STRUCT, 6,
-							DT_OI,	//×Ü¼Ó×é¶ÔÏó
-							DT_BIT_STR,	1, RLF, //·½°¸±êÊ¶
-							DT_STRUCT, 9, //µÚÒ»Ì×¶¨Öµ
-							DT_BIT_STR,	1, RLF, //Ê±¶ÎºÅ
-							DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8¸öÊ±¶Î¹¦¿Ø¶¨Öµ
-							DT_STRUCT, 9, //µÚ¶þÌ×¶¨Öµ
-							DT_BIT_STR,	1, RLF, //Ê±¶ÎºÅ
-							DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8¸öÊ±¶Î¹¦¿Ø¶¨Öµ
-							DT_STRUCT, 9, //µÚÈýÌ×¶¨Öµ
-							DT_BIT_STR,	1, RLF, //Ê±¶ÎºÅ
-							DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8¸öÊ±¶Î¹¦¿Ø¶¨Öµ
-							DT_INT, //Ê±¶Î¹¦¿Ø¶¨Öµ¸¡¶¯ÏµÊý
+	DT_ARRAY, 8,
+	DT_STRUCT, 6,
+	DT_OI,	//×Ü¼Ó×é¶ÔÏó
+	DT_BIT_STR,	1, RLF, //·½°¸±êÊ¶
+	DT_STRUCT, 9, //µÚÒ»Ì×¶¨Öµ
+	DT_BIT_STR,	1, RLF, //Ê±¶ÎºÅ
+	DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8¸öÊ±¶Î¹¦¿Ø¶¨Öµ
+	DT_STRUCT, 9, //µÚ¶þÌ×¶¨Öµ
+	DT_BIT_STR,	1, RLF, //Ê±¶ÎºÅ
+	DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8¸öÊ±¶Î¹¦¿Ø¶¨Öµ
+	DT_STRUCT, 9, //µÚÈýÌ×¶¨Öµ
+	DT_BIT_STR,	1, RLF, //Ê±¶ÎºÅ
+	DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8¸öÊ±¶Î¹¦¿Ø¶¨Öµ
+	DT_INT, //Ê±¶Î¹¦¿Ø¶¨Öµ¸¡¶¯ÏµÊý
 }; //Ê±¶Î¹¦¿ØÅäÖÃ·½°¸¼¯
 BYTE g_bRestCtrlParaFmt[] = {
-							DT_ARRAY, 8,
-							DT_STRUCT, 5,
-							DT_OI,	//×Ü¼Ó×é¶ÔÏó
-							DT_LONG64, //³§ÐÝ¿Ø¶¨Öµ
-							DT_DATE_TIME_S, //ÏÞµçÆðÊ¼Ê±¼ä
-							DT_LONG_U, //ÏÞµçÑÓÐøÊ±¼ä
-							DT_BIT_STR,	1, RLF, //Ã¿ÖÜÏÞµçÈÕ
+	DT_ARRAY, 8,
+	DT_STRUCT, 5,
+	DT_OI,	//×Ü¼Ó×é¶ÔÏó
+	DT_LONG64, //³§ÐÝ¿Ø¶¨Öµ
+	DT_DATE_TIME_S, //ÏÞµçÆðÊ¼Ê±¼ä
+	DT_LONG_U, //ÏÞµçÑÓÐøÊ±¼ä
+	DT_BIT_STR,	1, RLF, //Ã¿ÖÜÏÞµçÈÕ
 }; //³§ÐÝ¿ØÅäÖÃ·½°¸¼¯
 BYTE g_bShutoutCtrlParaFmt[] = {
-							DT_ARRAY, 8,
-							DT_STRUCT, 4,
-							DT_OI,	//×Ü¼Ó×é¶ÔÏó
-							DT_DATE_TIME_S, //±¨Í£ÆðÊ¼Ê±¼ä
-							DT_DATE_TIME_S, //±¨Í£½áÊøÊ±¼ä
-							DT_LONG64, //±¨Í£¿Ø¹¦ÂÊ¶¨Öµ
+	DT_ARRAY, 8,
+	DT_STRUCT, 4,
+	DT_OI,	//×Ü¼Ó×é¶ÔÏó
+	DT_DATE_TIME_S, //±¨Í£ÆðÊ¼Ê±¼ä
+	DT_DATE_TIME_S, //±¨Í£½áÊøÊ±¼ä
+	DT_LONG64, //±¨Í£¿Ø¹¦ÂÊ¶¨Öµ
 }; //ÓªÒµ±¨Í£¿ØÅäÖÃ·½°¸¼¯
 BYTE g_bBuyCtrlParaFmt[] = {
-							DT_ARRAY, 8,
-							DT_STRUCT, 8,
-							DT_OI,	//×Ü¼Ó×é¶ÔÏó
-							DT_DB_LONG_U, //¹ºµçµ¥ºÅ
-							DT_ENUM, //×·¼Ó/Ë¢ÐÂ±êÊ¶
-							DT_ENUM, //¹ºµçÀàÐÍ
-							DT_LONG64, //¹ºµçÁ¿£¨·Ñ£©Öµ
-							DT_LONG64, //±¨¾¯ÃÅÏÞÖµ
-							DT_LONG64, //ÌøÕ¢ÃÅÏÞÖµ
-							DT_ENUM, //¹ºµç¿ØÄ£Ê½
+	DT_ARRAY, 8,
+	DT_STRUCT, 8,
+	DT_OI,	//×Ü¼Ó×é¶ÔÏó
+	DT_DB_LONG_U, //¹ºµçµ¥ºÅ
+	DT_ENUM, //×·¼Ó/Ë¢ÐÂ±êÊ¶
+	DT_ENUM, //¹ºµçÀàÐÍ
+	DT_LONG64, //¹ºµçÁ¿£¨·Ñ£©Öµ
+	DT_LONG64, //±¨¾¯ÃÅÏÞÖµ
+	DT_LONG64, //ÌøÕ¢ÃÅÏÞÖµ
+	DT_ENUM, //¹ºµç¿ØÄ£Ê½
 }; //¹ºµç¿ØÅäÖÃ·½°¸¼¯
 BYTE g_bMonthCtrlParaFmt[] = {
-							DT_ARRAY, 8,
-							DT_STRUCT, 4,
-							DT_OI,	//×Ü¼Ó×é¶ÔÏó
-							DT_LONG64, //ÔÂµçÁ¿¿Ø¶¨Öµ
-							DT_UNSIGN, //±¨¾¯ÃÅÏÞÖµÏµÊý
-							DT_INT, //ÔÂµçÁ¿¿Ø¶¨Öµ¸¡¶¯ÏµÊý
+	DT_ARRAY, 8,
+	DT_STRUCT, 4,
+	DT_OI,	//×Ü¼Ó×é¶ÔÏó
+	DT_LONG64, //ÔÂµçÁ¿¿Ø¶¨Öµ
+	DT_UNSIGN, //±¨¾¯ÃÅÏÞÖµÏµÊý
+	DT_INT, //ÔÂµçÁ¿¿Ø¶¨Öµ¸¡¶¯ÏµÊý
 }; //ÔÂµç¿ØÅäÖÃ·½°¸¼¯
 BYTE g_bCtrlInputStatusFmt[] = {
-							DT_ARRAY, 8,
-							DT_STRUCT, 2,
-							DT_OI,	//×Ü¼Ó×é¶ÔÏó
-							DT_ENUM, //Í¶Èë×´Ì¬
+	DT_ARRAY, 8,
+	DT_STRUCT, 2,
+	DT_OI,	//×Ü¼Ó×é¶ÔÏó
+	DT_ENUM, //Í¶Èë×´Ì¬
 }; //¿ØÖÆÍ¶Èë×´Ì¬
 BYTE g_bCtrlOutputStatusFmt[] = {
-							DT_ARRAY, 8,
-							DT_STRUCT, 2,
-							DT_OI,	//×Ü¼Ó×é¶ÔÏó
-							DT_BIT_STR, 1, RLF, //Êä³ö×´Ì¬
+	DT_ARRAY, 8,
+	DT_STRUCT, 2,
+	DT_OI,	//×Ü¼Ó×é¶ÔÏó
+	DT_BIT_STR, 1, RLF, //Êä³ö×´Ì¬
 }; //¿ØÖÆÊä³ö×´Ì¬
 BYTE g_bCtrlAlrStatusFmt[] = {
-							DT_ARRAY, 8,
-							DT_STRUCT, 2,
-							DT_OI,	//×Ü¼Ó×é¶ÔÏó
-							DT_ENUM, //¸æ¾¯×´Ì¬
+	DT_ARRAY, 8,
+	DT_STRUCT, 2,
+	DT_OI,	//×Ü¼Ó×é¶ÔÏó
+	DT_ENUM, //¸æ¾¯×´Ì¬
 }; //Ô½ÏÞ¸æ¾¯×´Ì¬
 
 ////ESAM////////////////////////////////////////////////////
@@ -808,80 +808,80 @@ BYTE g_bEsamSerialNumFmt[] = 			{DT_OCT_STR, 0x10, RLV}; // 18
 BYTE g_bEsamVerisonFmt[] = 				{DT_OCT_STR, 0x10, RLV}; // 18
 BYTE g_bEsamKeyVersionFmt[] = 			{DT_OCT_STR, 0x20, RLV}; // 34
 BYTE g_bEsamCerVersionFmt[] = 			{DT_STRUCT, 2,
-											DT_OCT_STR, 0x10, RLV,
-											DT_OCT_STR, 0x10, RLV,};  // 38
+DT_OCT_STR, 0x10, RLV,
+DT_OCT_STR, 0x10, RLV,};  // 38
 BYTE g_bEsamSessionMaxTimeFmt[] = 		{DT_DB_LONG_U}; // 5
 BYTE g_bEsamSessionRemainTimeFmt[] =	{DT_DB_LONG_U}; // 5
 BYTE g_bEsamCounterFmt[] = 				{DT_STRUCT, 3,
-											DT_DB_LONG_U,
-											DT_DB_LONG_U,
-											DT_DB_LONG_U}; // 17
+DT_DB_LONG_U,
+DT_DB_LONG_U,
+DT_DB_LONG_U}; // 17
 BYTE g_bEsamTermCerSerNumFmt[] = 		{DT_OCT_STR, 0x20, RLV}; // 34
 BYTE g_bEsamMSCerSerNumFmt[] = 			{DT_OCT_STR, 0x20, RLV}; // 34
 BYTE g_bEsamTermCertificateFmt[] = 		{DT_OCT_STR, 0x82, 0x08, 0x00, RLV}; // 2052
 BYTE g_bEsamMSCertificateFmt[] = 		{DT_OCT_STR, 0x82, 0x08, 0x00, RLV}; // 2052
 BYTE g_bEsamSercureModeChoiceFmt[] = 	{DT_ENUM};  // 1
 BYTE g_bEsamSercureModeParamFmt[] = 	{DT_ARRAY, 0x10, //2+(8)*16=130
-											DT_STRUCT, 2, // 2
-												DT_OI, //1+2
-												DT_LONG_U}; //1+2
+DT_STRUCT, 2, // 2
+DT_OI, //1+2
+DT_LONG_U}; //1+2
 
 //RS232¶Ë¿Ú
 BYTE g_bRS232PortFmt[] = {DT_ARRAY, MAX_232_PORT_NUM, 
-									DT_STRUCT, 0x03,
-									DT_VIS_STR,	0x10,RLV,
-									DT_COMDCB,
-									DT_ENUM,
+DT_STRUCT, 0x03,
+DT_VIS_STR,	0x10,RLV,
+DT_COMDCB,
+DT_ENUM,
 };
 
 //RS485¶Ë¿Ú
 BYTE g_bRS485PortFmt[] = {DT_ARRAY, MAX_485_PORT_NUM, 
-								DT_STRUCT, 0x03,
-								DT_VIS_STR,	0x10,RLV,
-								DT_COMDCB,
-								DT_ENUM,
+DT_STRUCT, 0x03,
+DT_VIS_STR,	0x10,RLV,
+DT_COMDCB,
+DT_ENUM,
 };
 
 //ºìÍâ¶Ë¿Ú
 BYTE g_bInfraPortFmt[] = {DT_ARRAY, MAX_HW_PORT_NUM,
-								DT_STRUCT, 0x02,
-								DT_VIS_STR,	0x10,RLV,
-								DT_COMDCB,
+DT_STRUCT, 0x02,
+DT_VIS_STR,	0x10,RLV,
+DT_COMDCB,
 };
 
 //ÔØ²¨/Î¢¹¦ÂÊÎÞÏß½Ó¿Ú¶Ë¿Ú
 BYTE g_bPlcPortFmt[] = {DT_ARRAY, MAX_PLC_PORT_NUM,
-								DT_STRUCT, 0x03,
-								DT_VIS_STR,	0x10,RLV,
-								DT_COMDCB,
-								DT_STRUCT,  0x04,
-									DT_VIS_STR,	0x02,RLF,
-									DT_VIS_STR,	0x02,RLF,
-									DT_DATE,
-									DT_LONG_U,
+DT_STRUCT, 0x03,
+DT_VIS_STR,	0x10,RLV,
+DT_COMDCB,
+DT_STRUCT,  0x04,
+DT_VIS_STR,	0x02,RLF,
+DT_VIS_STR,	0x02,RLF,
+DT_DATE,
+DT_LONG_U,
 };
 
 
 //¿ª¹ØÁ¿ÊôÐÔ2
 BYTE g_bSwitchInput2Fmt[] = {DT_ARRAY, MAX_SW_PORT_NUM,
-										DT_STRUCT, 0x02, 
-										DT_UNSIGN, //×´Ì¬ST
-										DT_UNSIGN,//±äÎ»CD
+DT_STRUCT, 0x02, 
+DT_UNSIGN, //×´Ì¬ST
+DT_UNSIGN,//±äÎ»CD
 };
 
 //¿ª¹ØÁ¿ÊôÐÔ4
 BYTE g_bSwitchInput4Fmt[] = {DT_STRUCT, 0x02, 
-										DT_BIT_STR, 8, RLV, //¿ª¹ØÁ¿½ÓÈë±êÖ¾
-										DT_BIT_STR, 8, RLV,	//¿ª¹ØÁ¿ÊôÐÔ±êÖ¾ 
+DT_BIT_STR, 8, RLV, //¿ª¹ØÁ¿½ÓÈë±êÖ¾
+DT_BIT_STR, 8, RLV,	//¿ª¹ØÁ¿ÊôÐÔ±êÖ¾ 
 };
 
 //¼ÌµçÆ÷Êä³öÊôÐÔ2
 BYTE g_bRelayOutput2Fmt[] = {DT_ARRAY, MAX_RLY_PORT_NUM,
-									DT_STRUCT, 0x04,
-									DT_VIS_STR, 0x10,RLV,	//¶Ë¿ÚÃèÊö·û
-									DT_ENUM,	//µ±Ç°×´Ì¬ 
-									DT_ENUM,	//¿ª¹ØÊôÐÔ 
-									DT_ENUM,	//½ÓÏß×´Ì¬
+DT_STRUCT, 0x04,
+DT_VIS_STR, 0x10,RLV,	//¶Ë¿ÚÃèÊö·û
+DT_ENUM,	//µ±Ç°×´Ì¬ 
+DT_ENUM,	//¿ª¹ØÊôÐÔ 
+DT_ENUM,	//½ÓÏß×´Ì¬
 };
 
 //¸æ¾¯Êä³öÊôÐÔ2
@@ -889,9 +889,9 @@ BYTE g_bAlarmOutput2Fmt[] = {DT_ARRAY, MAX_ALRM_PORT_NUM,DT_ENUM};//¸æ¾¯Êä³ö
 
 //¸æ¾¯Êä³öÊôÐÔ4
 BYTE g_bAlarmOutput4Fmt[] = {DT_ARRAY, MAX_ALRM_PORT_NUM,
-									DT_STRUCT, 0x02,
-									DT_TIME,	//ÆðÊ¼Ê±¼ä
-									DT_TIME,	//½áÊøÊ±¼ä
+DT_STRUCT, 0x02,
+DT_TIME,	//ÆðÊ¼Ê±¼ä
+DT_TIME,	//½áÊøÊ±¼ä
 };
 
 //¶à¹¦ÄÜ¶Ë×ÓÊôÐÔ2
@@ -899,29 +899,29 @@ BYTE g_bMulFunction2Fmt[] = {DT_ARRAY, MAX_MUL_PORT_NUM,DT_ENUM};//¹¦ÄÜ
 
 //½»²É½Ó¿ÚÊôÐÔ2
 BYTE g_bACInterface2Fmt[] = {DT_ARRAY, 1,
-									DT_STRUCT, 0x01,
-									DT_VIS_STR, 0x10,RLV,	//½»²ÉÃèÊö·û
+DT_STRUCT, 0x01,
+DT_VIS_STR, 0x10,RLV,	//½»²ÉÃèÊö·û
 };
 
 //Âö³åÊäÈëÉè±¸ÊôÐÔ2
 BYTE g_bPulseInput2Fmt[] = {DT_ARRAY, MAX_PLUS_PORT_NUM,
-									DT_VIS_STR, 0x10,RLV,
+DT_VIS_STR, 0x10,RLV,
 };
 
 
 //ÏÔÊ¾½Ó¿ÚÀàÊôÐÔ2£¬ÏÔÊ¾¶ÔÏóÁÐ±í
 BYTE g_bDisplay2Fmt[] = {0x01, 0x32, 
-									0x02, 0x02,
-									0x5B, //ÏÔÊ¾¶ÔÏó
-									0x11};//ÆÁÐòºÅ
+0x02, 0x02,
+0x5B, //ÏÔÊ¾¶ÔÏó
+0x11};//ÆÁÐòºÅ
 
 //ÏÔÊ¾½Ó¿ÚÀàÊôÐÔ3£¬ÏÔÊ¾Ê±¼ä
 BYTE g_bDisplay3Fmt[] = {0x12};
 
 //ÏÔÊ¾½Ó¿ÚÀàÊôÐÔ4£¬ÏÔÊ¾²ÎÊý
 BYTE g_bDisplay4Fmt[] = {0x02, 0x02, 
-									0x11, //µ±Ç°×Ü¶ÔÏóÊý
-									0x11};//ÔÊÐí×î´ó¶ÔÏóÊý
+0x11, //µ±Ç°×Ü¶ÔÏóÊý
+0x11};//ÔÊÐí×î´ó¶ÔÏóÊý
 
 
 #define MAX_MTR_ANNEX	3	//µç±í¸½ÊôÐÅÏ¢×î´óÊý×é¸öÊý
@@ -932,111 +932,111 @@ BYTE g_bDisplay4Fmt[] = {0x02, 0x02,
 
 #if 0
 BYTE g_bAddMeterFmt[] = {DT_STRUCT, 0x04, 	//Ìí¼ÓÒ»¸ö²É¼¯µµ°¸ÅäÖÃµ¥Ôª
-								DT_LONG_U, 
-								DT_STRUCT, 0x0a, 
-									DT_TSA, //16, RLV, //TSA
-									DT_ENUM, //emu-----²¨ÌØÂÊ
-									DT_ENUM, //emu-----¹æÔ¼ÀàÐÍ
-									DT_OAD, //OAD----¶Ë¿Ú
-									DT_OCT_STR, 32, RLV, //ÃÜÂë£¬±ä³¤£¬×î³¤32×Ö½Ú
-									DT_UNSIGN, //·ÑÂÊ¸öÊý
-									DT_UNSIGN, //---------ÓÃ»§ÀàÐÍ
-									DT_ENUM, //emu----½ÓÏß·½Ê½
-									DT_LONG_U,	//¶î¶¨µçÑ¹
-									DT_LONG_U,	//¶î¶¨µçÁ÷
-								DT_STRUCT, 0x04, 
-								DT_TSA, //16, RLV, //TSA
-									DT_OCT_STR, 16, RLV, //octing
-									DT_LONG_U, //PT
-									DT_LONG_U, //CT
+DT_LONG_U, 
+DT_STRUCT, 0x0a, 
+DT_TSA, //16, RLV, //TSA
+DT_ENUM, //emu-----²¨ÌØÂÊ
+DT_ENUM, //emu-----¹æÔ¼ÀàÐÍ
+DT_OAD, //OAD----¶Ë¿Ú
+DT_OCT_STR, 32, RLV, //ÃÜÂë£¬±ä³¤£¬×î³¤32×Ö½Ú
+DT_UNSIGN, //·ÑÂÊ¸öÊý
+DT_UNSIGN, //---------ÓÃ»§ÀàÐÍ
+DT_ENUM, //emu----½ÓÏß·½Ê½
+DT_LONG_U,	//¶î¶¨µçÑ¹
+DT_LONG_U,	//¶î¶¨µçÁ÷
+DT_STRUCT, 0x04, 
+DT_TSA, //16, RLV, //TSA
+DT_OCT_STR, 16, RLV, //octing
+DT_LONG_U, //PT
+DT_LONG_U, //CT
 #if 0
-								DT_ARRAY, MAX_MTR_ANNEX,
-									DT_STRUCT, 0x02, //½á¹¹Ìå
-										DT_OAD, //OAD
-										128, 100, RLV, 	//-----DataÀïÃæÇ¶Ì×data£¬À©Õ¹Ò»¸öÊý¾ÝÀàÐÍ128£¬×ödata
+DT_ARRAY, MAX_MTR_ANNEX,
+DT_STRUCT, 0x02, //½á¹¹Ìå
+DT_OAD, //OAD
+128, 100, RLV, 	//-----DataÀïÃæÇ¶Ì×data£¬À©Õ¹Ò»¸öÊý¾ÝÀàÐÍ128£¬×ödata
 #else 
-								DT_MTR_ANNEX,
+DT_MTR_ANNEX,
 #endif
 };
 #endif
 
 
 BYTE g_bBatchAddMeterFmt[] = {DT_ARRAY, MAX_MTR_BATNUM,  
-								DT_STRUCT, 0x04, 	//Ìí¼ÓÒ»¸ö²É¼¯µµ°¸ÅäÖÃµ¥Ôª
-									DT_LONG_U, 
-									DT_STRUCT, 0x0a, 
-										DT_TSA, //16, RLV, //TSA
-										DT_ENUM, //emu-----²¨ÌØÂÊ
-										DT_ENUM, //emu-----¹æÔ¼ÀàÐÍ
-										DT_OAD, //OAD----¶Ë¿Ú
-										DT_OCT_STR, 32, RLV, //ÃÜÂë£¬±ä³¤£¬×î³¤32×Ö½Ú
-										DT_UNSIGN, //·ÑÂÊ¸öÊý
-										DT_UNSIGN, //---------ÓÃ»§ÀàÐÍ
-										DT_ENUM, //emu----½ÓÏß·½Ê½
-										DT_LONG_U,	//¶î¶¨µçÑ¹
-										DT_LONG_U,	//¶î¶¨µçÁ÷
-									DT_STRUCT, 0x04, 
-									DT_TSA, //16, RLV, //TSA
-										DT_OCT_STR, 16, RLV, //octing
-										DT_LONG_U, //PT
-										DT_LONG_U, //CT
+DT_STRUCT, 0x04, 	//Ìí¼ÓÒ»¸ö²É¼¯µµ°¸ÅäÖÃµ¥Ôª
+DT_LONG_U, 
+DT_STRUCT, 0x0a, 
+DT_TSA, //16, RLV, //TSA
+DT_ENUM, //emu-----²¨ÌØÂÊ
+DT_ENUM, //emu-----¹æÔ¼ÀàÐÍ
+DT_OAD, //OAD----¶Ë¿Ú
+DT_OCT_STR, 32, RLV, //ÃÜÂë£¬±ä³¤£¬×î³¤32×Ö½Ú
+DT_UNSIGN, //·ÑÂÊ¸öÊý
+DT_UNSIGN, //---------ÓÃ»§ÀàÐÍ
+DT_ENUM, //emu----½ÓÏß·½Ê½
+DT_LONG_U,	//¶î¶¨µçÑ¹
+DT_LONG_U,	//¶î¶¨µçÁ÷
+DT_STRUCT, 0x04, 
+DT_TSA, //16, RLV, //TSA
+DT_OCT_STR, 16, RLV, //octing
+DT_LONG_U, //PT
+DT_LONG_U, //CT
 #if 0
-									DT_ARRAY, MAX_MTR_ANNEX,
-										DT_STRUCT, 0x02, //½á¹¹Ìå
-											DT_OAD, //OAD
-											128, 100, RLV, 	//-----DataÀïÃæÇ¶Ì×data£¬À©Õ¹Ò»¸öÊý¾ÝÀàÐÍ128£¬×ödata
+DT_ARRAY, MAX_MTR_ANNEX,
+DT_STRUCT, 0x02, //½á¹¹Ìå
+DT_OAD, //OAD
+128, 100, RLV, 	//-----DataÀïÃæÇ¶Ì×data£¬À©Õ¹Ò»¸öÊý¾ÝÀàÐÍ128£¬×ödata
 #else 
-									DT_MTR_ANNEX,
+DT_MTR_ANNEX,
 #endif
-							};	//ÅúÁ¿Ìí¼Ó²É¼¯µµ°¸ÅäÖÃµ¥Ôª
+};	//ÅúÁ¿Ìí¼Ó²É¼¯µµ°¸ÅäÖÃµ¥Ôª
 //ÈÎÎñÅäÖÃµ¥Ôª¸ñÊ½
 BYTE g_bTskUnitFmtDesc[] = {
 	1,	//array
 	255,	//×î´ó¸öÊý
-		2,	//struct
-		12,	//12¸ö³ÉÔ±
-			DT_UNSIGN,	//unsigned	
-			DT_TI,	//TI
-			DT_ENUM,	//enum
-			DT_UNSIGN,	//unsigned
-			DT_DATE_TIME_S,	//date_time_s
-			DT_DATE_TIME_S,	//date_time_s
-			DT_TI,	//TI
+	2,	//struct
+	12,	//12¸ö³ÉÔ±
+	DT_UNSIGN,	//unsigned	
+	DT_TI,	//TI
+	DT_ENUM,	//enum
+	DT_UNSIGN,	//unsigned
+	DT_DATE_TIME_S,	//date_time_s
+	DT_DATE_TIME_S,	//date_time_s
+	DT_TI,	//TI
 #ifdef GW_OOB_PROTO_UPDATA_20170406
-			DT_UNSIGN,
+	DT_UNSIGN,
 #else
-			DT_ENUM,	//enum
+	DT_ENUM,	//enum
 #endif
-			DT_ENUM,	//enum
-			DT_LONG_U,	//long-unsigned
-			DT_LONG_U,	//long-unsigned
-			2,	//struct
-			2,	//struct ³ÉÔ±¸öÊý
-				DT_ENUM,	//enum
-				1,	//array
-				24,	//24¸öÊ±¶Î
-				2,	//struct
-				4,	//4¸ö³ÉÔ±
-				DT_UNSIGN,	//unsigned
-				DT_UNSIGN,	//unsigned
-				DT_UNSIGN,	//unsigned
-				DT_UNSIGN,	//unsigned
+	DT_ENUM,	//enum
+	DT_LONG_U,	//long-unsigned
+	DT_LONG_U,	//long-unsigned
+	2,	//struct
+	2,	//struct ³ÉÔ±¸öÊý
+	DT_ENUM,	//enum
+	1,	//array
+	24,	//24¸öÊ±¶Î
+	2,	//struct
+	4,	//4¸ö³ÉÔ±
+	DT_UNSIGN,	//unsigned
+	DT_UNSIGN,	//unsigned
+	DT_UNSIGN,	//unsigned
+	DT_UNSIGN,	//unsigned
 };
 
 //ÆÕÍ¨²É¼¯·½°¸¸ñÊ½
 BYTE g_bCommFmtDesc[] = {
 	1,	//array
 	255,	//×î´ó¸öÊý
-		2,	//struct
-		6,	//12¸ö³ÉÔ±
-			DT_UNSIGN,	//unsigned
-			DT_LONG_U,	//long-unsigned
-			DT_ACQ_TYPE,	//Ð­ÒéÀ©Õ¹¸ñÊ½
-			1,	//array
-			64,	//64¸ö³ÉÔ±¸öÊý
-				DT_CSD,	//CSD
-			DT_MS,	//MS
-			DT_ENUM,	//enum
+	2,	//struct
+	6,	//12¸ö³ÉÔ±
+	DT_UNSIGN,	//unsigned
+	DT_LONG_U,	//long-unsigned
+	DT_ACQ_TYPE,	//Ð­ÒéÀ©Õ¹¸ñÊ½
+	1,	//array
+	64,	//64¸ö³ÉÔ±¸öÊý
+	DT_CSD,	//CSD
+	DT_MS,	//MS
+	DT_ENUM,	//enum
 };
 
 //ÊÂ¼þ²É¼¯·½°¸
@@ -1062,136 +1062,136 @@ BYTE g_bEvtFmtDesc[] = {
 BYTE g_bEvtAcqUpdRptFlg[] = {
 	DT_STRUCT,
 	0x02,
-		DT_UNSIGN,
-		DT_BOOL,
+	DT_UNSIGN,
+	DT_BOOL,
 };
 
 //¸üÐÂÈÎÎñ×´Ì¬
 BYTE g_bUdpTaskState[] = {
 	DT_STRUCT,
 	0x02,
-		DT_UNSIGN,	//ÈÎÎñID
-		DT_ENUM,	//×´Ì¬£¬Õý³££¨1£©£¬Í£ÓÃ£¨2£©
+	DT_UNSIGN,	//ÈÎÎñID
+	DT_ENUM,	//×´Ì¬£¬Õý³££¨1£©£¬Í£ÓÃ£¨2£©
 }; 
 
 //Í¸Ã÷²É¼¯·½°¸
 BYTE g_bTranFmtDesc[] = {
 	1,	//array
 	255,	//×î´ó¸öÊý
-		2,	//struct
-		2,
-			8,	//unsigned
-			1,	//array
-			32,	
-				2,	//struct
-				5,	
-					DT_TSA,	//TSA
-					DT_UNSIGN,
-					DT_LONG_U,	//long-unsigned
-					DT_LONG_U,	//long-unsigned
-						2,	//struct
-						4,	
-							3,	//bool
-							DT_LONG_U,	//long-unsigned
-							DT_ENUM,	//enum
-							2,	//struct
-							3,
-								DT_UNSIGN,	//unsigned
-								DT_LONG_U,	//long-unsigned
-								DT_LONG_U,	//long-unsigned
-							1,	//array
-							16,
-								2,	//struct
-								2,	
-									DT_UNSIGN,	//unsigned
-									9,	//oct
-									128,
+	2,	//struct
+	2,
+	8,	//unsigned
+	1,	//array
+	32,	
+	2,	//struct
+	5,	
+	DT_TSA,	//TSA
+	DT_UNSIGN,
+	DT_LONG_U,	//long-unsigned
+	DT_LONG_U,	//long-unsigned
+	2,	//struct
+	4,	
+	3,	//bool
+	DT_LONG_U,	//long-unsigned
+	DT_ENUM,	//enum
+	2,	//struct
+	3,
+	DT_UNSIGN,	//unsigned
+	DT_LONG_U,	//long-unsigned
+	DT_LONG_U,	//long-unsigned
+	1,	//array
+	16,
+	2,	//struct
+	2,	
+	DT_UNSIGN,	//unsigned
+	9,	//oct
+	128,
 };
 
 //ÉÏ±¨²É¼¯·½°¸
 BYTE g_bRptFmtDesc[] = {
 	DT_ARRAY,	//array
 	255,	//×î´ó¸öÊý
-		DT_STRUCT,	//struct
-		5,
-			DT_UNSIGN,	//unsigned
-			1,	//array
-			62,	
-				DT_OAD,	//OAD
-			DT_TI,	//TI
-			DT_UNSIGN,	//unsigned
-			DT_RPT_TYPE,	//
+	DT_STRUCT,	//struct
+	5,
+	DT_UNSIGN,	//unsigned
+	1,	//array
+	62,	
+	DT_OAD,	//OAD
+	DT_TI,	//TI
+	DT_UNSIGN,	//unsigned
+	DT_RPT_TYPE,	//
 };
 
 //²É¼¯¹æÔò¿â
 BYTE g_bAddAcqRuleLib[] = {
 	DT_ARRAY,	
 	255,
-		DT_STRUCT, 
-		2,
-			DT_CSD,	//Êý¾ÝÁÐÑ¡ÔñÃèÊö·û  CSD
-			DT_STRUCT,	//¹æÔòÃèÊö  structrue
-			3,
-//------------------------------------------------------------------
-				DT_STRUCT,	//AcqCmd_2007  structure
-				3,
-					DT_STRUCT,	//Ö÷ÓÃDI  array octet-string(SIZE(4))£¬
-					2,
-						DT_ARRAY, 
-						20,
-							DT_OCT_STR,
-							4,
-						DT_ARRAY, 
-						20,
-							DT_OCT_STR,
-							4,	
+	DT_STRUCT, 
+	2,
+	DT_CSD,	//Êý¾ÝÁÐÑ¡ÔñÃèÊö·û  CSD
+	DT_STRUCT,	//¹æÔòÃèÊö  structrue
+	3,
+	//------------------------------------------------------------------
+	DT_STRUCT,	//AcqCmd_2007  structure
+	3,
+	DT_STRUCT,	//Ö÷ÓÃDI  array octet-string(SIZE(4))£¬
+	2,
+	DT_ARRAY, 
+	20,
+	DT_OCT_STR,
+	4,
+	DT_ARRAY, 
+	20,
+	DT_OCT_STR,
+	4,	
 
-					DT_STRUCT,	//±¸ÓÃDI  array octet-string(SIZE(4))£¬
-					2,
-						DT_ARRAY, 
-						20,
-							DT_OCT_STR,
-							4,
-						DT_ARRAY, 
-						20,
-							DT_OCT_STR,
-							4,	
-//-----------------------------------------------------------------
-				DT_STRUCT,	//AcqCmd_1997  structure
-				3,
-					DT_STRUCT,	//Ö÷ÓÃDI  array octet-string(SIZE(4))£¬
-					2,
-						DT_ARRAY, 
-						20,
-							DT_OCT_STR,
-							4,
-						DT_ARRAY, 
-						20,
-							DT_OCT_STR,
-							4,	
+	DT_STRUCT,	//±¸ÓÃDI  array octet-string(SIZE(4))£¬
+	2,
+	DT_ARRAY, 
+	20,
+	DT_OCT_STR,
+	4,
+	DT_ARRAY, 
+	20,
+	DT_OCT_STR,
+	4,	
+	//-----------------------------------------------------------------
+	DT_STRUCT,	//AcqCmd_1997  structure
+	3,
+	DT_STRUCT,	//Ö÷ÓÃDI  array octet-string(SIZE(4))£¬
+	2,
+	DT_ARRAY, 
+	20,
+	DT_OCT_STR,
+	4,
+	DT_ARRAY, 
+	20,
+	DT_OCT_STR,
+	4,	
 
-					DT_STRUCT,	//±¸ÓÃDI  array octet-string(SIZE(4))£¬
-					2,
-						DT_ARRAY, 
-						20,
-							DT_OCT_STR,
-							4,
-						DT_ARRAY, 
-						20,
-							DT_OCT_STR,
-							4,	
-//------------------------------------------------------------------
-				DT_STRUCT,	//AcqCmd_Trans
-				1,
-					DT_OCT_STR,
-					255,
+	DT_STRUCT,	//±¸ÓÃDI  array octet-string(SIZE(4))£¬
+	2,
+	DT_ARRAY, 
+	20,
+	DT_OCT_STR,
+	4,
+	DT_ARRAY, 
+	20,
+	DT_OCT_STR,
+	4,	
+	//------------------------------------------------------------------
+	DT_STRUCT,	//AcqCmd_Trans
+	1,
+	DT_OCT_STR,
+	255,
 };
 
 //É¾³ýÒ»×é²É¼¯¹æÔò
 BYTE g_bDelAcqRuleLib[] = {
 	DT_ARRAY,
 	64,
-		DT_CSD,
+	DT_CSD,
 };	
 
 
@@ -1199,97 +1199,97 @@ BYTE g_bDelAcqRuleLib[] = {
 BYTE g_bRealFmtDesc[] = {
 	1,	//array
 	255,	//×î´ó¸öÊý
-		2,	//struct
-		4,
-			DT_UNSIGN, //unsigned
-			1,	//array
-			64,	
-				DT_CSD,	//CSD
-			DT_MS,	//MS
-			3,	//bool
+	2,	//struct
+	4,
+	DT_UNSIGN, //unsigned
+	1,	//array
+	64,	
+	DT_CSD,	//CSD
+	DT_MS,	//MS
+	3,	//bool
 };
 
 //ÖØÖÃ·½°¸ÁÐ±í
 BYTE g_bResetCSDFmtDesc[] = {
 	DT_STRUCT,	//struct
 	2,	
-		DT_UNSIGN,	//unsigned
-		DT_ARRAY,	//array
-		64,
-			DT_CSD,	//CSD
+	DT_UNSIGN,	//unsigned
+	DT_ARRAY,	//array
+	64,
+	DT_CSD,	//CSD
 };
 
 //×Ü¼Ó×éÏà¹Ø¸ñÊ½
 BYTE g_bGrpCfgFmt[] = {DT_ARRAY, 4,	//Êý×é¼°ÔªËØ¸öÊý
-						DT_STRUCT,0x03,		//½á¹¹¼°³ÉÔ±¸öÊý
-						DT_TSA,		//Í¨ÐÅµØÖ· Tsa
-						DT_ENUM,		//×Ü¼Ó±êÖ¾ enum
-						DT_ENUM,		//ÔËËã·û±êÖ¾ enum
-						};	//×Ü¼Ó×éÅäÖÃ
+DT_STRUCT,0x03,		//½á¹¹¼°³ÉÔ±¸öÊý
+DT_TSA,		//Í¨ÐÅµØÖ· Tsa
+DT_ENUM,		//×Ü¼Ó±êÖ¾ enum
+DT_ENUM,		//ÔËËã·û±êÖ¾ enum
+};	//×Ü¼Ó×éÅäÖÃ
 BYTE g_bGrpPowFmt[] = {DT_LONG64};	//×Ü¼Ó×é¹¦ÂÊ
 BYTE g_bGrpEngFmt[] = {DT_ARRAY, 5, DT_LONG64};	//×Ü¼Ó×éµçÄÜÁ¿
 BYTE g_bGrpSlipIntervFmt[] = {DT_UNSIGN};	//×Ü¼Ó×é»¬²îÖÜÆÚ
 BYTE g_bGrpTurnFmt[] = {DT_BIT_STR, 1, RLF};	//×Ü¼Ó×éÂÖ´ÎÅäÖÃ
 BYTE g_bGrpCtrlStaCfgFmt[] = {DT_STRUCT, 6,		//½á¹¹¼°³ÉÔ±¸öÊý
-								DT_UNSIGN,	//Ê±¶Î¿Ø¶¨Öµ·½°¸ºÅ
-								DT_BIT_STR, 1, RLF,	//¹¦¿ØÊ±¶ÎÓÐÐ§±êÖ¾Î»
-								DT_BIT_STR, 1, RLF,	//¹¦¿Ø×´Ì¬
-								DT_BIT_STR, 1, RLF,	//µç¿Ø×´Ì¬
-								DT_BIT_STR, 1, RLF,	//¹¦¿ØÂÖ´Î×´Ì¬
-								DT_BIT_STR, 1, RLF,	//µç¿ØÂÖ´Î×´Ì¬
-							};	//×Ü¼Ó×é¿ØÖÆÉèÖÃ×´Ì¬
+DT_UNSIGN,	//Ê±¶Î¿Ø¶¨Öµ·½°¸ºÅ
+DT_BIT_STR, 1, RLF,	//¹¦¿ØÊ±¶ÎÓÐÐ§±êÖ¾Î»
+DT_BIT_STR, 1, RLF,	//¹¦¿Ø×´Ì¬
+DT_BIT_STR, 1, RLF,	//µç¿Ø×´Ì¬
+DT_BIT_STR, 1, RLF,	//¹¦¿ØÂÖ´Î×´Ì¬
+DT_BIT_STR, 1, RLF,	//µç¿ØÂÖ´Î×´Ì¬
+};	//×Ü¼Ó×é¿ØÖÆÉèÖÃ×´Ì¬
 BYTE g_bGrpCtrlStaCurFmt[] = {DT_STRUCT, 7,		//½á¹¹¼°³ÉÔ±¸öÊý
-								DT_LONG64,	//µ±Ç°¹¦¿Ø¶¨Öµ
-								DT_INT,	//µ±Ç°¹¦ÂÊÏÂ¸¡¿Ø¸¡¶¯ÏµÊý
-								DT_BIT_STR, 1, RLF,	//¹¦¿ØÌøÕ¢Êä³ö×´Ì¬
-								DT_BIT_STR, 1, RLF,	//ÔÂµç¿ØÌøÕ¢Êä³ö×´Ì¬
-								DT_BIT_STR, 1, RLF,	//¹ºµç¿ØÌøÕ¢Êä³ö×´Ì¬
-								DT_BIT_STR, 1, RLF,	//¹¦¿ØÔ½ÏÞ¸æ¾¯×´Ì¬
-								DT_BIT_STR, 1, RLF,	//µç¿ØÔ½ÏÞ¸æ¾¯×´Ì¬
+DT_LONG64,	//µ±Ç°¹¦¿Ø¶¨Öµ
+DT_INT,	//µ±Ç°¹¦ÂÊÏÂ¸¡¿Ø¸¡¶¯ÏµÊý
+DT_BIT_STR, 1, RLF,	//¹¦¿ØÌøÕ¢Êä³ö×´Ì¬
+DT_BIT_STR, 1, RLF,	//ÔÂµç¿ØÌøÕ¢Êä³ö×´Ì¬
+DT_BIT_STR, 1, RLF,	//¹ºµç¿ØÌøÕ¢Êä³ö×´Ì¬
+DT_BIT_STR, 1, RLF,	//¹¦¿ØÔ½ÏÞ¸æ¾¯×´Ì¬
+DT_BIT_STR, 1, RLF,	//µç¿ØÔ½ÏÞ¸æ¾¯×´Ì¬
 };	//×Ü¼Ó×éµ±Ç°¿ØÖÆ×´Ì¬
 BYTE g_bGrpDataUnitFmt[] = { DT_STRUCT, 10, 
-								DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT,  //ÊôÐÔ3~ÊôÐÔ7µ¥Î»
-								DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT,  //ÊôÐÔ8~ÊôÐÔ12µ¥Î»
-								};	//×Ü¼Ó×é»»Ëã¼°µ¥Î»
+DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT,  //ÊôÐÔ3~ÊôÐÔ7µ¥Î»
+DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT,  //ÊôÐÔ8~ÊôÐÔ12µ¥Î»
+};	//×Ü¼Ó×é»»Ëã¼°µ¥Î»
 //Âö³å¼ÆÁ¿Ïà¹Ø¸ñÊ½
 BYTE g_bCommAddrFmt[] = { DT_OCT_STR, 16 };	//RLV
 
 BYTE g_bPTCTFmt[] = { DT_STRUCT, 0x02,
-								DT_LONG_U,		//PT
-								DT_LONG_U,		//CT
+DT_LONG_U,		//PT
+DT_LONG_U,		//CT
 };
 
 BYTE g_bPulseCfgFmt[] = { DT_ARRAY, MAX_PULSE_TYPE,	//Êý×é¼°ÔªËØ¸öÊý
-								DT_STRUCT,0x03,		//½á¹¹¼°³ÉÔ±¸öÊý
-										DT_OAD,		//¶Ë¿ÚºÅ OAD
-										DT_ENUM,		//Âö³åÊôÐÔ enum
-										DT_LONG_U,		//Âö³å³£Êý long-unsigned
+DT_STRUCT,0x03,		//½á¹¹¼°³ÉÔ±¸öÊý
+DT_OAD,		//¶Ë¿ÚºÅ OAD
+DT_ENUM,		//Âö³åÊôÐÔ enum
+DT_LONG_U,		//Âö³å³£Êý long-unsigned
 };
 
 BYTE g_bPulsePowerFmt[] = { DT_DB_LONG };	//Âö³å¹¦ÂÊ
 
 BYTE g_bPulseDataUnitFmt[] = { DT_STRUCT, 0x0e, 
-									DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, //ÊôÐÔ5~ÊôÐÔ11µ¥Î»
-									DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, //ÊôÐÔ12~ÊôÐÔ18µ¥Î»
+DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, //ÊôÐÔ5~ÊôÐÔ11µ¥Î»
+DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, //ÊôÐÔ12~ÊôÐÔ18µ¥Î»
 };
 BYTE g_bBalanceDayFmt[] = { DT_ARRAY, BALANCE_DAY_NUM, DT_STRUCT, 02, DT_UNSIGN, DT_UNSIGN };
 
 //ËÑ±í½á¹û
 BYTE g_bSchMtrRltFmt[] = {DT_ARRAY, POINT_NUM,
-								DT_TSA,	//Í¨ÐÅµØÖ·
-								DT_TSA,	//ËùÊô²É¼¯Æ÷µØÖ·
-								DT_ENUM,	//¹æÔ¼ÀàÐÍ
-								DT_ENUM,	//ÏàÎ»
-								DT_UNSIGN,	//ÐÅºÅÆ·ÖÊ 
-								DT_DATE_TIME_S,	//ËÑµ½µÄÊ±¼ä
-								DT_SCH_MTR_ANNEX,	//ËÑµ½µÄ¸½¼ÓÐÅÏ¢
+DT_TSA,	//Í¨ÐÅµØÖ·
+DT_TSA,	//ËùÊô²É¼¯Æ÷µØÖ·
+DT_ENUM,	//¹æÔ¼ÀàÐÍ
+DT_ENUM,	//ÏàÎ»
+DT_UNSIGN,	//ÐÅºÅÆ·ÖÊ 
+DT_DATE_TIME_S,	//ËÑµ½µÄÊ±¼ä
+DT_SCH_MTR_ANNEX,	//ËÑµ½µÄ¸½¼ÓÐÅÏ¢
 };
 
 //¿çÌ¨ÇøËÑ±í½á¹û
 BYTE g_bCrossSchMtrRltFmt[] = {DT_ARRAY, POINT_NUM,
-									DT_TSA,	//Í¨ÐÅµØÖ·
-									DT_TSA,	//Ö÷½ÚµãµØÖ·
-									DT_DATE_TIME_S,	//±ä¸üÊ±¼ä
+DT_TSA,	//Í¨ÐÅµØÖ·
+DT_TSA,	//Ö÷½ÚµãµØÖ·
+DT_DATE_TIME_S,	//±ä¸üÊ±¼ä
 };
 
 //ËùÓÐËÑ±í½á¹û¼ÇÂ¼Êý
@@ -1300,17 +1300,17 @@ BYTE g_bCrossSchMtrCntFmt[] = {DT_LONG_U};
 
 //ËÑ±í²ÎÊý
 BYTE g_bSchMtrParaFmt[] = {DT_STRUCT, 0x04,
-							DT_BOOL,	//ÊÇ·ñÆôÓÃÃ¿ÌìÖÜÆÚËÑ±í
-							DT_BOOL,	//×Ô¶¯¸üÐÂ²É¼¯µµ°¸ 
-							DT_BOOL,	//ÊÇ·ñ²úÉúËÑ±íÏà¹ØÊÂ¼þ
-							DT_ENUM,	//Çå¿ÕËÑ±í½á¹ûÑ¡Ïî
+DT_BOOL,	//ÊÇ·ñÆôÓÃÃ¿ÌìÖÜÆÚËÑ±í
+DT_BOOL,	//×Ô¶¯¸üÐÂ²É¼¯µµ°¸ 
+DT_BOOL,	//ÊÇ·ñ²úÉúËÑ±íÏà¹ØÊÂ¼þ
+DT_ENUM,	//Çå¿ÕËÑ±í½á¹ûÑ¡Ïî
 };
 
 //¶¨Ê±ËÑ±í²ÎÊý
 BYTE g_bTimeSchMtrParaFmt[] = {DT_ARRAY, MAX_TIME_SCH_MTR_NUM,
-								DT_STRUCT, 0x02,
-									DT_TIME,	//¿ªÊ¼Ê±¼ä
-									DT_LONG_U,	//ËÑ±íÊ±³¤£¨min£©
+DT_STRUCT, 0x02,
+DT_TIME,	//¿ªÊ¼Ê±¼ä
+DT_LONG_U,	//ËÑ±íÊ±³¤£¨min£©
 };
 
 //ËÑ±íÊµÊ±×´Ì¬
@@ -1327,13 +1327,13 @@ BYTE g_bSchMtrStateFmt[] = {DT_ENUM};
 //  ²î¶¯Ô½ÏÞ¾ø¶ÔÆ«²îÖµ long64£¨µ¥Î»£ºkWh£¬»»Ëã£º-4£©
 //}
 BYTE g_bECompareCfgFmt[] = { DT_ARRAY, DIFF_COMP_CFG_NUM,
-									DT_STRUCT, 0x06, 
-										DT_UNSIGN, 
-										DT_OI,
-										DT_OI,
-										DT_UNSIGN, 
-										DT_INT,
-										DT_DB_LONG,
+DT_STRUCT, 0x06, 
+DT_UNSIGN, 
+DT_OI,
+DT_OI,
+DT_UNSIGN, 
+DT_INT,
+DT_DB_LONG,
 };
 
 //¶³½áÀà²ÎÊý¸ñÊ½
@@ -1362,10 +1362,10 @@ static BYTE g_bTrigReFrzFmt[] = {
 
 //ÅúÁ¿Ìí¼Ó¹ØÁªÊôÐÔ±í¸ñÊ½
 static BYTE g_bBatAddFrzCfgFmt[] = { DT_ARRAY, CAP_OAD_NUM,	//Êý×é¼°ÔªËØ¸öÊý
-										DT_STRUCT,0x03,		//½á¹¹¼°³ÉÔ±¸öÊý
-											DT_LONG_U,		//ÖÜÆÚ long-unsigned
-											DT_OAD,			//OAD
-											DT_LONG_U,		//Éî¶È long-unsigned
+DT_STRUCT,0x03,		//½á¹¹¼°³ÉÔ±¸öÊý
+DT_LONG_U,		//ÖÜÆÚ long-unsigned
+DT_OAD,			//OAD
+DT_LONG_U,		//Éî¶È long-unsigned
 };
 
 
@@ -1426,66 +1426,66 @@ static BYTE g_bSrcTsaTrigEvtFmt[] = {
 BYTE g_bRangeStatFmt[] = {
 	DT_ARRAY,	//array
 	SPECIAL_NUM,//20,	//×î´ó¸öÊý
-		DT_STRUCT,	//struct
-		4,
-			DT_OAD,	//unsigned
-			DT_OVER_PARA,	//Ô½ÏÞÅÐ¶Ï²ÎÊýarray Data
-			DT_UNSIGN,	//Í³¼ÆÖÜÆÚ  unsigned
-			DT_TI,	//TI
+	DT_STRUCT,	//struct
+	4,
+	DT_OAD,	//unsigned
+	DT_OVER_PARA,	//Ô½ÏÞÅÐ¶Ï²ÎÊýarray Data
+	DT_UNSIGN,	//Í³¼ÆÖÜÆÚ  unsigned
+	DT_TI,	//TI
 };
 //Çø¼äÍ³¼ÆÊý¾Ý
 BYTE g_bRangeStatResFmt[] = {
 	DT_ARRAY,	//array
 	SPECIAL_NUM,//20,	//¿ÉÒÔ¶¨ÒåÎª0¸öÃ´?
-		DT_STRUCT,	//struct
-		2,
-			DT_OAD,	//unsigned
-			DT_OVER_RES,	//Çø¼äÍ³¼ÆÖµarray 
+	DT_STRUCT,	//struct
+	2,
+	DT_OAD,	//unsigned
+	DT_OVER_RES,	//Çø¼äÍ³¼ÆÖµarray 
 
 };
 //Æ½¾ùÍ³¼Æ²ÎÊý
 BYTE g_bAvrStatFmt[] = {
 	DT_ARRAY,	//array
 	SPECIAL_NUM,//20,	//×î´ó¸öÊý
-		DT_STRUCT,	//struct
-		3,
-			DT_OAD,	//unsigned
-			DT_UNSIGN,	//Í³¼ÆÖÜÆÚ  unsigned
-			DT_TI,	//TI
+	DT_STRUCT,	//struct
+	3,
+	DT_OAD,	//unsigned
+	DT_UNSIGN,	//Í³¼ÆÖÜÆÚ  unsigned
+	DT_TI,	//TI
 };
 
 //Æ½¾ùÍ³¼Æ½á¹û
 BYTE g_bAvrResFmt[] = {
 	DT_ARRAY,	//array
 	SPECIAL_NUM,//20,	//×î´ó¸öÊý
-		DT_STRUCT,	//struct
-		3,
-			DT_OAD,	//unsigned
-			DT_INSTANCE,	//ÀÛ¼ÓºÍ
-			DT_INSTANCE,	//Æ½¾ùÖµ
+	DT_STRUCT,	//struct
+	3,
+	DT_OAD,	//unsigned
+	DT_INSTANCE,	//ÀÛ¼ÓºÍ
+	DT_INSTANCE,	//Æ½¾ùÖµ
 };
 
 //¼«ÖµÍ³¼Æ½á¹û
 BYTE g_bExtremResFmt[] = {
 	DT_ARRAY,	//array
 	SPECIAL_NUM,//20,	//×î´ó¸öÊý
-		DT_STRUCT,	//struct
-		5,
-			DT_OAD,	//unsigned
-			DT_INSTANCE,	//ÀÛ¼ÓºÍ
-			DT_DATE_TIME_S,
-			DT_INSTANCE,	//Æ½¾ùÖµ
-			DT_DATE_TIME_S,
+	DT_STRUCT,	//struct
+	5,
+	DT_OAD,	//unsigned
+	DT_INSTANCE,	//ÀÛ¼ÓºÍ
+	DT_DATE_TIME_S,
+	DT_INSTANCE,	//Æ½¾ùÖµ
+	DT_DATE_TIME_S,
 };
 
 //µçÑ¹ºÏ¸ñÂÊ²ÎÊý
 BYTE g_bVolParaFmt[] = {
 	DT_STRUCT,	//struct
 	4,
-		DT_LONG_U,//µçÑ¹¿¼ºËÉÏÏÞ
-		DT_LONG_U,//µçÑ¹¿¼ºËÏÂÏÞ
-		DT_LONG_U,//µçÑ¹ºÏ¸ñÉÏÏÞ
-		DT_LONG_U,//µçÑ¹ºÏ¸ñÏÂÏÞ
+	DT_LONG_U,//µçÑ¹¿¼ºËÉÏÏÞ
+	DT_LONG_U,//µçÑ¹¿¼ºËÏÂÏÞ
+	DT_LONG_U,//µçÑ¹ºÏ¸ñÉÏÏÞ
+	DT_LONG_U,//µçÑ¹ºÏ¸ñÏÂÏÞ
 
 };
 
@@ -1493,43 +1493,43 @@ BYTE g_bVolParaFmt[] = {
 BYTE g_bVoltStatFmt[] = {
 	DT_STRUCT,	//struct
 	2,	//×î´ó¸öÊý
-		DT_STRUCT,	//struct
-		5,
-			DT_DB_LONG_U,	//µçÑ¹¼à²âÊ±¼ä
-			DT_LONG_U,	//µçÑ¹ºÏ¸ñÂÊ
-			DT_LONG_U,	//µçÑ¹³¬ÏÞÂÊ
-			DT_DB_LONG_U,	//µçÑ¹³¬ÉÏÏÞÊ±¼ä
-			DT_DB_LONG_U,	//µçÑ¹³¬ÏÂÏÞÊ±¼ä
-		DT_STRUCT,	//struct
-		5,
-			DT_DB_LONG_U,	//µçÑ¹¼à²âÊ±¼ä
-			DT_LONG_U,	//µçÑ¹ºÏ¸ñÂÊ
-			DT_LONG_U,	//µçÑ¹³¬ÏÞÂÊ
-			DT_DB_LONG_U,	//µçÑ¹³¬ÉÏÏÞÊ±¼ä
-			DT_DB_LONG_U,	//µçÑ¹³¬ÏÂÏÞÊ±¼ä
+	DT_STRUCT,	//struct
+	5,
+	DT_DB_LONG_U,	//µçÑ¹¼à²âÊ±¼ä
+	DT_LONG_U,	//µçÑ¹ºÏ¸ñÂÊ
+	DT_LONG_U,	//µçÑ¹³¬ÏÞÂÊ
+	DT_DB_LONG_U,	//µçÑ¹³¬ÉÏÏÞÊ±¼ä
+	DT_DB_LONG_U,	//µçÑ¹³¬ÏÂÏÞÊ±¼ä
+	DT_STRUCT,	//struct
+	5,
+	DT_DB_LONG_U,	//µçÑ¹¼à²âÊ±¼ä
+	DT_LONG_U,	//µçÑ¹ºÏ¸ñÂÊ
+	DT_LONG_U,	//µçÑ¹³¬ÏÞÂÊ
+	DT_DB_LONG_U,	//µçÑ¹³¬ÉÏÏÞÊ±¼ä
+	DT_DB_LONG_U,	//µçÑ¹³¬ÏÂÏÞÊ±¼ä
 };
 
 //×î´óÓÐ¹¦¹¦ÂÊ¼°·¢ÉúÊ±¼ä
 BYTE g_bMaxPowerFmt[] = {
 	DT_STRUCT,	//struct
 	2,	//×î´ó¸öÊý
-		DT_DB_LONG_U,	//×î´ó¹¦ÂÊÖµ
-		DT_DATE_TIME_S,	//·¢ÉúÊ±¼ä
+	DT_DB_LONG_U,	//×î´ó¹¦ÂÊÖµ
+	DT_DATE_TIME_S,	//·¢ÉúÊ±¼ä
 };
 
 //¸´Î»´ÎÊý
 BYTE g_bResetTimesFmt[] = {
 	DT_STRUCT,	//struct
 	2,	//×î´ó¸öÊý
-		DT_LONG_U,	//ÈÕ¸´Î»ÀÛ¼Æ´ÎÊý
-		DT_LONG_U,	//ÔÂ¸´Î»ÀÛ¼Æ´ÎÊý
+	DT_LONG_U,	//ÈÕ¸´Î»ÀÛ¼Æ´ÎÊý
+	DT_LONG_U,	//ÔÂ¸´Î»ÀÛ¼Æ´ÎÊý
 };
 //¹©µçÊ±¼ä\Í¨ÐÅÁ÷Á¿
 BYTE g_bOnTimeFmt[] = {
 	DT_STRUCT,	//struct
 	2,	//×î´ó¸öÊý
-		DT_DB_LONG_U,	//ÈÕ¹©µçÀÛ¼ÆÊ±¼ä
-		DT_DB_LONG_U,	//ÔÂ¹©µçÀÛ¼ÆÊ±¼ä
+	DT_DB_LONG_U,	//ÈÕ¹©µçÀÛ¼ÆÊ±¼ä
+	DT_DB_LONG_U,	//ÔÂ¹©µçÀÛ¼ÆÊ±¼ä
 };
 #define SCA_UNIT_ENG		((WORD )0x21<<8) + 0xfe	//ÆÕÍ¨µçÁ¿Êý¾Ý
 #define SCA_UNIT_ENG_HIPRE	((WORD )0x21<<8) + 0xfc	//¸ß¾«¶ÈµçÁ¿Êý¾Ý
@@ -1889,8 +1889,8 @@ ToaMap g_OIConvertClass[] =
 	{0x05030400,	1,		MAP_SYSDB,		0x0B03,	  PN0,   0,					g_bHiPreEngFmt,		sizeof(g_bHiPreEngFmt),		NULL},	
 	{0x05030500,	1,		MAP_VAL,		0x0000,	  PN0,   SCA_UNIT_ENG_HIPRE,NULL,				0,							NULL},
 
-///////////////////////////////////////////////////////////////////////////////////////////
-//×î´óÐèÁ¿Àà¶ÔÏó±êÊ¶
+	///////////////////////////////////////////////////////////////////////////////////////////
+	//×î´óÐèÁ¿Àà¶ÔÏó±êÊ¶
 	{0x10100200,	2,		MAP_SYSDB,		0x1010,	  PN0,   0,					g_bMaxDemFmt,		sizeof(g_bMaxDemFmt),		NULL},	//ÕýÏòÓÐ¹¦×î´óÐèÁ¿
 	{0x10100300,	2,		MAP_VAL,		0x0000,	  PN0,   SCA_UNIT_DEM_P,	NULL,				0,							NULL},	//Scaler_Unit
 
@@ -1913,7 +1913,7 @@ ToaMap g_OIConvertClass[] =
 	{0x10410200,	2,		MAP_SYSDB,		0x1041,	  PN0,   0,		g_bComMaxDemFmt, sizeof(g_bComMaxDemFmt), NULL},	//AÏà·´ÏòÓÐ¹¦×î´óÐèÁ¿
 	{0x10420200,	2,		MAP_SYSDB,		0x1042,	  PN0,   0,		g_bComMaxDemFmt, sizeof(g_bComMaxDemFmt), NULL},	//BÏà·´ÏòÓÐ¹¦×î´óÐèÁ¿
 	{0x10430200,	2,		MAP_SYSDB,		0x1043,	  PN0,   0,		g_bComMaxDemFmt, sizeof(g_bComMaxDemFmt), NULL},	//CÏà·´ÏòÓÐ¹¦×î´óÐèÁ¿
-	
+
 	{0x10500200,	2,		MAP_SYSDB,		0x1050,	  PN0,   0,		g_bMaxDemFmt, sizeof(g_bMaxDemFmt), NULL},	//1ÏóÏÞÎÞ¹¦×î´óÐèÁ¿
 	{0x10510200,	2,		MAP_SYSDB,		0x1051,	  PN0,   0,		g_bMaxDemFmt, sizeof(g_bMaxDemFmt), NULL},	//AÏà1ÏóÏÞÎÞ¹¦×î´óÐèÁ¿
 	{0x10520200,	2,		MAP_SYSDB,		0x1052,	  PN0,   0,		g_bMaxDemFmt, sizeof(g_bMaxDemFmt), NULL},	//BÏà1ÏóÏÞÎÞ¹¦×î´óÐèÁ¿
@@ -1935,8 +1935,8 @@ ToaMap g_OIConvertClass[] =
 	{0x10830200,	2,		MAP_SYSDB,		0x1083,	  PN0,   0,		g_bMaxDemFmt, sizeof(g_bMaxDemFmt), NULL},	//CÏà4ÏóÏÞÎÞ¹¦×î´óÐèÁ¿
 
 
-///////////////////////////////////////////////////////////////////////////////////////////
-//±äÁ¿Àà¶ÔÏó±êÊ¶
+	///////////////////////////////////////////////////////////////////////////////////////////
+	//±äÁ¿Àà¶ÔÏó±êÊ¶
 	{0x20000200,	3,		MAP_SYSDB,		0x2000,	  PN0,   0,		g_bVoltDataFmt, sizeof(g_bVoltDataFmt), NULL},	//µçÑ¹ÅäÖÃ
 	{0x20010200,	3,		MAP_SYSDB,		0x2001,	  PN0,   0,		g_bCurDataFmt,  sizeof(g_bCurDataFmt), NULL},	//µçÁ÷ÅäÖÃ
 	{0x20020200,	3,		MAP_SYSDB,		0x2002,	  PN0,   0,		g_bVoltDataFmt, sizeof(g_bVoltDataFmt), NULL},	//µçÑ¹Ïà½Ç
@@ -1947,7 +1947,7 @@ ToaMap g_OIConvertClass[] =
 	{0x20070200,	4,		MAP_SYSDB,		0x2007,	  PN0,   0,		g_bPowerDataFmt, sizeof(g_bPowerDataFmt), NULL},	//Ò»·ÖÖÓÆ½¾ùÓÐ¹¦¹¦ÂÊ
 	{0x20080200,	4,		MAP_SYSDB,		0x2008,	  PN0,   0,		g_bPowerDataFmt, sizeof(g_bPowerDataFmt), NULL},	//Ò»·ÖÖÓÆ½¾ùÎÞ¹¦¹¦ÂÊ
 	{0x20090200,	4,		MAP_SYSDB,		0x2009,	  PN0,   0,		g_bPowerDataFmt, sizeof(g_bPowerDataFmt), NULL},	//Ò»·ÖÖÓÆ½¾ùÊÓÔÚ¹¦ÂÊ
-	
+
 	{0x200a0200,	4,		MAP_SYSDB,		0x200a,	  PN0,   0,		g_bCosDataFmt,	sizeof(g_bCosDataFmt),	NULL},	//¹¦ÂÊÒòÊý
 	{0x200b0200,	3,		MAP_SYSDB,		0x200b,	  PN0,   0,		g_bVoltDistortionDataFmt,	sizeof(g_bVoltDistortionDataFmt),	NULL},	//µçÑ¹²¨ÐÎÊ§Õæ¶È
 	{0x200c0200,	3,		MAP_SYSDB,		0x200c,	  PN0,   0,		g_bCurDistortionDataFmt,	sizeof(g_bCurDistortionDataFmt),	NULL},	//µçÁ÷²¨ÐÎÊ§Õæ¶È
@@ -2355,7 +2355,7 @@ ToaMap g_OIConvertClass[] =
 	{0x25040200,	6,		MAP_SYSDB,		0x2504,	  	  PN0,	 0,		g_b645ExtDataFmt,		sizeof(g_b645ExtDataFmt),		NULL},//ÀÛ¼Æ¹¤×÷Ê±¼ä
 	{0x25050200,	6,		MAP_SYSDB,		0x2505,	  	  PN0,	 0,		g_b645ExtTempFmt,		sizeof(g_b645ExtTempFmt),		NULL},//Ë®ÎÂ
 	{0x25060200,	6,		MAP_SYSDB,		0x2506,	  	  PN0,	 0,		g_b645ExtStaFmt,		sizeof(g_b645ExtStaFmt),		NULL},//£¨ÒÇ±í£©×´Ì¬ST
-///////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////
 	{0x30000200,	24,		MAP_SYSDB,		0x3600,		  PN0,   0,		g_bEvtCapOADFmt,			sizeof(g_bEvtCapOADFmt),					  NULL},//µçÄÜ±íÊ§Ñ¹ÊÂ¼þ£¬ÊôÐÔ2£¬¹ØÁª¶ÔÏóÊôÐÔ±í
 	{0x30000300,	24,		MAP_SYSDB,		0x3B00,		  PN0,   0,		g_bEvtIc24RecNumFmt,		sizeof(g_bEvtIc24RecNumFmt),					  NULL},//µçÄÜ±íÊ§Ñ¹ÊÂ¼þ£¬ÊôÐÔ3£¬µ±Ç°¼ÇÂ¼Êý
 	{0x30000400,	24,		MAP_SYSDB,		0x3601,		  PN0,   0,		g_bEvtMaxNumFmt,			sizeof(g_bEvtMaxNumFmt),					  NULL},//µçÄÜ±íÊ§Ñ¹ÊÂ¼þ£¬ÊôÐÔ4£¬×î´ó¼ÇÂ¼Êý
@@ -2774,7 +2774,7 @@ ToaMap g_OIConvertClass[] =
 	{0x31150700,	7,		MAP_SYSDB,		0x3B14,		  PN0,  0,		g_bEvtIc7ValOadFmt,			sizeof(g_bEvtIc7ValOadFmt),					  NULL}, //µçÄÜ±íÊ±ÖÓ³¬²îÊÂ¼þ£¬ÊôÐÔ7£¬µ±Ç°Öµ¼ÇÂ¼±í 
 	{0x31150800,	7,		MAP_SYSDB,		0x3702,		  PN21,  0,		g_bEvtRptFlagFmt,			sizeof(g_bEvtRptFlagFmt),					  NULL}, //µçÄÜ±íÊ±ÖÓ³¬²îÊÂ¼þ£¬ÊôÐÔ8£¬ÉÏ±¨±êÊ¶
 	{0x31150900,	7,		MAP_SYSDB,		0x3703,		  PN21,  0,		g_bEvtValidFlagFmt,			sizeof(g_bEvtValidFlagFmt),					  NULL}, //µçÄÜ±íÊ±ÖÓ³¬²îÊÂ¼þ£¬ÊôÐÔ9£¬ÓÐÐ§±êÊ¶
-	
+
 	{0x31160200,	7,		MAP_TASKDB,		0,		  	  PN0,   0,		NULL,						0,								  "TermExc_EnergyDiffComp.dat"},//ÓÐ¹¦×ÜµçÄÜÁ¿²î¶¯Ô½ÏÞÊÂ¼þ¼ÇÂ¼£¬ÊôÐÔ2£¬ÊÂ¼þ¼ÇÂ¼±í
 	{0x31160300,	7,		MAP_SYSDB,		0x3700,		  PN22,  0,		g_bEvtCapOADFmt,			sizeof(g_bEvtCapOADFmt),					  NULL}, //ÓÐ¹¦×ÜµçÄÜÁ¿²î¶¯Ô½ÏÞÊÂ¼þ¼ÇÂ¼£¬ÊôÐÔ3£¬¹ØÁª¶ÔÏóÊôÐÔ±í
 	{0x31160400,	7,		MAP_SYSDB,		0x3B10,		  PN22,  0,		g_bEvtIc7RecNumFmt,			sizeof(g_bEvtIc7RecNumFmt),					  NULL}, //ÓÐ¹¦×ÜµçÄÜÁ¿²î¶¯Ô½ÏÞÊÂ¼þ¼ÇÂ¼£¬ÊôÐÔ4£¬µ±Ç°¼ÇÂ¼Êý
@@ -2794,7 +2794,7 @@ ToaMap g_OIConvertClass[] =
 	{0x31170800,	7,		MAP_SYSDB,		0x3702,		  PN23,  0,		g_bEvtRptFlagFmt,			sizeof(g_bEvtRptFlagFmt),					  NULL}, //µçÄÜ±íÊ±ÖÓ³¬²îÊÂ¼þ£¬ÊôÐÔ8£¬ÉÏ±¨±êÊ¶
 	{0x31170900,	7,		MAP_SYSDB,		0x3703,		  PN23,  0,		g_bEvtValidFlagFmt,			sizeof(g_bEvtValidFlagFmt),					  NULL}, //µçÄÜ±íÊ±ÖÓ³¬²îÊÂ¼þ£¬ÊôÐÔ9£¬ÓÐÐ§±êÊ¶   
 	*/
-	
+
 	{0x31180200,	7,		MAP_TASKDB,		0,		  	  PN0,   0,		NULL,						0,								  "TermExc_PrgRec.dat"},//µçÄÜ±íÊ±ÖÓ³¬²îÊÂ¼þ£¬ÊôÐÔ2£¬ÊÂ¼þ¼ÇÂ¼±í
 	{0x31180300,	7,		MAP_SYSDB,		0x3700,		  PN24,  0,		g_bEvtCapOADFmt,			sizeof(g_bEvtCapOADFmt),					  NULL}, //µçÄÜ±íÊ±ÖÓ³¬²îÊÂ¼þ£¬ÊôÐÔ3£¬¹ØÁª¶ÔÏóÊôÐÔ±í
 	{0x31180400,	7,		MAP_SYSDB,		0x3B10,		  PN24,  0,		g_bEvtIc7RecNumFmt,			sizeof(g_bEvtIc7RecNumFmt),					  NULL}, //µçÄÜ±íÊ±ÖÓ³¬²îÊÂ¼þ£¬ÊôÐÔ4£¬µ±Ç°¼ÇÂ¼Êý
@@ -2890,7 +2890,7 @@ ToaMap g_OIConvertClass[] =
 	{0x33060208,	8,		MAP_SYSDB,		0x3A0A,	 	 PN0,   0,		g_bEvtLong64Fmt,					sizeof(g_bEvtLong64Fmt),		NULL},//µç¿ØÌøÕ¢¼ÇÂ¼µ¥Ôª¡Ëµç¿Ø¶¨Öµ      long64£¨µ¥Î»£ºkWh£¬»»Ëã-4£©£¬
 	{0x33060209,	8,		MAP_SYSDB,		0x3A0B,	 	 PN0,   0,		g_bEvtLong64Fmt,					sizeof(g_bEvtLong64Fmt),		NULL},//µç¿ØÌøÕ¢¼ÇÂ¼µ¥Ôª¡ËÌøÕ¢·¢ÉúÊ±×Ü¼ÓµçÄÜÁ¿  long64£¨µ¥Î»£ºkwh/Ôª£¬»»Ëã-4£©
 	{0x33070206,	8,		MAP_SYSDB,		0x3A0C,	 	 PN0,   0,		g_bEvtOIFmt,						sizeof(g_bEvtOIFmt),		NULL},//µç¿Ø¸æ¾¯ÊÂ¼þµ¥Ôª¡Ë¿ØÖÆ¶ÔÏó      OI£¬
- 	{0x33070207,	8,		MAP_SYSDB,		0x3A0D,	 	 PN0,   0,		g_bEvtLong64Fmt,					sizeof(g_bEvtLong64Fmt),		NULL},//µç¿Ø¸æ¾¯ÊÂ¼þµ¥Ôª¡Ëµç¿Ø¶¨Öµ      long64£¨µ¥Î»£ºkWh£¬»»Ëã-4£©£¬	
+	{0x33070207,	8,		MAP_SYSDB,		0x3A0D,	 	 PN0,   0,		g_bEvtLong64Fmt,					sizeof(g_bEvtLong64Fmt),		NULL},//µç¿Ø¸æ¾¯ÊÂ¼þµ¥Ôª¡Ëµç¿Ø¶¨Öµ      long64£¨µ¥Î»£ºkWh£¬»»Ëã-4£©£¬	
 	{0x33080206,	8,		MAP_SYSDB,		0x3A0E,	 	 PN0,   0,		g_bEvtMaxDmdFmt,				sizeof(g_bEvtMaxDmdFmt),		NULL},//µçÄÜ±íÐèÁ¿³¬ÏÞÊÂ¼þµ¥Ôª¡Ë³¬ÏÞÆÚ¼äÐèÁ¿×î´óÖµ  double-long-unsigned
 	{0x33080207,	8,		MAP_SYSDB,		0x3A0F,	 	 PN0,   0,		g_bEvtMaxDmdDateFmt,			sizeof(g_bEvtMaxDmdDateFmt),		NULL},//µçÄÜ±íÐèÁ¿³¬ÏÞÊÂ¼þµ¥Ôª¡Ë³¬ÏÞÆÚ¼äÐèÁ¿×î´óÖµ·¢ÉúÊ±¼ä  date_time_s
 	{0x33090206,	8,		MAP_SYSDB,		0x3A10,	 	 PN0,   0,		g_bEvtBitStrFmt,					sizeof(g_bEvtBitStrFmt),		NULL},//Í£/ÉÏµçÊÂ¼þ¼ÇÂ¼µ¥Ôª¡ËÊôÐÔ±êÖ¾     bit-string£¨SIZE(8)£©
@@ -2908,7 +2908,7 @@ ToaMap g_OIConvertClass[] =
 	{0x33200200,	8,		MAP_SYSDB,		0x3320,	 	 PN0,   0,		g_bAddEvtOadFmt,				sizeof(g_bAddEvtOadFmt),		NULL},////ÐÂÔö¶ÔÏó3320£¬class_id = 8£¬ÊôÐÔ2¡Ë= array OI
 	{0x33200300,	8,		MAP_SYSDB,		0x3704,	 	 PN0,   0,		g_bAddEvtOIFmt,				sizeof(g_bAddEvtOIFmt),		NULL},//ÊôÐÔ3£¨ÐèÉÏ±¨ÊÂ¼þ¶ÔÏóÁÐ±í£¬Ö»¶Á£©¡Ë= array OI
 
-///////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////
 
 	{0x40000200,	8,		MAP_SYSDB,		0x4000,		PN0,   0,		g_bEvtTimeFmt,				sizeof(g_bEvtTimeFmt),			NULL},	//ÈÕÆÚÊ±¼ä£¬ÊôÐÔ2
 	{0x40000300,	8,		MAP_SYSDB,		0x4520,		PN0,   0,		g_bAdjTimeModeFmt,			sizeof(g_bAdjTimeModeFmt),		NULL},	//ÈÕÆÚÊ±¼ä£¬ÊôÐÔ3£¬Ð£Ê±Ä£Ê½
@@ -2918,7 +2918,7 @@ ToaMap g_OIConvertClass[] =
 	{0x40020200,	8,		MAP_SYSDB,		0x4002,		PN0,   0,		g_bMtrAddr,					sizeof(g_bMtrAddr),				NULL},	//±íºÅ
 	{0x40030200,	8,		MAP_SYSDB,		0x4003,		PN0,   0,		g_bCliCode,					sizeof(g_bCliCode),				NULL},	//¿Í»§±àºÅ
 	{0x40040200,	8,		MAP_SYSDB,		0x4004,		PN0,   0,		g_bDevLocat,				sizeof(g_bDevLocat),			NULL},	//Éè±¸µØÀíÎ»ÖÃ
-	
+
 	{0x40050200,	8,		MAP_SYSDB,		0x4005,		PN0,   0,		g_bGroupAddr,				sizeof(g_bGroupAddr),			NULL},	//×éµØÖ·
 
 	{0x40060200,	8,		MAP_SYSDB,		0x4006,		PN0,   0,		g_bClkSrc,					sizeof(g_bClkSrc),				NULL},	//Ê±ÖÓÔ´
@@ -3069,10 +3069,10 @@ ToaMap g_OIConvertClass[] =
 	{0x500A0300,	9,		MAP_SYSDB,		0x5000,	  PN10,   0,	g_bFrzParaFmt, sizeof(g_bFrzParaFmt), NULL},
 	{0x500B0200,	9,		MAP_TASKDB,		0,		  PN0,   0,		NULL,		   0,					  FMT_FRZ_TASK_TABLE},
 	{0x500B0300,	9,		MAP_SYSDB,		0x5000,	  PN11,   0,	g_bFrzParaFmt, sizeof(g_bFrzParaFmt), NULL},
-	
+
 	{0x50110200,	9,		MAP_TASKDB,		0,		  PN0,   0,		NULL,		   0,					  FMT_FRZ_TASK_TABLE},
 	{0x50110300,	9,		MAP_SYSDB,		0x5000,	  PN12,   0,	g_bFrzParaFmt, sizeof(g_bFrzParaFmt), NULL},
-	
+
 	{0x60000200,	1,		MAP_SYSDB,		0x6000,	  PN0,   0,		g_bPnParaFmt, sizeof(g_bPnParaFmt)},	//²É¼¯µµ°¸ÅäÖÃµ¥Ôª
 
 	{0x60007F00,	1,		MAP_SYSDB,		0x6700,	  PN0,   0,		NULL,			0},	//Ìí¼ÓÒ»¸ö²É¼¯µµ°¸ÅäÖÃµ¥Ôª£¬ÅäÖÃµ¥ÔªµÄÐÅÏ¢ÖÐ»ù±¾ÐÅÏ¢±ØÐëÊÇÍêÕûµÄ
@@ -3251,20 +3251,20 @@ BYTE g_bYkCtrlCloseFmt[] = {
 
 BYTE g_bEsamKeyUpdateFmt[] = {
 	DT_STRUCT, 2,
-		DT_OCT_STR, 0x82, 0x08, 0x00, RLV,
-		DT_SID_MAC,
+	DT_OCT_STR, 0x82, 0x08, 0x00, RLV,
+	DT_SID_MAC,
 };
 
 BYTE g_bEsamCerUpdateFmt[] = {
 	DT_STRUCT, 2,
-		DT_OCT_STR, 0x82, 0x08, 0x00, RLV,
-		DT_SID,
+	DT_OCT_STR, 0x82, 0x08, 0x00, RLV,
+	DT_SID,
 };
 
 BYTE g_bEsamTimeBarUpdateFmt[] = {
 	DT_STRUCT, 2,
-		DT_OCT_STR, 0x82, 0x08, 0x00, RLV,
-		DT_SID,
+	DT_OCT_STR, 0x82, 0x08, 0x00, RLV,
+	DT_SID,
 };
 
 BYTE g_bUrgeParaFmt[] = {
@@ -3362,8 +3362,8 @@ BYTE g_bDelCtrlUnitFmt[] = {
 };
 
 static BYTE g_bRS232PortParaCfgFmt[] = {
-//		DT_ARRAY,	//array
-//		MAX_232_PORT_NUM,	//×î´ó¸öÊý
+	//		DT_ARRAY,	//array
+	//		MAX_232_PORT_NUM,	//×î´ó¸öÊý
 	DT_STRUCT,	//struct
 	3,	//³ÉÔ±¸öÊý
 	DT_OAD,
@@ -3372,8 +3372,8 @@ static BYTE g_bRS232PortParaCfgFmt[] = {
 };
 
 static BYTE g_bRS485PortParaCfgFmt[] = {
-//		DT_ARRAY,	//array
-//		MAX_485_PORT_NUM,	//×î´ó¸öÊý
+	//		DT_ARRAY,	//array
+	//		MAX_485_PORT_NUM,	//×î´ó¸öÊý
 	DT_STRUCT,	//struct
 	3,	//³ÉÔ±¸öÊý
 	DT_OAD,
@@ -3385,8 +3385,8 @@ static BYTE g_bRS485PortParaCfgFmt[] = {
 
 
 static BYTE g_bInfraPortParaCfgFmt[] = {
-//		DT_ARRAY,	//array
-//		MAX_HW_PORT_NUM,	//×î´ó¸öÊý
+	//		DT_ARRAY,	//array
+	//		MAX_HW_PORT_NUM,	//×î´ó¸öÊý
 	DT_STRUCT,	//struct
 	2,	//³ÉÔ±¸öÊý
 	DT_OAD,
@@ -3395,8 +3395,8 @@ static BYTE g_bInfraPortParaCfgFmt[] = {
 
 
 static BYTE g_bRelayParaCfgFmt[] = {
-//		DT_ARRAY,	//array
-//		MAX_RLY_PORT_NUM,	//×î´ó¸öÊý
+	//		DT_ARRAY,	//array
+	//		MAX_RLY_PORT_NUM,	//×î´ó¸öÊý
 	DT_STRUCT,	//struct
 	2,	//³ÉÔ±¸öÊý
 	DT_OAD,
@@ -3404,8 +3404,8 @@ static BYTE g_bRelayParaCfgFmt[] = {
 };
 
 static BYTE g_bMulPortCfgFmt[] = {
-//		DT_ARRAY,	//array
-//		MAX_MUL_PORT_NUM,	//×î´ó¸öÊý
+	//		DT_ARRAY,	//array
+	//		MAX_MUL_PORT_NUM,	//×î´ó¸öÊý
 	DT_STRUCT,	//struct
 	2,	//³ÉÔ±¸öÊý
 	DT_OAD,
@@ -3420,8 +3420,8 @@ static BYTE g_bPlcTransCfgFmt[] = {//Í¸Ã÷×ª·¢£¨²ÎÊý£©
 	DT_OCT_STR, 0x7f,RLV,
 };
 static BYTE g_bPlcPortParaCfgFmt[] = {
-//		DT_ARRAY,	//array
-//		MAX_PLC_PORT_NUM,	//×î´ó¸öÊý
+	//		DT_ARRAY,	//array
+	//		MAX_PLC_PORT_NUM,	//×î´ó¸öÊý
 	DT_STRUCT,	//struct
 	2,	//³ÉÔ±¸öÊý
 	DT_OAD,
@@ -3579,7 +3579,7 @@ TOmMap g_OmMap[] =
 	//{0x30090300,	7,		g_bSrcNullTrigEvtFmt,		sizeof(g_bSrcNullTrigEvtFmt),						DoTermEvtIC7Method3,			NULL},	//´¥·¢Ò»´Î¼ÇÂ¼
 	{0x30090400,	7,		g_bOADCfgFmt,	sizeof(g_bOADCfgFmt),						DoTermEvtMethod4,			NULL},	//Ìí¼ÓÒ»¸öÊÂ¼þ¹ØÁª¶ÔÏóÊôÐÔ
 	{0x30090500,	7,		g_bOADCfgFmt,	sizeof(g_bOADCfgFmt),						DoTermEvtMethod5,			NULL},	//É¾³ýÒ»¸öÊÂ¼þ¹ØÁª¶ÔÏóÊôÐÔ
-	
+
 	{0x300A0100,	7,		g_bResetEvtFmt,		sizeof(g_bResetEvtFmt),						DoTermEvtMethod1,			NULL},	//¸´Î»
 	{0x300A0200,	7,		g_bRunEvtFmt,		sizeof(g_bRunEvtFmt),						DoTermEvtMethod2,			NULL},	//Ö´ÐÐ
 	//{0x300A0300,	7,		g_bSrcNullTrigEvtFmt,		sizeof(g_bSrcNullTrigEvtFmt),						DoTermEvtIC7Method3,			NULL},	//´¥·¢Ò»´Î¼ÇÂ¼
@@ -3989,11 +3989,11 @@ TOmMap g_OmMap[] =
 	{0x601C7F00,	11,		g_bRptFmtDesc,		sizeof(g_bRptFmtDesc),		AddCommonMethod127,		(void*)"RptSch"},	//OI=0x601C ·½·¨£º127	Ìí¼Ó»ò¸üÐÂÒ»×éÉÏ±¨·½°¸
 	{0x601C8000,	11,				NULL,		NULL,						DelCommonMethod128,		(void*)"RptSch"},	//OI=0x601C ·½·¨£º128	É¾³ýÒ»×éÉÏ±¨·½°¸
 	{0x601C8100,	11,				NULL,		NULL,						ClrCommonMethod129,		(void*)"RptSch"},	//OI=0x601C ·½·¨£º129	Çå¿ÕÉÏ±¨·½°¸¼¯
-	
+
 	{0x601E7f00,	8,		g_bAddAcqRuleLib,	sizeof(g_bAddAcqRuleLib),	AddAcqRuleMethod129,		(void*)"AcqRule"},	//OI=0x601E ·½·¨£º129	Ìí¼Ó»ò¸üÐÂÒ»×é²É¼¯¹æÔò
 	{0x601E8000,	8,		g_bDelAcqRuleLib,	sizeof(g_bDelAcqRuleLib),	DelAcqRuleMethod130,		(void*)"AcqRule"},	//OI=0x601E ·½·¨£º130	É¾³ýÒ»×é²É¼¯¹æÔò
 	{0x601E8100,	8,				NULL,		NULL,						ClrAcqRuleMethod131,		(void*)"AcqRule"},	//OI=0x601E ·½·¨£º131	Çå¿Õ²É¼¯¹æÔò
-	
+
 	{0x60517F00,	11,		g_bRealFmtDesc,		sizeof(g_bRealFmtDesc),		AddCommonMethod127,		(void*)"RealSch"},	//OI=0x6051 ·½·¨£º127	Ìí¼Ó»ò¸üÐÂÒ»×éÊµÊ±¼à¿Ø²É¼¯·½°¸
 	{0x60518000,	11,				NULL,		NULL,						DelCommonMethod128,		(void*)"RealSch"},	//OI=0x6051 ·½·¨£º128	É¾³ýÒ»×éÊµÊ±¼à¿Ø²É¼¯·½°¸
 	{0x60518100,	11,				NULL,		NULL,						ClrCommonMethod129,		(void*)"RealSch"},	//OI=0x6051 ·½·¨£º129	Çå¿ÕÊµÊ±¼à¿Ø²É¼¯·½°¸
@@ -4377,7 +4377,7 @@ int DoClearSchMtrFile(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iP
 {
 	if (g_CStdReader)
 		g_CStdReader->DeleteSearchMtrFile();
-	
+
 	return 1;
 }
 
@@ -4454,7 +4454,7 @@ int DoClass11Method128_AddMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 	WORD wLen, wMtrNum;
 	BYTE bType;
 	BYTE *pbPara0 = pbPara;
-	
+
 	if (*pbPara++ == DT_ARRAY)
 	{
 		wMtrNum = *pbPara++;
@@ -4466,7 +4466,7 @@ int DoClass11Method128_AddMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 
 			if (DoClass11Method127_AddMeter(wOI, bMethod, bOpMode, pbPara, iScanLen, pvAddon, pFmt, wFmtLen, pbRes) < 0)
 				return -1;
-			
+
 			pbPara += iScanLen;
 		}
 	}
@@ -4717,7 +4717,7 @@ int DoClass11Method132_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 	SetDelayInfo(INFO_MTR_UPDATE);
 
 	*piRetLen = pbPara - pbPara0;
-	
+
 	return iRet;
 }
 
@@ -4795,7 +4795,7 @@ int DoClass11Method134_DelAllMtr(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbP
 
 	DTRACE(DB_FAPROTO, ("Delete all meter successful.\n"));
 	SetDelayInfo(INFO_MTR_UPDATE);
-	
+
 	pbRes[0] = DAR_SUCC;
 	return 1;
 }
@@ -5010,7 +5010,7 @@ int AddAcqRuleMethod129(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 	BYTE bBuf[1024];
 	BYTE *pbPara0 = pbPara;
 	BYTE *pOneRule;
-	
+
 	if (*pbPara++ == DT_ARRAY)
 	{
 		bArryNum = *pbPara++;
@@ -5110,7 +5110,7 @@ int DelAcqRuleMethod130(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 	BYTE *pbPara0 = pbPara;
 	BYTE bRuleNum;
 	char szTabName[128];
-	
+
 	if (*pbPara++ == DT_ARRAY)
 	{
 		bRuleNum = *pbPara++;
@@ -5121,7 +5121,7 @@ int DelAcqRuleMethod130(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 			iRet = GetAcqRuleTableName(pbPara, szTabName, sizeof(szTabName), &tAcqRuleInfo);
 			if (iRet < 0)
 				goto ERR_RET;
-		
+
 			if ((fd=TdbOpenTable(szTabName, O_RDWR|O_BINARY)) < 0)
 				goto ERR_RET;
 
@@ -5141,7 +5141,7 @@ int DelAcqRuleMethod130(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 			pbPara += iRet;
 		}
 	}
-	
+
 	DTRACE(DB_FAPROTO, ("DelAcqRuleMethod130() succ...\n"));
 	*piRetLen = pbPara - pbPara0;
 	return 0;
@@ -5176,7 +5176,7 @@ int UdpTaskState130(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPar
 	BYTE *pbTaskFmt = g_bTskUnitFmtDesc;
 	BYTE bIndex;
 	BYTE bSetTaskStateFlg;	//Õý³££¨1£©£¬Í£ÓÃ£¨2£©
-	
+
 	if (*pbPara++ != DT_STRUCT)
 		return -1;
 	if (*pbPara++ != 0x02)
@@ -5207,7 +5207,7 @@ int UdpTaskState130(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPar
 
 	*pbSet++ = DT_ENUM;
 	*pbSet++ = bSetTaskStateFlg;
-	
+
 	iRet = OoWriteField(pDb, iRet, pbTaskFmt+2, wTaskFmtLen-2, bIndex, bSetBuf, pbSet-bSetBuf);	//-5: 4×Ö½ÚOAD + 1×Ö½ÚÊ±¼ä±êÇ©
 	if (iRet < 0)
 	{
@@ -5909,56 +5909,56 @@ int ComPortParaCfgMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, 
 	BYTE *pbDat =bBuf;
 
 
-	#if 0
+#if 0
 	g_bRS232PortFmt
 		//F200ÊôÐÔ2--RS232¶Ë¿Ú
 		DT_STRUCT, 0x03,
 		DT_OAD,F2 00 02 01 //oad
-			DT_COMDCB,	//¶Ë¿Ú²ÎÊý
-				0x06,	//9600bps
-				0x00,	//ÎÞÐ£Ñé
-				0x08,	//8Î»Êý¾ÝÎ»
-				0x01,	//Í£Ö¹Î»
-				0x00,	//Á÷¿Ø
-			DT_ENUM,	//¶Ë¿Ú¹¦ÄÜ
-				0x00,	//ÉÏÐÐÍ¨ÐÅ£¨0£©£¬³­±í£¨1£©£¬¼¶Áª£¨2£©£¬Í£ÓÃ£¨3£©
-	#endif
+		DT_COMDCB,	//¶Ë¿Ú²ÎÊý
+		0x06,	//9600bps
+		0x00,	//ÎÞÐ£Ñé
+		0x08,	//8Î»Êý¾ÝÎ»
+		0x01,	//Í£Ö¹Î»
+		0x00,	//Á÷¿Ø
+		DT_ENUM,	//¶Ë¿Ú¹¦ÄÜ
+		0x00,	//ÉÏÐÐÍ¨ÐÅ£¨0£©£¬³­±í£¨1£©£¬¼¶Áª£¨2£©£¬Í£ÓÃ£¨3£©
+#endif
 
-	//Ò»´ÎÖ»»áÉèÖÃÒ»¸ö¶Ë¿Ú
-	pbPtr += 2; //DT_STRUCT
+		//Ò»´ÎÖ»»áÉèÖÃÒ»¸ö¶Ë¿Ú
+		pbPtr += 2; //DT_STRUCT
 	pbPtr += 1; //oad
 	wDI = *pbPtr++;
 	wDI = (wDI<<8)|*pbPtr;
 	pbPtr += 2;
 	bPn = *pbPtr-1;//¶Ë¿ÚºÅ
 	pbPtr += 2;//DT_COMDCB
-	
+
 	if(ReadItemEx(BN0, bPn, wDI, pbDat)<=0)
 	{
 		return -1;
 	}
 
-	
-	#if 0
+
+#if 0
 	//F200ÊôÐÔ2--RS232¶Ë¿Ú
 	DT_STRUCT, 0x03,
 		DT_VIS_STR, 0x10,	//¶Ë¿ÚÃèÊö·û
-			'0', '0', '0', '0', '0', '0', '0', '0',
-			'0', '0', '0', '0', '0', '0', '0', '0',
+		'0', '0', '0', '0', '0', '0', '0', '0',
+		'0', '0', '0', '0', '0', '0', '0', '0',
 		DT_COMDCB,	//¶Ë¿Ú²ÎÊý
-			0x06,	//9600bps
-			0x00,	//ÎÞÐ£Ñé
-			0x08,	//8Î»Êý¾ÝÎ»
-			0x01,	//Í£Ö¹Î»
-			0x00,	//Á÷¿Ø
+		0x06,	//9600bps
+		0x00,	//ÎÞÐ£Ñé
+		0x08,	//8Î»Êý¾ÝÎ»
+		0x01,	//Í£Ö¹Î»
+		0x00,	//Á÷¿Ø
 		DT_ENUM,	//¶Ë¿Ú¹¦ÄÜ
-			0x00,	//ÉÏÐÐÍ¨ÐÅ£¨0£©£¬³­±í£¨1£©£¬¼¶Áª£¨2£©£¬Í£ÓÃ£¨3£©
-	#endif
-	pbDat += 2;//DT_STRUCT
+		0x00,	//ÉÏÐÐÍ¨ÐÅ£¨0£©£¬³­±í£¨1£©£¬¼¶Áª£¨2£©£¬Í£ÓÃ£¨3£©
+#endif
+		pbDat += 2;//DT_STRUCT
 	pbDat += 1;//DT_VIS_STR
 	pbDat += (*pbDat+1);// string length
 	pbDat += 1;//DT_COMDCB
-	
+
 	//²¨ÌØÂÊ
 	if(*pbPtr<=10 || *pbPtr==255)
 	{
@@ -5968,7 +5968,7 @@ int ComPortParaCfgMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, 
 	{
 		return -1;
 	}
-	
+
 	//Ð£Ñé
 	if(*pbPtr<=2)
 	{
@@ -5978,7 +5978,7 @@ int ComPortParaCfgMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, 
 	{
 		return -1;
 	}
-	
+
 	//Êý¾ÝÎ»
 	if(*pbPtr>=5 && *pbPtr<=8)
 	{
@@ -6038,43 +6038,43 @@ int RelayParaCfgMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, in
 	BYTE *pbDat =bBuf;
 
 
-	#if 0
+#if 0
 	g_bRelayParaCfgFmt
 		//F205ÊôÐÔ2--¼ÌµçÆ÷Êä³ö
 		DT_STRUCT, 0x02,
-			DT_OAD,F2 05 02 01 //oad
-			DT_ENUM,	//¿ª¹ØÊôÐÔ 
-				0x00,	//Âö³åÊ½£¨0£©£¬±£³ÖÊ½£¨1£©
-	#endif
+		DT_OAD,F2 05 02 01 //oad
+		DT_ENUM,	//¿ª¹ØÊôÐÔ 
+		0x00,	//Âö³åÊ½£¨0£©£¬±£³ÖÊ½£¨1£©
+#endif
 
-	//Ò»´ÎÖ»»áÉèÖÃÒ»¸ö¶Ë¿Ú
-	pbPtr += 2; //DT_STRUCT
+		//Ò»´ÎÖ»»áÉèÖÃÒ»¸ö¶Ë¿Ú
+		pbPtr += 2; //DT_STRUCT
 	pbPtr += 1; //oad
 	wDI = *pbPtr++;
 	wDI = (wDI<<8)|*pbPtr;
 	pbPtr += 2;
 	bPn = *pbPtr-1;//¶Ë¿ÚºÅ
 	pbPtr += 2;//DT_ENUM
-	
+
 	if(ReadItemEx(BN0, bPn, wDI, bBuf)<=0)
 	{
 		return -1;
 	}
 
-	#if 0
+#if 0
 	//F205ÊôÐÔ2--¼ÌµçÆ÷
 	DT_STRUCT, 0x04,
 		DT_VIS_STR, 0x10,	//¶Ë¿ÚÃèÊö·û
-			'0', '0', '0', '0', '0', '0', '0', '0',
-			'0', '0', '0', '0', '0', '0', '0', '0',
+		'0', '0', '0', '0', '0', '0', '0', '0',
+		'0', '0', '0', '0', '0', '0', '0', '0',
 		DT_ENUM,	//µ±Ç°×´Ì¬ 
-			0x01,	//Î´Êä³ö£¨0£©£¬Êä³ö£¨1£©
+		0x01,	//Î´Êä³ö£¨0£©£¬Êä³ö£¨1£©
 		DT_ENUM,	//¿ª¹ØÊôÐÔ 
-			0x01,	//Âö³åÊ½£¨0£©£¬±£³ÖÊ½£¨1£©
+		0x01,	//Âö³åÊ½£¨0£©£¬±£³ÖÊ½£¨1£©
 		DT_ENUM,	//½ÓÏß×´Ì¬
-			0x01,	//½ÓÈë£¨0£©£¬Î´½ÓÈë£¨1)
-	#endif
-	pbDat += 2;//DT_STRUCT
+		0x01,	//½ÓÈë£¨0£©£¬Î´½ÓÈë£¨1)
+#endif
+		pbDat += 2;//DT_STRUCT
 	pbDat += 1;//DT_VIS_STR
 	pbDat += (*pbDat+1);// string length
 	pbDat += 3;//DT_ENUM µ±Ç°×´Ì¬ 
@@ -6103,35 +6103,35 @@ int MulPortCfgMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 	BYTE *pbDat =bBuf;
 
 
-	#if 0
+#if 0
 	g_bMulPortCfgFmt
 		//F207ÊôÐÔ2--¼ÌµçÆ÷Êä³ö
 		DT_STRUCT, 0x02,
-			DT_OAD,F2 07 02 01 //oad
-			DT_ENUM,	//¹¤×÷Ä£Ê½ 
-				0x00,	//ÃëÂö³åÊä³ö£¨0£©£¬ÐèÁ¿ÖÜÆÚ  £¨1£©£¬Ê±¶ÎÍ¶ÇÐ  £¨2£©
-	#endif
+		DT_OAD,F2 07 02 01 //oad
+		DT_ENUM,	//¹¤×÷Ä£Ê½ 
+		0x00,	//ÃëÂö³åÊä³ö£¨0£©£¬ÐèÁ¿ÖÜÆÚ  £¨1£©£¬Ê±¶ÎÍ¶ÇÐ  £¨2£©
+#endif
 
-	//Ò»´ÎÖ»»áÉèÖÃÒ»¸ö¶Ë¿Ú
-	pbPtr += 2; //DT_STRUCT
+		//Ò»´ÎÖ»»áÉèÖÃÒ»¸ö¶Ë¿Ú
+		pbPtr += 2; //DT_STRUCT
 	pbPtr += 1; //oad
 	wDI = *pbPtr++;
 	wDI = (wDI<<8)|*pbPtr;
 	pbPtr += 2;
 	bPn = *pbPtr-1;//¶Ë¿ÚºÅ
 	pbPtr += 2;//DT_ENUM
-	
+
 	if(ReadItemEx(BN0, bPn, wDI, bBuf)<=0)
 	{
 		return -1;
 	}
-	#if 0	
+#if 0	
 	DT_ENUM,	//¹¦ÄÜ
 		0x00,	//ÃëÂö³åÊä³ö£¨0£©£¬ÐèÁ¿ÖÜÆÚ  £¨1£©£¬Ê±¶ÎÍ¶ÇÐ  £¨2£©
-	#endif
-			
-	pbDat += 1;//DT_ENUM  
-	
+#endif
+
+		pbDat += 1;//DT_ENUM  
+
 	//¹¦ÄÜ
 	if(*pbPtr<=2)
 	{
@@ -6190,7 +6190,7 @@ int CctTransmitMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int
 			}
 		}
 	}
-	
+
 	return -1;
 }
 
