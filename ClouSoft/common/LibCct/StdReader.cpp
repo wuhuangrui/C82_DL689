@@ -1250,23 +1250,6 @@ int CStdReader::DirectReadMeterData(WORD wMtrSn, BYTE *pbBuf)
 	return -1;
 }
 
-/*
-#define PROTOCOLNO_NULL			0
-#define PROTOCOLNO_DLT645		1	//DL645
-#define PROTOCOLNO_DLT645_V07	2//30	//2007版645表
-#define PROTOCOLNO_DLT69845		3	//DL698.45
-#ifdef EN_SBJC_V2
-#define PROTOCOLNO_SBJC     	4	//水气热表
-#endif
-#define PROTOCOLNO_MAXNO		5	//最大的电表协议号，目前不超过40
-
-
-struct MeterTypeTable  tMeterTypeArray[] =
-{
-{PROTOCOLNO_MAXNO, 0, NULL}
-};
-
-*/
 
 
 int CStdReader::Set_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pApdu, WORD wApduLen, WORD wTimeOut, BYTE* pbData)
@@ -1612,12 +1595,7 @@ struct MeterID MeterIDMap[] = {
 	{0x40000200, {0x40000200, 0x40000209, 0}, NULL},
 	{0, {0}, NULL},
 };
-/*
-struct MeterDataToOob{
-	BYTE bProto;
-	struct MeterIDMap *pMeterIDTable;
-};
-*/
+
 
 struct MeterID* find_interal_meterId_map(DWORD dwOAD)
 {
@@ -1707,6 +1685,7 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 	LockDirRd();
 	for (int iCount=0; iCount<iNum; iCount++)
 	{		
+		tRdItem.dwOAD = pdwOADTmp[iCount];
 		iTxLen = DL645_9707MakeFrm(bTsa, bTsaLen, tTMtrInfo.bProType, 0, tRdItem.dwOAD, &bTxBuf[4]);
 		if (iTxLen > 0)
 		{
