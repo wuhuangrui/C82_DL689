@@ -1269,7 +1269,7 @@ struct MeterTypeTable  tMeterTypeArray[] =
 */
 
 
-int CStdReader::Set_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pInApdu, WORD wInApduLen, WORD wTimeOut, BYTE* pbData)
+int CStdReader::Set_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pApdu, WORD wApduLen, WORD wTimeOut, BYTE* pbData)
 {
 	TOobMtrInfo tTMtrInfo;
 	TRdItem tRdItem;
@@ -1294,7 +1294,7 @@ int CStdReader::Set_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE 
 	if (GetMeterInfo(bTsa, bTsaLen, &tTMtrInfo) < 0)
 		return -1;
 
-	BYTE bNum, bType1;
+	BYTE bType1;
 	WORD wLen;
 	int iLen;
 
@@ -1419,7 +1419,7 @@ int CStdReader::Set_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE 
 
 }
 
-int CStdReader::Act_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pInApdu, WORD wInApduLen, WORD wTimeOut, BYTE* pbData)
+int CStdReader::Act_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pApdu, WORD wApduLen, WORD wTimeOut, BYTE* pbData)
 {
 	TOobMtrInfo tTMtrInfo;
 	TRdItem tRdItem;
@@ -1444,7 +1444,7 @@ int CStdReader::Act_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE 
 	if (GetMeterInfo(bTsa, bTsaLen, &tTMtrInfo) < 0)
 		return -1;
 
-	BYTE bNum, bType1;
+	BYTE bType1;
 	WORD wLen;
 	int iLen;
 
@@ -1570,7 +1570,7 @@ int CStdReader::Act_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE 
 }
 
 //OK
-int CStdReader::Do_uplink_request_to_698_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pInApdu, WORD wInApduLen, WORD wTimeOut, BYTE* pbData)
+int CStdReader::Do_uplink_request_to_698_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pApdu, WORD wApduLen, WORD wTimeOut, BYTE* pbData)
 {
 	BYTE bTxBuf[256];
 	BYTE bBuf[64] = {0};
@@ -1608,9 +1608,9 @@ struct MeterID {
 	int (*DataDealFunction)(void *pdata, int DataLen);
 };
 
-struct MeterIDMap[] = {
-	{0x40000200, {0x40000200, 0x40000209, 0}, Meter07DataToOobData};
-	{0, {0}, NULL};
+struct MeterID MeterIDMap[] = {
+	{0x40000200, {0x40000200, 0x40000209, 0}, NULL},
+	{0, {0}, NULL},
 };
 /*
 struct MeterDataToOob{
@@ -1619,9 +1619,9 @@ struct MeterDataToOob{
 };
 */
 
-struct MeterIDMap* find_interal_meterId_map(DWORD dwOAD)
+struct MeterID* find_interal_meterId_map(DWORD dwOAD)
 {
-	struct MeterIDMap *pMeterMap = NULL;
+	struct MeterID *pMeterMap = NULL;
 	for (int i=0; i<sizeof(MeterIDMap)/sizeof(MeterIDMap[0]); i++)
 	{
 		if (dwOAD == MeterIDMap[i].dwOAD)
@@ -1636,7 +1636,7 @@ struct MeterIDMap* find_interal_meterId_map(DWORD dwOAD)
 
 int find_interal_meterID_num(DWORD dwOAD)
 {
-	struct MeterIDMap *pMeterMap = NULL;
+	struct MeterID *pMeterMap = NULL;
 	int iNum = 0;
 	for (int i=0; i<sizeof(MeterIDMap)/sizeof(MeterIDMap[0]); i++)
 	{
@@ -1649,7 +1649,7 @@ int find_interal_meterID_num(DWORD dwOAD)
 
 	if (pMeterMap != NULL)
 	{
-		for (int i=0; i<sizeof(MeterMap[0].dwInterID[]); i++)
+		for (int i=0; i<sizeof(MeterIDMap[0].dwInterID); i++)
 		{
 			if (pMeterMap->dwInterID[i] == 0)
 			{
@@ -1668,18 +1668,23 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 {
 	BYTE bTxBuf[256];
 	BYTE bRxBuf[256];
+	TRdItem tRdItem;
+	TOobMtrInfo tTMtrInfo;
 	DWORD *pdwOADTmp = NULL;
 	int iTxLen;
 	int iRet = -1;
 	BYTE *pbData0 = pbData;
 	BYTE bNum;
-	struct MeterIDMap *pMeterIDMap = NULL;
+	int iNum;
+	struct MeterID *pMeterIDMap = NULL;
 
 	bTxBuf[0] = PRO_TYPE_TRANS;
 	bTxBuf[1] = 0x00;	//通信延时相关标识
 	bTxBuf[2] = 0x00;	//附属相关延时标识
 
 
+	if (GetMeterInfo(bTsa, bTsaLen, &tTMtrInfo) < 0)
+		return -1;
 
 	tRdItem.dwOAD = OoOadToDWord(pInApdu);
 	pInApdu += 4;
@@ -1728,14 +1733,14 @@ int CStdReader::Read_OneOAD_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa,
 	if (pMeterIDMap != NULL)
 	{
 		if (pMeterIDMap->DataDealFunction != NULL)
-			pMeterIDMap->DataDealFunction(pbData0, dataLen);
+			pMeterIDMap->DataDealFunction(pbData0, iRet);
 	}
 
 	return iRet;
 
 }
 
-int CStdReader::Read_RecordData_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pInApdu, WORD wInApduLen, WORD wTimeOut, BYTE* pbData)
+int CStdReader::Read_RecordData_from_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pApdu, WORD wApduLen, WORD wTimeOut, BYTE* pbData)
 {
 	TOobMtrInfo tTMtrInfo;
 	TRdItem tRdItem;
@@ -1760,7 +1765,6 @@ int CStdReader::Read_RecordData_from_645_meter(BYTE bType, BYTE bChoice, BYTE* b
 
 	DWORD dwOAD;
 	BYTE bRcsdNum, bRoadNum;
-	BYTE bChoice;
 
 	if (GetMeterInfo(bTsa, bTsaLen, &tTMtrInfo) < 0)
 		return -1;
@@ -1878,27 +1882,6 @@ int CStdReader::DirAskProxy(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, 
 						goto DirAskProxy_error1;
 
 					pbData += iRet;
-					/*
-					   tRdItem.dwOAD = OoOadToDWord(pApdu);
-					   pApdu += 4;
-					   iTxLen = DL645_9707MakeFrm(bTsa, bTsaLen, tTMtrInfo.bProType, 0, tRdItem.dwOAD, &bTxBuf[4]);
-					   if (iTxLen > 0)
-					   {
-					   bTxBuf[3] = iTxLen;
-					   pbData += OoDWordToOad(tRdItem.dwOAD, pbData);
-					   iRet = Afn13Fn01_RtFwd(bTsa, bTsaLen, bTxBuf, iTxLen+4, NULL, &tRdItem, pbData+1, tTMtrInfo.bProType, false, true);
-					   if (iRet > 2)
-					   {
-					   pbData[0] = 0x01;	//1字节choice
-					   iRet += 1;
-					   pbData += iRet;
-					   }
-					   else
-					   {
-					   pbData[0] = DAR;
-					   }
-					   }
-					   */
 				}
 				iRet = pbData - pbData0;
 				pbData = pbData0;
@@ -1915,6 +1898,12 @@ int CStdReader::DirAskProxy(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, 
 	}
 
 	return iRet;
+
+DirAskProxy_error1:
+	*pbData0 = 0;
+	iRet = 1;
+	return iRet;
+
 }
 //描述：直接抄读代理数据
 //参数：@bType 方法类型，如设置、读取、操作
