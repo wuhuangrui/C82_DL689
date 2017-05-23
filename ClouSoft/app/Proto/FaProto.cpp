@@ -3219,6 +3219,7 @@ int CFaProto::ProxyTransCommandRequest()
 int CFaProto::ProxyResponse(BYTE bPoxyType)
 {
 	BYTE *pTxApdu = m_TxAPdu.bBuf;
+	BYTE *pbOADNum = NULL;
 	BYTE bAddrL, bTsa[TSA_LEN];
 	BYTE bApdu[128];
 	BYTE *pbApdu;
@@ -3262,6 +3263,7 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 		switch(bPoxyType)
 		{
 		case PROXY_GET_REQ_LIST:
+			pbOADNum = pTxApdu;  // the return num of OAD 
 			*pTxApdu++ = bObDscNum;
 			for (BYTE k=0; k<bObDscNum; k++)
 			{
@@ -3287,6 +3289,7 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 
 				if (GetCurTime() - dwLastTime > wTimeOut)
 				{
+					*pbOADNum = k+1;
 					DTRACE(DB_FAPROTO, ("FaProto::PROXY_GET_REQ_LIST timeout here\r\n"));
 					goto ProxyResponse_ret;
 				}
