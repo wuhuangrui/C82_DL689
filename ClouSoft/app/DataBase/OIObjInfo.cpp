@@ -37,6 +37,7 @@
 #include "ParaMgr.h"
 #include "FaAPI.h"
 
+#include "segment_debug.h"
 
 extern CStatMgr g_StatMgr;
 BYTE g_bComEngDataFmt[3] = {0x01, 0x05, DT_DB_LONG};	//组合有功
@@ -4412,8 +4413,10 @@ int DoClass11Method127_AddMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 	memset(bBuf, 0, sizeof(bBuf));
 	bBuf[0] = iParaLen;
 	memcpy(bBuf+1, pbPara, iParaLen);
-	DTRACE(DB_FAPROTO, ("DoClass11Method127_AddMeter: wPn=%ld, bBuf[0]=0x%02x, bBuf[1]=0x%02x.\n", wPn, bBuf[0], bBuf[1]));
+	DTRACE(DB_FAPROTO, ("DoClass11Method127_AddMeter: wPn=%ld, bBuf[0]=0x%02x, bBuf[1]=0x%02x.\n", wPn, bBuf[0], bBuf[1]));jkkkjjjjjjj
+	SYSTEM_DEBUG_STEP(1);
 	iRet = WriteItemEx(BN0, wPn, 0x6000, bBuf);
+	SYSTEM_DEBUG_STEP(2);
 	if (iRet > 0)
 	{
 		SetMtrSnToPn(wPn, wSn);
