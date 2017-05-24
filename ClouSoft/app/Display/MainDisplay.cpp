@@ -11858,6 +11858,7 @@ int DrawStateTask()
 	BYTE bBuf[2] = {0};
 	char *NetType[] = {"","","2G","3G","4G"};
 	char *Svrinfo[] = {"","中国移动","中国联通","中国电信"};
+	BYTE bModuleType;
 	
 	//top
 	DrawSignal();
@@ -11923,6 +11924,21 @@ int DrawStateTask()
 	
 	DrawStringAtLock(tm, 122, 0, GUI_WHITE, GUI_BLACK);
 #ifdef EN_DRAW_TOPSPLITLINE
+	ReadItemEx(BN2, PN0, 0x2050, &bModuleType);	
+	if(bModuleType == MODULE_SOCKET)//以太网
+	{
+		if(IsGprsConnected())//连接成功
+			DrawBmp16x16(iconSess[10], 22, 0);
+			
+	}
+	else//GPRS
+	{
+		GetSysInfo(bBuf);
+
+		DrawStringAtLock(NetType[bBuf[0]], 22, 0, GUI_WHITE, GUI_BLACK);//显示制式图标
+		DrawStringAtLock(Svrinfo[bBuf[1]], 50, 0, GUI_WHITE, GUI_BLACK);//显示运营商
+	}
+
 	DrawRectLock(0, GetFontHeight() - 2, LCD_SIM_WIDTH, GetFontHeight() - 2);
 #if 0
 	DrawRectLock(71, 0, 71, GetFontHeight() - 2);
@@ -11932,11 +11948,6 @@ int DrawStateTask()
 	sprintf(mp,"%04d",GetAcPn());
 	DrawStringAtLock(mp, 75, 0, GUI_WHITE, GUI_BLACK);//轮显状态栏上的测量点
 #endif
-
-	GetSysInfo(bBuf);
-
-	DrawStringAtLock(NetType[bBuf[0]], 22, 0, GUI_WHITE, GUI_BLACK);//显示制式图标
-	DrawStringAtLock(Svrinfo[bBuf[1]], 50, 0, GUI_WHITE, GUI_BLACK);//显示运营商
 
 #endif
 	//bottom
