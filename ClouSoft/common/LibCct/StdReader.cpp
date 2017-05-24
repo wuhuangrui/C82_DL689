@@ -2285,6 +2285,7 @@ int CStdReader::Make698_45Frm(BYTE *pbMtr, BYTE bMtrLen, BYTE bCtrl, BYTE bAFTyp
 	//-----------Ö¡Ð£Ñé------------
 	WordToByte(CheckCRC16(pbRespBuf+PRO_69845_LEN_OFFSET, p-pbRespBuf-PRO_69845_LEN_OFFSET), p);
 	p += 2;
+	*p++ = 0; //TimeTag  OPTIONAL
 	*p++ = 0x16;
 
 	return p - pbRespBuf;

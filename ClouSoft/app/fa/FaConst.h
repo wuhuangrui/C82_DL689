@@ -33,7 +33,7 @@
 #define ERR_SYS      0x30
 
 #define EMPTY_DATA 	 0
-#define INVALID_DATA 0xee
+#define INVALID_DATA 0xff
 #define INVALID_DATA_MTR 0xff
 
 

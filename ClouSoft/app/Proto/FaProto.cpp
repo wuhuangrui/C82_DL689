@@ -4627,10 +4627,12 @@ void CFaProto::DoNoComuTimeout()
 		DWORD dwClick = GetClick();
 
 		BYTE bBuf[100];
-		ReadItemEx(BN0, PN0, 0x40c0, bBuf);
-		if (bBuf[21] != 0)
+		ReadItemEx(BN0, PN0, 0x8210, bBuf);
+		WORD wSafeMin = OoLongUnsignedToWord(&bBuf[1]);
+		if (wSafeMin != 0)
 		{
-			if (dwClick-m_dwClickFrmOk > (DWORD)bBuf[21]*3600)
+			
+			if (dwClick-m_dwClickFrmOk > (DWORD)wSafeMin*60)
 			{
 				if (m_bNoComuSta == 0)
 				{

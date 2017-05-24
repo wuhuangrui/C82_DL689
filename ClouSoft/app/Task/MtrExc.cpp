@@ -726,6 +726,22 @@ BYTE DoMtrExc(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModifi
 							break;
 						}
 					}
+					else
+					{
+						OoDWordToOad(dwOAD, bOADBuf);
+						nOADLen = OoGetDataLen(DT_OAD, bOADBuf);
+						memset(bBuf, INVALID_DATA_MTR, sizeof(bBuf));
+						if (nOADLen > 0)
+						{
+#ifdef TERM_EVENT_DEBUG
+							SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, dwOAD, bBuf, nOADLen);
+#else
+							SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, dwOAD, bBuf+1, nOADLen);	//+1 跳过DAR
+#endif
+							SaveMtrDataHook(dwOAD, &pMtrRdCtrl->mtrExcTmp, 0);
+							*pfModified = true; //测量点数据已修改
+						}
+					}
 				}
 			}
 		}

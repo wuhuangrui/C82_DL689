@@ -1887,6 +1887,7 @@ TItemDesc g_CollecMonitorDesc[] =   //采集监控类对象标识定义
 	{0x6706, 	1, 			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//删除配置单元，通过通信地址及端口删除
 	{0x6707, 	1, 			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//清空采集档案配置表
 
+	{0x6708, 	1, 			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//内部抄表间隔
 };
 
 TItemDesc g_SetDesc[] = //集合类对象
@@ -4785,7 +4786,7 @@ TBankCtrl g_Bank0Ctrl[SECT_NUM] = {
 	 sizeof(g_CollecMonitorDesc)/sizeof(TItemDesc), //本SECTION数据项描述表的数据项个数
 	 NULL,										//本SECTION数据库的默认值	
 	 0,											//本SECTION数据库的默认值的大小
-	 0x01,										//本SECTION数据库的当前版本,0表示没有版本管理
+	 0x02,										//本SECTION数据库的当前版本,0表示没有版本管理
 	 1,											//本SECTION数据的测量点个数
 	 1,											//本SECTION数据的镜像个数
 	 false,										//本BANK数据是否需要更新时间

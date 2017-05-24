@@ -169,20 +169,19 @@ BYTE GetPnCn(WORD wPn)
 //描述:取抄表间隔
 WORD GetMeterInterv()
 {
-	BYTE bBuf[128];
 	BYTE bMeterInterv = 0;
 	
-	if (ReadItemEx(BN0, PN0, 0x40c0, bBuf) > 0)	//终端配置
+	if (ReadItemEx(BN0, PN0, 0x6708, &bMeterInterv) > 0)	//终端配置
 	{	
-		bMeterInterv = bBuf[9]; //如果没有设置,系统库默认值为0,下面会自动取默认值
+		//如果没有设置,系统库默认值为0,下面会自动取默认值
 	}
 	else
 	{
-		bMeterInterv = 1;
+		bMeterInterv = 15;
 	}
 
 	if (bMeterInterv==0 || bMeterInterv>60)
-		bMeterInterv = 1;
+		bMeterInterv = 15;
 
 	return bMeterInterv;
 }

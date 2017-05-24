@@ -188,7 +188,7 @@ void GetRSDAndRCSD(TRdItem* pRdItem, BYTE bMethod, BYTE* pbData, BYTE* pbCSD, DW
 		break;
 	case 3:	//按时标间隔采集TI
 		*pbRSD++ = 2; //RSD 方法2
-		memcpy(pbRSD, pbCSD+1, 4); //冻结类型0x50020200
+		OoDWordToOad(0x20210200, pbRSD);	//OAD=0x20210200	记录选择描述符
 		pbRSD += 4;
 		tiInterv.bUnit = pbData[0];
 		tiInterv.wVal = OoLongUnsignedToWord(pbData+1);
@@ -880,8 +880,8 @@ bool DoTaskSwitch(TMtrRdCtrl* pMtrRdCtrl)
 void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModified)
 {
 	BYTE bBuf[128];
-	DWORD *pdwOAD;
-	WORD *pwDataLen, *pInID, wNum, wFailCnt = 0;
+	DWORD *pdwOAD, dwOAD;
+	WORD *pwDataLen, *pInID, wCSDLen, wNum, wFailCnt = 0;
 	WORD wInterv = GetMeterInterv();
 	DWORD dwSec = GetCurTime()/(wInterv*60)*wInterv*60;
 	pInID = MtrGetFixedInItems();
@@ -904,8 +904,8 @@ void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 			int iRet = AskMtrItem(pMtrPro, 1, pdwOAD[wIndex], bBuf);
 			if (iRet > 0)	//抄表正常
 			{
-				DWORD dwOAD = OoOadToDWord((BYTE *)&pdwOAD[wIndex]);
-				WORD wCSDLen = OoGetDataLen(DT_OAD, (BYTE *)&dwOAD);
+				dwOAD = OoOadToDWord((BYTE *)&pdwOAD[wIndex]);
+				wCSDLen = OoGetDataLen(DT_OAD, (BYTE *)&dwOAD);
 				SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, pdwOAD[wIndex], bBuf, wCSDLen);
 				WriteItemEx(BN0, wPn, pInID[wIndex], bBuf);
 				*pfModified = true; //测量点数据已修改
@@ -927,6 +927,14 @@ void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 					DoPortRdErr(true);
 					break;
 				}
+			}
+			else
+			{
+				dwOAD = OoOadToDWord((BYTE *)&pdwOAD[wIndex]);
+				wCSDLen = OoGetDataLen(DT_OAD, (BYTE *)&dwOAD);
+				memset(bBuf, INVALID_DATA_MTR, sizeof(bBuf));
+				SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, pdwOAD[wIndex], bBuf, wCSDLen);
+				UpdItemErr(BN0, wPn, pInID[wIndex], ERR_ITEM, GetCurTime());
 			}
 		}
 	}
