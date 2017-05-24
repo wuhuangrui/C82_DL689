@@ -1794,8 +1794,8 @@ int CStdReader::Read_RecordData_from_645_meter(BYTE bType, BYTE bChoice, BYTE* b
 		memcpy(&tRdItem.bRCSD[1+i*5+1], pApdu, 4);
 		pApdu += 4;
 
-		bTmpChoise = tRdItem.bRCSD[1+i*5];
-		if (bTmpChoise == 0)
+		bTmpChoice = tRdItem.bRCSD[1+i*5];
+		if (bTmpChoice == 0)
 		{
 			tRdItem.wRcsdIdx = i;
 			memrcpy((BYTE*)&dwRealOAD, &tRdItem.bRCSD[1+i*5+1], 4);
@@ -1824,7 +1824,7 @@ int CStdReader::Read_RecordData_from_645_meter(BYTE bType, BYTE bChoice, BYTE* b
 		else	//ROAD 暂不考虑该情况
 		{
 			*pbData++ = 0x00;
-			DTRACE(DB_FAPROTO, ("CStdReader::Set_OAD_to_645_meter(): OoScanData error, bType=%d, bTmpChoise=%d, dwOAD=%08x.\n", bType, bTmpChoise, OoOadToDWord(pApdu)));
+			DTRACE(DB_FAPROTO, ("CStdReader::Set_OAD_to_645_meter(): OoScanData error, bType=%d, bTmpChoice=%d, dwOAD=%08x.\n", bType, bTmpChoice, OoOadToDWord(pApdu)));
 			break;
 		}
 	}
