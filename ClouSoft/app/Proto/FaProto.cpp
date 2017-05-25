@@ -1960,19 +1960,19 @@ int CFaProto::Set_response(BYTE* pApdu, WORD wApduLen)
 		case SET_NORMAL:
 			m_AppComm.bServerMod = SET_NORMAL;
 			m_AppComm.pbAskStart = pApdu;
-			m_AppComm.pbAskEnd = pApdu + wApduLen;
+			m_AppComm.pbAskEnd = pApdu + wApduLen - 3;
 			return Set_Request_Normal();
 
 		case SET_NORMAL_LIST:
 			m_AppComm.bServerMod = SET_NORMAL_LIST;
 			m_AppComm.bAskItemNum = *pApdu++;
 			m_AppComm.pbAskStart = pApdu;
-			m_AppComm.pbAskEnd = pApdu + wApduLen;
+			m_AppComm.pbAskEnd = pApdu + wApduLen - 4;
 			return Set_Request_Normal_List();
 			
 		case SET_GET_NORMAL_LIST:
 			m_AppComm.bServerMod = SET_GET_NORMAL_LIST;
-			return Set_Then_Get_Request_Normal_List(pApdu, wApduLen);
+			return Set_Then_Get_Request_Normal_List(pApdu, wApduLen - 3);
 	}
 
 }
@@ -1991,9 +1991,12 @@ int CFaProto::Set_Request_Normal()
 	memset((BYTE*)&tApduInfo, 0, sizeof(tApduInfo));
 	tApduInfo.wOI = OoOiToWord(pbAskStart);
 	tApduInfo.pbOAD = pbAskStart;
-	pbAskStart += 4;
+	pbAskStart += 4;//OAD
 	tApduInfo.pbSetAttr = pbAskStart;
-	tApduInfo.wSetAttrLen = pbAskEnd - pbAskStart;
+	if (m_SecurityParam.fSecurityLayer)
+		tApduInfo.wSetAttrLen = pbAskEnd - pbAskStart;
+	else
+		tApduInfo.wSetAttrLen = pbAskEnd - pbAskStart - 1;//去掉1字节的时间标签
 
 	*pApdu++ = SET_RES;
 	*pApdu++ = SET_NORMAL;
@@ -2103,7 +2106,7 @@ int CFaProto::Set_Request_Normal_List()
 				*pApdu++ = DR_ERROK;
 			}
 
-			pbAskStart += iRet;
+			pbAskStart += iDataLen;//iRet;
 		}
 	}
 
@@ -2177,7 +2180,7 @@ int CFaProto::Set_Then_Get_Request_Normal_List(BYTE *pApdu, WORD wApduLen)
 				*pTxApdu++ = DR_ERROK;
 			}
 		}
-		pApdu += iRet;	//DATA
+		pApdu += iDataLen;//iRet;	//DATA
 
 		//读取OAD
 		wOI = (pApdu[0]<<8) + pApdu[1];
