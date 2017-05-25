@@ -3114,7 +3114,7 @@ int CFaProto::ProxyGetRequestRecord()
 	pApdu += bAddrL;
 	pTxApdu += bAddrL;
 
-	wOneSeqLen = m_LnkComm.wAPDULen - (pApdu-&m_RxDPool.bBuf[3]) - 1;	//-1:时间标签
+	wOneSeqLen = m_LnkComm.wAPDULen - (pApdu-&m_RxDPool.bBuf[0]) - 1;	//-1:时间标签
 	int iRet = DirAskMtrData(5, 3, bTsa, bAddrL, pApdu, wOneSeqLen, wTimeOut, pTxApdu);
 	pApdu += wOneSeqLen;
 	pTxApdu += iRet;

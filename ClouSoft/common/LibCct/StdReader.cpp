@@ -1092,7 +1092,7 @@ TRY_LOOP_ID:
 							wApduLen = GetRequestRecord(tRdItem.dwOAD, bApdu, tRdItem.bRSD, tRdItem.wRsdLen, tRdItem.bRCSD, tRdItem.wRcsdLen);
 						*pbTx++ = RT_RD_GOTO;
 						*pbTx++ = 0x00;	
-						iRet = Make698_45Frm(tInfo.bRevTsa+1, GetMeterAddrLen(tInfo.wPn), 0x43, 0, 0, SER_ADDR_TYPE_SIG, bApdu, wApduLen, pbTx+1);
+						iRet = Make698_45Frm(tInfo.bTsa+1, GetMeterAddrLen(tInfo.wPn), 0x43, 0, 0, SER_ADDR_TYPE_SIG, bApdu, wApduLen, pbTx+1);
 						*pbTx++ = iRet;
 						pbTx += iRet;
 						*pbTx++ = 0x00;	//从节点附属节点数量n
@@ -2274,6 +2274,7 @@ int CStdReader::Make698_45Frm(BYTE *pbMtr, BYTE bMtrLen, BYTE bCtrl, BYTE bAFTyp
 	}
 	memcpy(p, pbAPDU, wAPDULen);
 	p += wAPDULen;
+	*p++ = 0; //TimeTag  OPTIONAL
 
 	//-----------计算数据长度------------
 	wLen = (p - pbRespBuf) + PRO_69845_FRAM_CS_LEN - PRO_69845_LEN_OFFSET;
@@ -2285,7 +2286,6 @@ int CStdReader::Make698_45Frm(BYTE *pbMtr, BYTE bMtrLen, BYTE bCtrl, BYTE bAFTyp
 	//-----------帧校验------------
 	WordToByte(CheckCRC16(pbRespBuf+PRO_69845_LEN_OFFSET, p-pbRespBuf-PRO_69845_LEN_OFFSET), p);
 	p += 2;
-	*p++ = 0; //TimeTag  OPTIONAL
 	*p++ = 0x16;
 
 	return p - pbRespBuf;
