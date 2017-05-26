@@ -2180,7 +2180,7 @@ int CFaProto::Set_Then_Get_Request_Normal_List(BYTE *pApdu, WORD wApduLen)
 				*pTxApdu++ = DR_ERROK;
 			}
 		}
-		pApdu += iDataLen;//iRet;	//DATA
+		pApdu += iRet;	//DATA
 
 		//∂¡»°OAD
 		wOI = (pApdu[0]<<8) + pApdu[1];
