@@ -3528,6 +3528,9 @@ int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen
 	BYTE* pbFmtEnd = pbFmt + wFmtLen;
 	int iSP = 0;	//堆栈指针
 	BYTE bFP = 0;	//格式指针
+
+    WORD wIO = dwOAD >> 16;
+    
 	BYTE bTmpFP;
 	BYTE bLen, bSrcLen, bArrLen, bByteLen;
 	BYTE bFmtT, bVFmt, bVFill;
@@ -3793,10 +3796,14 @@ int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen
 //				if (IsAllAByte(pbSrc, INVALID_DATA, 4))
 //					memset(pbSrc, 0x00, 4);
 				//revcpy(pbDst, pbSrc, 4);	//不用将无效数据EE转换为0，主要是为现场区分真的0和无效数据
-				WORD wIO = dwOAD >> 16;
+				//WORD wIO = dwOAD >> 16;
 				BYTE btLen = 4;
-				if (wIO==0x2001 ||(wIO>=0x2004&&wIO<=0x2009) ||wIO==0x2017 ||wIO==0x2018 ||wIO==0x2019)
+				if (wIO==0x2001 ||(wIO>=0x2004&&wIO<=0x2009) ||wIO==0x2017 ||wIO==0x2018 ||wIO==0x2019
+                     || (wIO&0x1000)==0x1000 || wIO>=0x2017&&wIO<=0x2019)
+                {            
 					btLen = 3;//这些数据在07协议中是3字节
+                }
+                
 				if ((bsLen < btLen) && (bsLen!=0))
 					return -1;
 				if (IsAllAByte(pbSrc, INVALID_DATA_MTR, bsLen) || bsLen==0)
@@ -3891,9 +3898,24 @@ int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen
 			else
 			{
 				*pbDst++ = bType;
-				revcpy(pbDst, pbSrc, 7);
-				pbDst += 7;
-				pbSrc += 7;
+                if((wIO&0x1000)==0x1000)
+                {
+                    BYTE bTmp[8];
+                    BcdToByte(bTmp, pbSrc, 5);
+                    *pbDst++ = ((2000+bTmp[4])>>8)&0xff;
+                    *pbDst++ = (2000+bTmp[4])&0xff ;
+                    revcpy(pbDst, bTmp, 4);
+                    pbDst += 4;
+                    *pbDst++ = 0x00;
+                    pbSrc += 5;
+                }
+                else
+                {
+				    revcpy(pbDst, pbSrc, 7);
+                    pbDst += 7;
+				    pbSrc += 7;
+                }
+				
 			}
 			break;
 		case DT_OAD://OAD

@@ -436,42 +436,56 @@ bool GetEventSchCfg(TTaskCfg* pTaskCfg, TEvtAcqSchCfg* pTEvtAcqSchCfg)
 		pbPtr = GetSchCfg(pTaskCfg, &iSchCfgLen);
 		if (pbPtr==NULL)
 			return false;
-
+		memcpy(bBuf, pbPtr, iSchCfgLen);
 		//pbPtr++;	//array
 		//pbPtr++;	//array个数
 		pbPtr++;	//structure
 		pbPtr++;	//+structure number
 		pbPtr++;	//unsigned
 		pTEvtAcqSchCfg->bSchNo = *pbPtr;	
-		pbPtr++;
+		pbPtr++; // 
 		pbPtr++;	//array
-		pTEvtAcqSchCfg->bROADNum = *pbPtr;	
-		pbPtr++;	//+array 成员个数
-		if (pTEvtAcqSchCfg->bROADNum > sizeof(pTEvtAcqSchCfg->tTROAD)/sizeof(TROAD))
-		{
-			DTRACE(DB_TASK, ("ERROR---GetEventSchCfg(): bTaskID=%d, bSchNo=%d, Max support ROAD num=%d, current ROAD num=%d.\n", \
-				pTaskCfg->bTaskId, pTEvtAcqSchCfg->bSchNo, sizeof(pTEvtAcqSchCfg->tTROAD)/sizeof(TROAD), pTEvtAcqSchCfg->bROADNum));
-			return false;
-		}
-		for (BYTE i = 0; i < pTEvtAcqSchCfg->bROADNum; i++)
-		{
-			pbPtr++;	//ROAD类型
-			pTEvtAcqSchCfg->tTROAD[i].dwOAD = OoOadToDWord((BYTE*)pbPtr);	
-			pbPtr += 4;
-			pTEvtAcqSchCfg->tTROAD[i].bOADNum = *pbPtr;	
-			pbPtr++;
-			if (pTEvtAcqSchCfg->tTROAD[i].bOADNum > sizeof(pTEvtAcqSchCfg->tTROAD[i].dwOADArry)/sizeof(DWORD))
-			{
-				DTRACE(DB_TASK, ("ERROR---GetEventSchCfg(): bTaskID=%d, bSchNo=%d, i=%d, Max support OAD num=%d, current OAD num=%d.\n", \
-					pTaskCfg->bTaskId, pTEvtAcqSchCfg->bSchNo, sizeof(pTEvtAcqSchCfg->tTROAD[i].dwOADArry)/sizeof(DWORD), pTEvtAcqSchCfg->tTROAD[i].bOADNum));
-				return false;
-			}
-			for (BYTE j = 0; j < pTEvtAcqSchCfg->tTROAD[i].bOADNum; j++)
-			{
-				pTEvtAcqSchCfg->tTROAD[i].dwOADArry[j] = OoOadToDWord((BYTE*)pbPtr);	
-				pbPtr += 4;
-			}
-		}
+		pbPtr++;	//array个数
+		pbPtr++;    // unsigned
+		pTEvtAcqSchCfg->bRdEveType = *pbPtr; // 采集类型
+        pbPtr++;// 采集内容类型, data类型， array      
+        if(pTEvtAcqSchCfg->bRdEveType != 1)
+        {
+            // 采集内容个数  num of array
+            pbPtr++; // array 个数
+    		pTEvtAcqSchCfg->bROADNum = *pbPtr;	
+    		pbPtr++;	//+array 成员个数
+    		if (pTEvtAcqSchCfg->bROADNum > sizeof(pTEvtAcqSchCfg->tTROAD)/sizeof(TROAD))
+    		{
+    			DTRACE(DB_TASK, ("ERROR---GetEventSchCfg(): bTaskID=%d, bSchNo=%d, Max support ROAD num=%d, current ROAD num=%d.\n", \
+    				pTaskCfg->bTaskId, pTEvtAcqSchCfg->bSchNo, sizeof(pTEvtAcqSchCfg->tTROAD)/sizeof(TROAD), pTEvtAcqSchCfg->bROADNum));
+    			return false;
+    		}
+    		for (BYTE i = 0; i < pTEvtAcqSchCfg->bROADNum; i++)
+    		{
+    			pbPtr++;	//ROAD类型
+    			pTEvtAcqSchCfg->tTROAD[i].dwOAD = OoOadToDWord((BYTE*)pbPtr);	
+    			pbPtr += 4;
+    			pTEvtAcqSchCfg->tTROAD[i].bOADNum = *pbPtr;	
+    			pbPtr++;
+    			if (pTEvtAcqSchCfg->tTROAD[i].bOADNum > sizeof(pTEvtAcqSchCfg->tTROAD[i].dwOADArry)/sizeof(DWORD))
+    			{
+    				DTRACE(DB_TASK, ("ERROR---GetEventSchCfg(): bTaskID=%d, bSchNo=%d, i=%d, Max support OAD num=%d, current OAD num=%d.\n", \
+    					pTaskCfg->bTaskId, pTEvtAcqSchCfg->bSchNo, sizeof(pTEvtAcqSchCfg->tTROAD[i].dwOADArry)/sizeof(DWORD), pTEvtAcqSchCfg->tTROAD[i].bOADNum));
+    				return false;
+    			}
+    			for (BYTE j = 0; j < pTEvtAcqSchCfg->tTROAD[i].bOADNum; j++)
+    			{
+    				pTEvtAcqSchCfg->tTROAD[i].dwOADArry[j] = OoOadToDWord((BYTE*)pbPtr);	
+    				pbPtr += 4;
+    			}
+    		}
+        }
+        else
+        {
+            pbPtr++; // 指向MS
+        }
+      
 		//提取MS集合
 		BYTE bMS = *pbPtr;	//MS
 		if (bMS != 92)	//MS数据类型

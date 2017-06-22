@@ -23,6 +23,7 @@
 
 bool IsBcdCode(BYTE *p, WORD num);
 BYTE BcdToByte(BYTE bcd);
+bool BcdToByte(BYTE* pbDest, BYTE* pbSrc, WORD wLen);
 BYTE ByteToBcd(BYTE b);
 DWORD BcdToDWORD(BYTE* p, WORD len);
 DDWORD BcdToDDWORD(BYTE* p, WORD len);
@@ -100,6 +101,8 @@ bool DeleteFile(char* pszPathName);
 int GetFileLen(char* pszPathName);
 void UpdateTxPwr(BYTE bTxPwr, int16 bSign);
 void UpdateDialIP();
+
+bool IsMountedOK(char *str);
 
 inline void SetEmptyTime(TTime* pTime)
 {

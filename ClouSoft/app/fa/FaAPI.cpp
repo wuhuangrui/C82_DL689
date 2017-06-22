@@ -179,6 +179,8 @@ TSoftVerChg g_SoftVerChg;	 //缓存的版本变更事件
 TParaChg g_ParaChg;	//缓存的参数变更事件,一次应用服务最多同时处理50个OBIS对象
 bool g_fFrzInit = false;	//冻结初始化是否完成
 
+void DoCheckUsb(void);
+
 //写入参数变更事件缓存数据
 void SetParaChg(WORD wClass, BYTE* pbObis)
 {
@@ -2077,6 +2079,7 @@ TThreadRet SlowSecondThread(void* pvPara)
 		DoFapCmd();
 		DoPowerManagement();
 		CheckSignStrength();
+        DoCheckUsb(); 
 
 		
 		UpdThreadRunClick(iMonitorID);
@@ -3224,17 +3227,6 @@ void SimuAcData()
 }
 #endif
 
-//显示是否处于U盘升级界面
-//返回：true 已进入， false 未进入
-bool IsInUsbProcess()
-{
-	BYTE bState = 0;
-
-	if (ReadItemEx(BN2, PN0, 0x2112, &bState) > 0)
-		return (bState!=0);
-	else
-		return false;
-}
 
 //U盘是否插入
 //返回：true 已插入， false 未插入
@@ -3242,17 +3234,69 @@ bool IsMountUsb()
 {
 	BYTE bState = 0;
 
-	if (ReadItemEx(BN2, PN0, 0x2111, &bState) > 0)
+	if (ReadItemEx(BN2, PN0, 0x503a, &bState) > 0)
+		return (bState!=0);
+	else
+		return false;
+}
+
+bool SetMountUsb(BYTE bState)
+{
+	if (WriteItemEx(BN2, PN0, 0x503a, &bState) > 0)
+		return true;
+	else
+		return false;
+}
+
+
+//显示是否处于U盘升级界面
+//返回：true 已进入， false 未进入
+bool IsInUsbProcess()
+{
+	BYTE bState = 0;
+
+	if (ReadItemEx(BN2, PN0, 0x503b, &bState) > 0)
 		return (bState!=0);
 	else
 		return false;
 }
 
 //设置USB处理界面是否进入状态 0：未进入，1：已进入
-void SetUsbProcessState(BYTE bState)
+bool SetUsbProcessState(BYTE bState)
 {
-	WriteItemEx(BN2, PN0, 0x2112, &bState);
+	if(WriteItemEx(BN2, PN0, 0x503b, &bState)>0)
+    {
+        return true;
+    }       
+    return false;
 }
+
+void DoCheckUsb(void)
+{
+	char str[64] = {0};
+	strcpy(str, "/mnt/usb");
+
+	if (!IsInUsbProcess())
+	{
+		if (IsMountedOK(str))
+		{
+		    SetMountUsb(1);
+		}
+		else
+		{
+			SetMountUsb(0);
+		}
+	}
+	else
+	{
+		if (!IsMountedOK(str))
+		{
+		    SetMountUsb(0);
+			SetUsbProcessState(0);
+		}
+	}
+}
+
 
 
 #define THREAD_MASK_ID	(THRD_MNTR_NUM/8+1)

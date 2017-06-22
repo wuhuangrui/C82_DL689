@@ -23,9 +23,9 @@ BYTE g_bTermSoftVer[OOB_SOFT_VER_LEN] = {
 						DT_STRUCT, 0x06, 
 						DT_VIS_STR, 0x04, 'C', 'L', 'O', 'U',			//厂商代号 4
 //						DT_VIS_STR, 0x04, 'Z', 'J', 'S', 'J',			//软件版本 4 ,过台子远程升级用
-						DT_VIS_STR, 0x04, '0', '7', '9', 'g',			//软件版本 4 ,过台子远程升级用
+						DT_VIS_STR, 0x04, '0', '7', '9', 'J',			//软件版本 4 ,过台子远程升级用
 //						DT_VIS_STR, 0x06, '1','7', '0','2','2','5',		//软件版本日期
-						DT_VIS_STR, 0x06, '1','7', '0','5','2','5',		//软件版本日期
+						DT_VIS_STR, 0x06, '1','7', '0','6','2','1',		//软件版本日期
 						DT_VIS_STR, 0x04, 'V', 'C', '8', '2',			//硬件版本 4 
 						DT_VIS_STR, 0x06, '1','6', '1','0','1','3',		//硬件版本日期
 						DT_VIS_STR, 0x08, '0x00', '0x00', '0x00', '0x00', '0x00', '0x00','0x00','0x00',
@@ -35,8 +35,8 @@ BYTE g_bTermSoftVer[OOB_SOFT_VER_LEN] = {
 BYTE g_bInnerSoftVer[INN_SOFT_VER_LEN] = 
 {
 	'6', '9', '8', '.', '4', '5', '-', 'Z', 'h', 'e', 'J', 'i', 'a', 'n',  'g', 0,  //地区 16个字节，通常为省份全拼，标准版则为Standard
-	'0', '0', '0', '3',     //版本4个字节 x.xx A 主版本.副版本 测试版本，正式归档的版本测试版本号为0
-	 0x25, 0x05, 0x17,        		 //日期3个字节 BCD码，终端软件发布日期。
+	'0', '0', '0', '6',     //版本4个字节 x.xx A 主版本.副版本 测试版本，正式归档的版本测试版本号为0
+	 0x21, 0x06, 0x17,        		 //日期3个字节 BCD码，终端软件发布日期。
 };
 
 TItemDesc g_EngDataDesc[] =   //电能量类对象
@@ -2721,6 +2721,8 @@ TItemDesc  g_Bank2Desc[] =   //标准版
 
 	//{0x5001, 1, DI_HIGH_PERM, DI_READ|DI_WRITE,0, INFO_NONE},	 //协议切换
 	{0x5039, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //BYTE	m_PulseRatio;	// 脉冲放大倍数 liuzhixing 20170225
+	{0x503a, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},  // U盘是否插入 0未插入，非0 插入
+	{0x503b, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   // 是否处于U盘自动弹出处理中， 0不处于，非0处于
 
 };
 

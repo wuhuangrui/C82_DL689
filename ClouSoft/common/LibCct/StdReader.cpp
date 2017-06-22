@@ -995,6 +995,10 @@ GOTO_RxHandleFrm:
 							goto RET_RTFWD;
 					}
 				}
+                else if (m_TRcv13762.bAfn==AFN_CON && DtToFn(m_TRcv13762.bDt)==FN(2))
+                {// 否认码 0-12， 13-255备用， 分别代表不同的含义， 可根据需要再做响应处理 
+                    goto RET_RTFWD;
+                }
 
 				if (GetClick()-dwLastSendClick < m_RtRunMdInfo.bNodeTmOut)
 					goto GOTO_RxHandleFrm;
@@ -2819,6 +2823,14 @@ int CStdReader::DoFwdData(BYTE *pbTsa, BYTE bTsaLen, const BYTE *pbReqBuf, WORD 
 	BYTE wTxLen;
 	BYTE *pbTxBuf = bTxBuf;
 	int iRcvLen = -1;
+    DWORD dwSendFirstClick = 0;
+    DWORD dwSendLastClick = 0;
+    DWORD dwConsumeClick = 0;
+
+    if(wTimeOut==0)
+    {
+        wTimeOut = 60;
+    }
 
 	bCtrl = 0x41;
 	bR[0] = (1<<2); //D2通信模块标识：0表示对集中器的通信模块操作;1表示对载波表的通信模块操作。
@@ -2831,20 +2843,46 @@ int CStdReader::DoFwdData(BYTE *pbTsa, BYTE bTsaLen, const BYTE *pbReqBuf, WORD 
 
 	LockDirRd();
 
-	for (BYTE bTryCnt=0; bTryCnt<m_RtRunMdInfo.bTrySendCnt; bTryCnt++)
+	//for (BYTE bTryCnt=0; bTryCnt<m_RtRunMdInfo.bTrySendCnt; bTryCnt++)
+    for (BYTE bTryCnt=0; bTryCnt< 1; bTryCnt++)
 	{
+	    dwSendFirstClick = GetClick(); 
+ RET_RESEND:        
+        dwConsumeClick = GetClick()-dwSendFirstClick;
+        if(dwConsumeClick>= wTimeOut)
+        {
+            goto  RET_DOFWD;
+        }
+        
 		if (Send(bTxBuf, wTxLen) == wTxLen)
-		{
-			if (RxHandleFrm(wTimeOut/m_RtRunMdInfo.bTrySendCnt))
+		{	
+		    dwSendLastClick = GetClick();
+			if (RxHandleFrm(wTimeOut - dwConsumeClick))
 			{
 				if (m_TRcv13762.bAfn==AFN_RTFWD && DtToFn(m_TRcv13762.bDt)==FN(1))
-				{
+				{// 主节点忙
 					revcpy(bTsaRev, pbTsa, bTsaLen);
 					if ((memcmp(bTsaRev, m_TRcv13762.bSrcAddr, 6)==0) || (m_RtRunMdInfo.bModule==AR_LNK_SGD))
 					{
 						BYTE *pData = m_TRcv13762.bDtBuf + 3;	//跳过 2字节“当前报文本地通信上行时长”+ 1字节“通信协议类型”
 
 						iRcvLen = *pData++;
+                        if(iRcvLen==0 && GetClick()-dwSendLastClick<2)                       
+                        {  // 在江苏送检时，集中器复位60s后，台体发透传命令帧，这时集中器尚未组网完成，
+                            // 增加超时时间内重发机制
+                            WORD wTick = (wTimeOut>>2);
+                            if(wTick>20)
+                            {
+                                wTick = 20;
+                            }
+                            else if(wTick<5)
+                            {
+                                wTick = 5;                                
+                            }
+                            Sleep(wTick*1000); 
+                            goto  RET_RESEND;
+                        }
+                        
 						for (WORD i=0; i<iRcvLen; i++, iRcvLen--)
 						{
 							if (*pData==0x68 && *(pData+iRcvLen-1)==0x16)
@@ -2885,9 +2923,34 @@ int CStdReader::DoFwdData(BYTE *pbTsa, BYTE bTsaLen, const BYTE *pbReqBuf, WORD 
 						char szRecvAddr[16] = {0};
 
 						DTRACE(DB_CCT, ("DoFwdData(): Cct meter mismatch, Send meter addr=%s, Recv meter addr=%s!\n", \
-									HexToStr(bTsaRev, 6, szSendAddr), HexToStr(m_TRcv13762.bSrcAddr, 6, szRecvAddr)));
+							HexToStr(bTsaRev, 6, szSendAddr), HexToStr(m_TRcv13762.bSrcAddr, 6, szRecvAddr)));
+                        WORD wTick = (wTimeOut>>2);
+                        if(wTick>20)
+                        {
+                            wTick = 20;
+                        }
+                        else if(wTick<5)
+                        {
+                            wTick = 5;                                
+                        }
+                        Sleep(wTick*1000); 
+                        goto  RET_RESEND;
 					}
 				}
+                else if(m_TRcv13762.bAfn==AFN_CON && DtToFn(m_TRcv13762.bDt)==FN(2) && m_TRcv13762.bDtBuf[0]==0x09)
+                { // 回否认帧，主节点忙
+                    WORD wTick = (wTimeOut>>2);
+                    if(wTick>20)
+                    {
+                        wTick = 20;
+                    }
+                    else if(wTick<5)
+                    {
+                        wTick = 5;                                
+                    }
+                    Sleep(wTick*1000); 
+                    goto  RET_RESEND;                  
+                }
 			}
 		}
 	}

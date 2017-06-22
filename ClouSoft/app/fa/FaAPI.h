@@ -98,8 +98,9 @@ extern void SetParaChg(WORD wClass, BYTE* pbObis);
 extern void SaveParaChgEvt();
 
 extern bool IsMountUsb();
+extern bool SetMountUsb(BYTE bState);
 extern bool IsInUsbProcess();
-extern void SetUsbProcessState(BYTE bState);
+extern bool SetUsbProcessState(BYTE bState);
 
 
 extern bool g_fDownSoft;	//是否在下载软件

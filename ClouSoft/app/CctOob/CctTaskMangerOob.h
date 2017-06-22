@@ -181,6 +181,7 @@ typedef struct {
 
 typedef struct {
 	BYTE bSchNo;	//方案编号
+	BYTE bRdEveType;	//采集类型
 	BYTE bROADNum;	//tTROAD中ROAD的有效个数
 	TROAD tTROAD[32];	//暂定义位32个ROAD
 	BYTE bMsChoice;	//电能表集合MS

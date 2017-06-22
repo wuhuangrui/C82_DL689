@@ -923,11 +923,21 @@ int getSoftKey(const char *const pTitle,  char *const pText, int retTime, int tx
 					}
 					case 1:
 						{//cqj---if( (CurSoftKeyPos.bXPos<=9) && (CurSoftKeyPos.bXPos>=0) )
-							if( (CurSoftKeyPos.bXPos<=13) && (CurSoftKeyPos.bXPos>=0) )
+							if( (CurSoftKeyPos.bXPos<=4) && (CurSoftKeyPos.bXPos>=0) )
 							{
 								CurSoftKeyPos.bYPos--;
-								CurSoftKeyPos.bXPos -= 4;
+								CurSoftKeyPos.bXPos = 0;
 							}
+                            else if( (CurSoftKeyPos.bXPos<=18) && (CurSoftKeyPos.bXPos>=13) )
+                            {
+                                CurSoftKeyPos.bYPos--;
+								CurSoftKeyPos.bXPos = 9;
+                            }
+                            else if( (CurSoftKeyPos.bXPos<13) && (CurSoftKeyPos.bXPos>4) )
+                            {
+                                CurSoftKeyPos.bYPos--;
+                                CurSoftKeyPos.bXPos -= 9;
+                            }
 							break;
 						}
 					case 2:
@@ -948,6 +958,11 @@ int getSoftKey(const char *const pTitle,  char *const pText, int retTime, int tx
 							{
 								CurSoftKeyPos.bYPos--;
 							}
+                            else if( (CurSoftKeyPos.bXPos>15) && (CurSoftKeyPos.bXPos<=17) )
+                            {
+                                CurSoftKeyPos.bYPos--;
+                                CurSoftKeyPos.bXPos = 15;
+                            }
 							break;
 						}
 					default:
@@ -996,10 +1011,15 @@ int getSoftKey(const char *const pTitle,  char *const pText, int retTime, int tx
 						}
 					case 2:
 						{
-							if( (CurSoftKeyPos.bXPos<=15) && (CurSoftKeyPos.bXPos>=0) )
+							if( (CurSoftKeyPos.bXPos<15) && (CurSoftKeyPos.bXPos>=0) )
 							{
 								CurSoftKeyPos.bYPos++;
 							}
+                            else if( (CurSoftKeyPos.bXPos>=15) && (CurSoftKeyPos.bXPos<=18) )
+                            {
+                                CurSoftKeyPos.bYPos++;
+                                CurSoftKeyPos.bXPos = 15;
+                            }
 							break;
 						}
 					case 3:
@@ -1025,6 +1045,40 @@ int getSoftKey(const char *const pTitle,  char *const pText, int retTime, int tx
 						{
 							CurSoftKeyPos.bXPos--;
 						}
+                        else
+                        {
+                            switch (CurSoftKeyPos.bYPos)
+        					{
+        					    case 0:
+                                    if (CurSoftKeyPos.bXPos > 0)
+            						{
+            							CurSoftKeyPos.bXPos--;
+                                    }
+                                    else if(CurSoftKeyPos.bXPos<=0)
+                                    {
+                                        CurSoftKeyPos.bXPos = 9;
+                                    }
+            						break;        					
+            					case 1:
+                                case 2:
+                                case 4:
+        							if(CurSoftKeyPos.bXPos<=0)
+                                    {
+                                        CurSoftKeyPos.bXPos = 17;
+                                    }
+        							break;        						
+        					    case 3:                                
+        							if(CurSoftKeyPos.bXPos<=0)
+                                    {
+                                        CurSoftKeyPos.bXPos = 15;
+                                    }
+        							break;        						
+        					    default:
+        							break;
+        						
+        					}
+                        }
+                        
 					}
 					else if (DATA_HEX == bDataType)
 					{
@@ -1051,11 +1105,15 @@ int getSoftKey(const char *const pTitle,  char *const pText, int retTime, int tx
 							//if (CurSoftKeyPos.bXPos < 9)//cqj
 							if(DATA_ASC == bDataType)
 							{
-								if (CurSoftKeyPos.bXPos < 9)
-								{
-									CurSoftKeyPos.bXPos++;
-								}
-								
+							    if (CurSoftKeyPos.bXPos < 9)
+    						    {
+    						        CurSoftKeyPos.bXPos++;
+    						    }
+                                else if(CurSoftKeyPos.bXPos>=9)
+                                {
+                                    CurSoftKeyPos.bXPos = 0;
+                                }
+            				    break;
 							}
 							else if(DATA_HEX == bDataType)
 							{
@@ -1080,13 +1138,16 @@ int getSoftKey(const char *const pTitle,  char *const pText, int retTime, int tx
 					case 2:		
 					case 4:	
 						{
-							//if (CurSoftKeyPos.bXPos < 19)
-							if (CurSoftKeyPos.bXPos < 17)
-							{
-								CurSoftKeyPos.bXPos++;
-							}
-							break;
+                            if (CurSoftKeyPos.bXPos < 17)
+        	                {
+                                CurSoftKeyPos.bXPos++;
+        			        }
+                            else if(CurSoftKeyPos.bXPos>=17)
+                            {
+                                CurSoftKeyPos.bXPos = 0;
+                            }							
 						}
+                        break;
 
 					case 3:
 						{
@@ -1094,8 +1155,12 @@ int getSoftKey(const char *const pTitle,  char *const pText, int retTime, int tx
 							{
 								CurSoftKeyPos.bXPos++;
 							}
-							break;
+                            else if(CurSoftKeyPos.bXPos>=15)
+                            {
+                                CurSoftKeyPos.bXPos = 0;
+                            }							
 						}
+                        break;
 
 					default:
 						{
@@ -3170,6 +3235,10 @@ int EditSpecBox(int y, char title1[], char text[], int retTime, int txtSize, int
 	else if(2 == txtSize)
 	{
 		sprintf(text,"%02d", 1);//
+	}
+    else if(3 == txtSize)
+	{
+		sprintf(text,"%03d", 1);//
 	}
 	else if(4 == txtSize)
 	{

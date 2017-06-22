@@ -45,6 +45,14 @@ BYTE BcdToByte(BYTE bcd)
 	return ((bcd >> 4) & 0x0f) * 10 + (bcd & 0x0f);
 }
 
+bool BcdToByte(BYTE* pbDest, BYTE* pbSrc, WORD wLen)
+{
+    for(WORD i=0; i<wLen; i++)
+    {
+        *(pbDest+i) = ((*(pbSrc+i) >> 4) & 0x0f) * 10 + (*(pbSrc+i) & 0x0f);
+    }
+    return true;
+}
 
 BYTE ByteToBcd(BYTE b)
 {
@@ -2151,9 +2159,10 @@ DWORD GetIdFrom645AskItemFrm(BYTE* pbFrm)
 	return dw;
 }
 
-#ifdef SYS_LINUX
+
 bool IsMountedOK(char *str)
 {
+#ifdef SYS_LINUX
 	DIR *d = opendir(str);//str====/mnt/usb
 	if (d == NULL)
 	{
@@ -2171,10 +2180,10 @@ bool IsMountedOK(char *str)
 		return true;
 	if (s1.st_ino == s2.st_ino)
 		return true;
-
+#endif
 	return false;
 }
-#endif
+
 
 bool UsbUpdate(char* szPath)
 {
