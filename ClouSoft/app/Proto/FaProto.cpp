@@ -74,6 +74,8 @@ CFaProto::CFaProto()
 	m_iStart = -1;
 	m_iRsd10Pn = -1;
 	m_fPwrOnRun = false;
+
+	m_dwFrmStartClick = 0;
 }
 
 CFaProto::~CFaProto()
@@ -124,6 +126,13 @@ int CFaProto::RcvBlock(BYTE *pbBuf,int wLen)
 {
 	BYTE *pbBlock = pbBuf;
 
+	if (m_nRxStep!=0 && m_dwFrmStartClick!=0 &&
+		GetClick()-m_dwFrmStartClick>40)	//台体重发是60S,大于60s丢掉无效的
+	{
+		m_nRxStep = 0;
+		m_dwFrmStartClick = 0;
+	}
+
 	for (int i=0; i<wLen; i++)
 	{
         BYTE b = *pbBlock++;
@@ -131,13 +140,14 @@ int CFaProto::RcvBlock(BYTE *pbBuf,int wLen)
         switch (m_nRxStep) 
 		{
 		case 0:
-			if( b == 0x68 )
+			if (b == 0x68)
 			{
-				memset( m_bRxBuf, 0, MAXFRMSIZE );
+				memset(m_bRxBuf, 0, sizeof(m_bRxBuf));
 				m_bRxBuf[0] = b;	
 				m_wRxPtr = 1;			
 				m_nRxStep = 1;	
 				m_nRxCnt = 2;//之后是长度域(2BYTE,控制域1BYTE，地址长度)
+				m_dwFrmStartClick = GetClick();
 			}
 			else
 			{
@@ -151,7 +161,7 @@ int CFaProto::RcvBlock(BYTE *pbBuf,int wLen)
 			if( m_nRxCnt == 0)
 			{
 				WORD wRxFrmLen = ((WORD)(m_bRxBuf[2]&0x3f)<<8) | m_bRxBuf[1];
-				if (wRxFrmLen < MAXFRMSIZE)
+				if (wRxFrmLen < sizeof(m_bRxBuf))
 				{
 					m_nRxCnt = wRxFrmLen-1; //帧长度是去掉起始0x68和结束0x16之后的字节
 					m_nRxStep = 2;
@@ -166,10 +176,8 @@ int CFaProto::RcvBlock(BYTE *pbBuf,int wLen)
 				m_nRxStep = 0;
 				if (m_bRxBuf[m_wRxPtr-1] == 0x16)	//控制域
 				{
-					//if (VeryFrm())
-					{
+					if (VeryFrm() > 0)
 						return i+1;
-					}
 				}
 			}
 			break;
@@ -178,7 +186,78 @@ int CFaProto::RcvBlock(BYTE *pbBuf,int wLen)
 			m_nRxStep = 0;
 			break;
 		} //switch (m_nRxStep) 
-	}
+	}	
+
+	return -wLen;
+}
+
+//单帧数据解析
+int CFaProto::SingleRcvBlock(BYTE* pbBuf, int wLen)
+{
+	int nRxStep = 0;
+	int nRxCnt = 0;
+	WORD wRxPtr = 0;
+	BYTE *pbBlock = pbBuf;
+
+	if (wLen > sizeof(m_bSingleRxBuf))
+		return -wLen;
+
+	for (int i=0; i<wLen; i++)
+	{
+        BYTE b = *pbBlock++;
+		
+        switch (nRxStep) 
+		{
+		case 0:
+			if( b == 0x68 )
+			{
+				memset(m_bSingleRxBuf, 0, sizeof(m_bSingleRxBuf));
+				m_bSingleRxBuf[0] = b;
+				wRxPtr = 1;
+				nRxStep = 1;
+				nRxCnt = 2;		//之后是长度域(2BYTE,控制域1BYTE，地址长度)
+			}
+			else
+			{
+				wRxPtr = 0;
+				nRxStep = 0;	
+			}
+			break;
+		case 1:
+			m_bSingleRxBuf[wRxPtr++] = b;
+			nRxCnt--;
+			if (nRxCnt == 0)
+			{
+				WORD wRxFrmLen = ((WORD)(m_bSingleRxBuf[2]&0x3f)<<8) | m_bSingleRxBuf[1];
+				if (wRxFrmLen < sizeof(m_bSingleRxBuf))
+				{
+					nRxCnt = wRxFrmLen-1; //帧长度是去掉起始0x68和结束0x16之后的字节
+					nRxStep = 2;
+				}
+			}
+			break;
+		case 2:
+			m_bSingleRxBuf[wRxPtr++] = b;
+			nRxCnt--;
+			if( nRxCnt == 0)
+			{
+				nRxStep = 0;
+				if (m_bSingleRxBuf[wRxPtr-1] == 0x16)	//控制域
+				{
+					memcpy(m_bRxBuf, m_bSingleRxBuf, i+1);	//更新到RcvBlock函数中成员变量和状态机
+					m_nRxStep = 0;
+
+					if (VeryFrm() > 0)
+						return i+1;
+				}
+			}
+			break;
+
+		default:
+			nRxStep = 0;
+			break;
+		} //switch (nRxStep) 
+	}	
 
 	return -wLen;
 }
@@ -460,12 +539,6 @@ bool  CFaProto::HandleFrm()
 {
 	int nRet;
 
-	if( VeryFrm() < 0 )
-	{
-		DTRACE(DB_FAPROTO,("DB_FAPROTO:FrmType err!\r\n"));
-		return false;
-	}
-	
 	if (m_LnkComm.wAPDULen == 2)//如果应用层只有两个字节，应该是确认帧，需要终端发送下一个APDU片段
 	{
 		if (m_LnkComm.wRcvFrmSegNo == m_LnkComm.wSendFrmSegNo)
@@ -585,22 +658,31 @@ int CFaProto::MakeSegFrm(BYTE bType, WORD wSeg)
 
 int CFaProto::MakeLinkFrm(BYTE bLinkSvr)
 {
+	WORD wBeat;
+	char *pStr;
 	BYTE bApdu[16];
 	BYTE bLen;
-
+	
 	bApdu[0] = 0x01;		//link-request
 	bApdu[1] = 0x00;		//PIID-ACD
 	bApdu[2] = bLinkSvr;	//建立连接
 	
-	//心跳间隔
-	BYTE bModuleType;
-	//ReadItemEx(BANK2, PN0, 0x10d3, &bModuleType);
-	ReadItemEx(BN2, PN0, 0x2050, &bModuleType);
-	WORD wBeat = 0;
-	if (bModuleType == MODULE_SOCKET)
-		wBeat = GetEthBeat();
-	else
+	pStr = GetIf()->GetName();
+	if (strcmp(pStr, "gprs-master") == 0)
+	{
 		wBeat = GetGprsBeat();
+		DTRACE(DB_FAPROTO, ("CFaProto::MakeLinkFrm: Heartbeat[%s], wBeat=%d.\n", pStr, wBeat));
+	}
+	else if (strcmp(pStr, "Socket") == 0)
+	{
+		wBeat = GetEthBeat();
+		DTRACE(DB_FAPROTO, ("CFaProto::MakeLinkFrm: Heartbeat[%s], wBeat=%d.\n", pStr, wBeat));
+	}
+	else 
+	{
+		DTRACE(DB_FAPROTO, ("CFaProto::MakeLinkFrm: Heartbeat unsupport, default wBeat = 300s.\n"));
+		wBeat = 300;
+	}
 
 	if (wBeat == 0)
 		wBeat = 300;	//默认300s
@@ -643,7 +725,7 @@ bool CFaProto::Login()
 	//BYTE bAPDUOffset = 8+m_LnkComm.bSvrAddLen; 
 	do
 	{
-		if (RcvFrm())
+		if (RcvFrm(true))	//登录采用单帧处理模式
 		{
 			if (m_bRxBuf[m_LnkComm.bAPDUoffset] == LINK_RESPONSE && 
 				(m_bRxBuf[m_LnkComm.bAPDUoffset+2]&0x03) == 0x00)
@@ -803,7 +885,10 @@ bool CFaProto::Link_Responce(BYTE *pApdu, WORD wApduLen)
 						if (SetSysTime(tTime))
 						{
 							//SetInfo(INFO_ADJ_TERM_TIME);
-							DealSpecTrigerEvt(TERM_CLOCKPRG);	//HYL 直接存储终端对时事件
+							WaitSemaphore(g_semTermEvt);	
+							DealSpecTrigerEvt(TERM_CLOCKPRG);
+							SignalSemaphore(g_semTermEvt);
+							
 							DTRACE(DB_FAPROTO, ("Simple adjust time successful, Master time:%s, Term time=%s.\n", szMastRespTimeBuf, szTermCurTimeBuf));
 						}
 						else
@@ -860,7 +945,9 @@ bool CFaProto::Link_Responce(BYTE *pApdu, WORD wApduLen)
 									if (SetSysTime(tTime))
 									{
 										//SetInfo(INFO_ADJ_TERM_TIME);
-										DealSpecTrigerEvt(TERM_CLOCKPRG);	//HYL 直接存储终端对时事件
+										WaitSemaphore(g_semTermEvt);	
+										DealSpecTrigerEvt(TERM_CLOCKPRG);
+										SignalSemaphore(g_semTermEvt);
 										DTRACE(DB_FAPROTO, ("Precise adjust time successful, Time:%s.\n", TimeToStr(tTime, szBuf)));
 									}
 									else
@@ -1075,6 +1162,7 @@ void CFaProto::Connect_response(BYTE* pApdu)
 	memcpy(&bBuf[bPtr], bSecurityData, bSecurityDataLen);
 	bPtr += bSecurityDataLen;
 	bBuf[bPtr++] = 0x00; //时间标签-optional
+	bBuf[bPtr++] = 0x00;	//时间标签-optional
 
 	if (MakeFrm(bBuf, bPtr) == bPtr)
 		m_LnkComm.bCommStep = 2;
@@ -1734,7 +1822,17 @@ int CFaProto::Get_request_record_list()
 	WORD wReqApduLen, wRspApduLen;
 	BYTE bGetNum=0;
 	BYTE *pbAskStart;
+
+#ifdef DEBUG_TEST_RECORD_SEGMENT
+	BYTE bBuf[1800+256];
+	BYTE *pApdu0 = bBuf;
+
+	WORD wBufSize = sizeof(bBuf);
+#else
 	BYTE *pApdu0 = m_TxAPdu.bBuf;
+	WORD wBufSize = sizeof(m_TxAPdu.bBuf);
+#endif
+
 	BYTE *pApdu1;
 	BYTE *pApdu2;
 	BYTE *pbRxPtr;
@@ -1764,7 +1862,8 @@ int CFaProto::Get_request_record_list()
 		wReqApduLen = tApduInfo.wOADLen + tApduInfo.wRSDLen + tApduInfo.wRCSDLen;	//APDU的请求信息长度（OAD\RSD\RCSD）
 		wRspApduLen = tApduInfo.wOADLen + tApduInfo.wRCSDLen;	//APDU的响应信息长度（OAD\RCSD）
 		pbRxPtr = pApdu2+iApdu2Offset;
-		wRxMaxLen = sizeof(m_TxAPdu.bBuf) - (pApdu2-pApdu0) - wRspApduLen;	//10
+		
+		wRxMaxLen = wBufSize - (pApdu2-pApdu0) - wRspApduLen;	//10
 		iBakStep = m_AppComm.iStep;
 		wRetNum = 0;
 		int nRet = ReadRecord(tApduInfo.pbOAD, tApduInfo.pbRSD, tApduInfo.pbRCSD, &m_AppComm.iTabIdx, &m_AppComm.iStep, pbRxPtr, wRxMaxLen, &wRetNum);
@@ -1860,10 +1959,9 @@ int CFaProto::Get_request_record_list()
 				}
 				else
 				{
-					memcpy(pApdu2, tApduInfo.pbRCSD, tApduInfo.wRCSDLen);	
+					memcpy(pApdu2, tApduInfo.pbRCSD, tApduInfo.wRCSDLen);
 					pApdu2 += tApduInfo.wRCSDLen;
 				}
-
 				*pApdu2++ = 0x01;	//Data
 				if (wRetNum != 0)
 					*pApdu2++ = (BYTE)wRetNum;
@@ -2020,17 +2118,19 @@ int CFaProto::Set_Request_Normal()
 	else
 	{	
 		GetTermPrgOAD(OoOiToWord(tApduInfo.pbOAD), tApduInfo.pbOAD[2], tApduInfo.pbOAD[3]);
+		WaitSemaphore(g_semTermEvt);	
 		DealSpecTrigerEvt(TERM_TERMPRG);
+		SignalSemaphore(g_semTermEvt);
 		//SetInfo(INFO_TERM_PROG);
 		
 		if (OoOadToDWord(tApduInfo.pbOAD) == 0x42040300)
 		{
 			SetInfo(INFO_ONE_BRAODCAST_ARG_485);
-			SetInfo(INFO_ONE_BRAODCAST_ARG_CCT);
+			//SetInfo(INFO_ONE_BRAODCAST_ARG_CCT);
 		}
 		if (OoOadToDWord(tApduInfo.pbOAD) == 0x42040200)
 		{
-			SetInfo(INFO_MTR_BRAODCAST_ARG_CCT);
+			//SetInfo(INFO_MTR_BRAODCAST_ARG_CCT);
 			SetInfo(INFO_MTR_BRAODCAST_ARG_485);
 		}
 		
@@ -2106,14 +2206,17 @@ int CFaProto::Set_Request_Normal_List()
 				*pApdu++ = DR_ERROK;
 			}
 
-			pbAskStart += iDataLen;//iRet;
+			pbAskStart += iRet;
 		}
 	}
 
 	if (fSetPrgInfo)
-	//	SetInfo(INFO_TERM_PROG);
+	{
+		//	SetInfo(INFO_TERM_PROG);
+		WaitSemaphore(g_semTermEvt);	
 		DealSpecTrigerEvt(TERM_TERMPRG);
-
+		SignalSemaphore(g_semTermEvt);
+	}
 
 	m_TxAPdu.bBuf[3] = wNum;
 	*pApdu++ = 0x00;	//FollowReport optional
@@ -2216,8 +2319,12 @@ int CFaProto::Set_Then_Get_Request_Normal_List(BYTE *pApdu, WORD wApduLen)
 	}
 
 	if (fSetPrgInfo)
-	//	SetInfo(INFO_TERM_PROG);
+	{
+		//	SetInfo(INFO_TERM_PROG);
+		WaitSemaphore(g_semTermEvt);
 		DealSpecTrigerEvt(TERM_TERMPRG);
+		SignalSemaphore(g_semTermEvt);
+	}
 
 
 	*pTxApdu++ = GetRptFlg();
@@ -2310,7 +2417,7 @@ int CFaProto::Act_Response_Normal()
 		}
 		else
 		{
-			*pApdu++ = DR_RWDenied;
+			*pApdu++ =  GetErrOfAct(iRet);//DR_RWDenied;
 			DTRACE(DB_FAPROTO, ("Act_Response_Normal failed, dwOMD=0x%08x !\r\n", dwOMD));
 			
 		}
@@ -2372,7 +2479,7 @@ int CFaProto::Act_Response_List()
 			}
 			else
 			{
-				*pApdu++ = GetErrOfGet(iRet);	//对象不存在
+				*pApdu++ = GetErrOfAct(iRet);//GetErrOfGet(iRet);	//对象不存在
 				*pApdu++ = 0;
 				DTRACE(DB_FAPROTO, ("Act_response-Act-list failed, dwOMD:0x%08x DoObjMethod failed !\r\n", dwOMD));
 				//break;
@@ -2380,7 +2487,7 @@ int CFaProto::Act_Response_List()
 		}
 		else
 		{
-			*pApdu++ = GetErrOfGet(iRet);	//对象不存在
+			*pApdu++ = GetErrOfAct(iRet);//GetErrOfGet(iRet);	//对象不存在
 			DTRACE(DB_FAPROTO, ("Act_response-Act-list failed, dwOMD:0x%08x GetOmMap failed !\r\n", dwOMD));
 			break;
 		}
@@ -2392,6 +2499,7 @@ int CFaProto::Act_Response_List()
 	m_TxAPdu.bBuf[3] = wNum;
 	*pApdu++ = 0x00;	//FollowReport optional
 	*pApdu++ = 0x00;	//NULL
+
 	m_TxAPdu.wLen = pApdu - m_TxAPdu.bBuf;
 
 	return ToSecurityLayer(); //ToLnkLayer();
@@ -2442,7 +2550,7 @@ int CFaProto::Act_Then_Rd_List()
 			else
 			{
 				pApdu += OoDWordToOad(dwSetOMD, pApdu);
-				*pApdu++ = GetErrOfGet(iRet);	//对象不存在
+				*pApdu++ = GetErrOfAct(iRet);//GetErrOfGet(iRet);	//对象不存在
 				DTRACE(DB_FAPROTO, ("Act_Then_Rd_List failed, dwOMD:0x%08x DoObjMethod failed !\r\n", dwSetOMD));
 				break;
 			}
@@ -2450,7 +2558,7 @@ int CFaProto::Act_Then_Rd_List()
 		else
 		{
 			pApdu += OoDWordToOad(dwSetOMD, pApdu);
-			*pApdu++ = GetErrOfGet(iRet);	//对象不存在
+			*pApdu++ = GetErrOfAct(iRet);//GetErrOfGet(iRet);	//对象不存在
 			DTRACE(DB_FAPROTO, ("Act_Then_Rd_List failed, dwOMD:0x%08x GetOmMap failed !\r\n", dwSetOMD));
 			break;
 		}
@@ -2470,7 +2578,7 @@ int CFaProto::Act_Then_Rd_List()
 		{
 			pApdu += OoDWordToOad(dwGetOAD, pApdu);
 			*pApdu++ = 0x00;				//DAR
-			*pApdu++ = GetErrOfGet(iRet);	//对象不存在
+			*pApdu++ = GetErrOfAct(iRet);//GetErrOfGet(iRet);	//对象不存在
 			break;
 		}
 		else
@@ -2500,6 +2608,7 @@ int CFaProto::GetErrOfGet(int iRetVal)
 	case -2: return DR_ObjUndefined;
 	case -3: return DR_ObjIFInValid;
 	case -4: return DR_Other;
+	case -5: return DR_TimeTagErr;
 	}
 	return DR_Other;
 }
@@ -2512,6 +2621,7 @@ int CFaProto::GetErrOfSet(int iRetVal)
 	case -2: return DR_ObjUndefined;
 	case -3: return DR_ObjIFInValid;
 	case -4: return DR_Other;
+	case -5: return DR_TimeTagErr;
 	}
 	return DR_Other;
 }
@@ -2526,6 +2636,7 @@ int CFaProto::GetErrOfAct(int iRetVal)
 	case -4: return AR_Other;				//其它错误
 	case -5: return 0xff;//pan 确认ACT协议OK，但获取数据返回错误，2008-1-15
 	case -6: return AR_ScopeViolated;		//操作无效，2009-9-2
+	case -7: return DR_TimeTagErr;
 	}
 	return AR_Other;
 }
@@ -4038,25 +4149,6 @@ bool CFaProto::GetEventWritePtr(BYTE& bWrPtr)
 
 }
 
-bool CFaProto::IsNeedReport()
-{
-	if ( !GetEventWritePtr(m_AppComm.bEvtWPtr) )
-		return false;		
-
-	//重要事件上报
-	if( m_pFaProPara->ProPara.fLocal == false ) //CONNECTTYPE_GPRS 
-		ReadItemEx( BANK0, 0, 0x5502, &m_AppComm.bEvtRPtr );
- 	else
-		ReadItemEx( BANK0, 0, 0x5503, &m_AppComm.bEvtRPtr );
-	if (m_AppComm.bEvtWPtr!=m_AppComm.bEvtRPtr)
-	{
-		DTRACE(DB_FAPROTO, ("TaskThread : write write ptr=%d  read ptr=%d!\r\n",m_AppComm.bEvtWPtr,m_AppComm.bEvtRPtr));
-	}
-	if( m_AppComm.bEvtRPtr != m_AppComm.bEvtWPtr )
-		return true;
-	
-	return false;
-}
 
 //A 主动上报1条事件:用事件对象
 //B 主动上报10条事件:用事件曲线
@@ -4138,64 +4230,6 @@ int CFaProto::GetEvent(BYTE *pb)
 	return 0;
 }
 
-//数据优先帧
-int CFaProto::Tx_PriorFrm(bool fFinal)
-{
-	int iRet = -1;
-	BYTE bBuf[500];
-	BYTE bTmpTx[500];
-	WORD wFrmLen, wTxPtr = 0;	
-
-	BYTE* pbTmpTx =  bTmpTx;
-
-	wTxPtr = 0;
-	pbTmpTx[0] = 0x7e;
-	//m_bTxBuf[1] = 0xC0|((wFrmLen>>8)&0x7);	
-	//m_bTxBuf[2] = wFrmLen&0xff;
-	
-	wTxPtr += 3;
-	ReadItemEx( BN0, 0, 0x4037, bBuf);//倒序
-	revcpy(&pbTmpTx[3], bBuf, 2);
-	wTxPtr += 2;
-
-	if (IsFkTermn())
-		pbTmpTx[wTxPtr++] = 0x03;	//负控终端事件
-	else
-		pbTmpTx[wTxPtr++] = 0x02;	//集中器事件
-
-	pbTmpTx[wTxPtr++] = 0x02;
-	pbTmpTx[wTxPtr++] = 0x04;
-	pbTmpTx[wTxPtr++] = 0x11;
-	pbTmpTx[wTxPtr++] = m_AppComm.bEvtRPtr;	//循环事件编号
-
-/*		//应该是用事件对象按FIFO的顺序将未传的一条条连续传出		
-	if( (iRet=GetOneEvent(m_AppComm.bEvtRPtr, bBuf)) > 0 )  //02 03 要去掉
-	{
-		memcpy(pbTmpTx+wTxPtr, bBuf+2, iRet-2) ; //拷贝datatime+enum+ERC等的内容
-		wTxPtr += iRet-2;
-
-		m_AppComm.bEvtRPtr = (m_AppComm.bEvtRPtr+1)%MAXNUM_EVENT;
-		if( m_pFaProPara->ProPara.fLocal == false )//CONNECTTYPE_GPRS 
-			WriteItemEx( BANK0, 0, 0x5502, &m_AppComm.bEvtRPtr );
-		else
-			WriteItemEx( BANK0, 0, 0x5503, &m_AppComm.bEvtRPtr );
-		TrigerSaveBank(BN0, SECT_DLMS_TERMN_DATA, 0);		
-	}
-	else */
-		return -1;
-
-	wFrmLen = wTxPtr+2-1; //算上校验的长度 去掉帧头
-	pbTmpTx[1] = 0xC0|((wFrmLen>>8)&0x7);	//数据优先帧控制字
-	pbTmpTx[2] = wFrmLen&0xff;
-
-	WORD fcs = CheckCrc16( pbTmpTx+1, wTxPtr-1 );
-	pbTmpTx[wTxPtr++] = fcs&0xff;
-	pbTmpTx[wTxPtr++] = fcs>>8;
-	pbTmpTx[wTxPtr++] = 0x7e;
-	
-	iRet = Send(pbTmpTx, wTxPtr);
-	return iRet;
-}
 
 //物理连接断开时调用
 void CFaProto::OnBroken()
@@ -4268,14 +4302,6 @@ int CFaProto::ZJUserDef(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf)
 		case 0x07:
 			g_dwExtCmdClick = GetClick();
 			g_dwExtCmdFlg = FLG_REMOTE_DOWN;
-			g_PowerOffTmp.bRemoteDownIP[0] = pbRxBuf[FAP_DATA_EX+3]; 
-			g_PowerOffTmp.bRemoteDownIP[1] = pbRxBuf[FAP_DATA_EX+4];
-			g_PowerOffTmp.bRemoteDownIP[2] = pbRxBuf[FAP_DATA_EX+5];
-			g_PowerOffTmp.bRemoteDownIP[3] = pbRxBuf[FAP_DATA_EX+6];			
-			g_PowerOffTmp.bRemoteDownIP[4] = pbRxBuf[FAP_DATA_EX+7];
-			g_PowerOffTmp.bRemoteDownIP[5] = pbRxBuf[FAP_DATA_EX+8];
-			g_PowerOffTmp.bRemoteDownIP[6] = pbRxBuf[FAP_DATA_EX+9];
-			g_PowerOffTmp.bRemoteDownIP[7] = pbRxBuf[FAP_DATA_EX+10];
 			return ZJReExtCmd(ERR_OK, pbRxBuf, pbTxBuf);
 
 		case 0x08:			//自动校准

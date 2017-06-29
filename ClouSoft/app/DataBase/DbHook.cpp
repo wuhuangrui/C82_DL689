@@ -212,18 +212,6 @@ int PostWriteItemExHook(WORD wBank, WORD wPn, WORD wID, BYTE* pbBuf, BYTE bPerm,
 			}
 		}
 	}
-	else if (wBank==BN0 && wID==0x4037)//设置终端设备地址同时，修改终端的MAC地址
-	{
-		ReadItemEx(BN10, PN0, 0xa150, bBuf);
-		bBuf[5] += pbBuf[1];
-		bBuf[4] += pbBuf[0];
-		WriteItemEx(BN10, PN0, 0xa150, bBuf);
-
-		ReadItemEx(BN10, PN0, 0xa1c1, bBuf);
-		bBuf[5] += pbBuf[1];
-		bBuf[4] += pbBuf[0];
-		WriteItemEx(BN10, PN0, 0xa1c1, bBuf);
-	}
 	#ifdef SYS_LINUX
 	else if(wBank==BN2 && wID == 0x5039)
 	{
@@ -473,11 +461,9 @@ int PermCheck(TItemDesc* pItemDesc, BYTE bPerm, BYTE* pbPassword)
 
 bool IsSectHaveSampleData(WORD wSect)
 {
-#if 0
-	if (wSect == SECT_PN_DATA)
+	if (wSect == SECT_VARIABLE)
 		return true;
 	else
-#endif
 		return false;
 
 }

@@ -58,5 +58,8 @@ WORD AcDemandTimeToFmt(BYTE* pSrcBuf, BYTE* pDstBuf, WORD wRateNum, BYTE bDemTim
 void AcTTimeToDemandTime(BYTE* pbTime, TTime *pTime );
 BYTE AcDemandTimeGetMonth(BYTE* pbTime);
 
+BYTE PulseHiFmtToLoEng(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum);
+BYTE PulseFmtToEng(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum);		//从数据库读出脉冲电量
+BYTE PulseEngToFmt(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum);		//脉冲电量入库
 
 #endif //ACFMT_H

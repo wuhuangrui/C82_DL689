@@ -14,7 +14,7 @@
 //TFileBlkTrans g_FileBlkTrans;
 TFileBlkTrans g_FileBlkTrans;         //文件分块传输控制结构
 
-#define KANWU_170303		1//勘误20170303
+#define KANWU_170303		1//勘误20170303,先保留，以方便调试用老台体软
 
 //启动传输
 #ifdef KANWU_170303
@@ -90,7 +90,7 @@ int GetFileTransAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wBufSi
 	int iLenArea = 0;
 	DWORD dwDataLen = 0;
 	
-	if (bAttr == 0x02)//((wOI == 0xF000)||(wOI == 0xF001)) && 
+	if (bAttr == 0x02) 
 	{
 		if (!PartReadFile(USER_DATA_PATH"downinfo.dat", 0, (BYTE *)&g_FileBlkTrans, sizeof(TFileBlkTrans)))
 			return -1;
@@ -171,7 +171,7 @@ int SetFileTransAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbPara)
 	DWORD dwDataLen = 0;
 	int iScanLen = -1;
 
-	if (bAttr == 0x02)//((wOI == 0xF000)||(wOI == 0xF001)) && 
+	if (bAttr == 0x02) 
 	{
 		iScanLen = OoScanData(pbPara, g_bFileInfoFmt, sizeof(g_bFileInfoFmt), false, -1, NULL, NULL);	
 		if (iScanLen < 0)
@@ -239,7 +239,10 @@ int FileBlkTransMethod7(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 	
 	iScanLen = OoScanData(pbPara, g_bStartTransFmt, sizeof(g_bStartTransFmt), false, -1, &wLen, &bType);	
 	if (iScanLen < 0)
+	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method7 error  iScanLen < 0\r\n"));
 		return -1;
+	}
 	
 	memset(&g_FileBlkTrans, 0, sizeof(TFileBlkTrans));
 	//PartReadFile(USER_DATA_PATH"downinfo.dat", 0, (BYTE *)&g_FileBlkTrans, sizeof(TFileBlkTrans));//test
@@ -251,7 +254,14 @@ int FileBlkTransMethod7(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 	dwOff = 4;//指向源文件的格式字符，
 	g_FileBlkTrans.bSrcFile[0] = pbPara[dwOff];//格式字
 	dwOff ++;
-	iLenArea = DecodeLength(pbPara+dwOff, &dwDataLen);	
+	iLenArea = DecodeLength(pbPara+dwOff, &dwDataLen);
+	if (iLenArea < 0)
+	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method7 error  SrcFile-iLenArea < 0\r\n"));
+		return -1;
+	}
+	if (iLenArea > 128)
+		iLenArea = 128;
 	memcpy(&g_FileBlkTrans.bSrcFile[1], pbPara+dwOff, dwDataLen+iLenArea);
 	
 	dwOff += iLenArea+dwDataLen;
@@ -260,6 +270,13 @@ int FileBlkTransMethod7(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 	g_FileBlkTrans.bDstFile[0] = pbPara[dwOff];
 	dwOff ++;
 	iLenArea = DecodeLength(pbPara+dwOff, &dwDataLen);	
+	if (iLenArea < 0)
+	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method7 error  DstFile-iLenArea < 0\r\n"));
+		return -1;
+	}
+	if (iLenArea > 128)
+		iLenArea = 128;
 	memcpy(&g_FileBlkTrans.bDstFile[1], pbPara+dwOff, dwDataLen+iLenArea);
 
 	dwOff += iLenArea+dwDataLen+1;
@@ -274,6 +291,13 @@ int FileBlkTransMethod7(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 	g_FileBlkTrans.bFileVer[0] = pbPara[dwOff];
 	dwOff ++;
 	iLenArea = DecodeLength(pbPara+dwOff, &dwDataLen);	
+	if (iLenArea < 0)
+	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method7 error  DstFile-iLenArea < 0\r\n"));
+		return -1;
+	}
+	if (iLenArea > 64)
+		iLenArea = 64;
 	memcpy(&g_FileBlkTrans.bFileVer[1], pbPara+dwOff, dwDataLen+iLenArea);
 	
 	dwOff += 1+iLenArea+dwDataLen;
@@ -310,28 +334,35 @@ int FileBlkTransMethod8(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 	DWORD dwDataLen = 0;
 
 	if (pbPara == NULL)
+	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method8 error pbPara == NULL\r\n"));
 		return -1;
-//OoScanData()里对于例如09的长度超过128进行了编码的情况没有考虑	
-	//iScanLen = OoScanData(pbPara, g_bFileTransFmt, sizeof(g_bFileTransFmt), false, -1, &wLen, &bType);	
-	//if (iScanLen < 0)
-	//	return -1;
+	}
 	
-	if (pbPara[dwOff] != 0x12)
+	if (pbPara[dwOff] != DT_LONG_U)
+	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method8 error  pbPara[2] != DT_LONG_U\r\n"));
 		return -1;//格式字不对
-
+	}
 	dwOff++;
 	WORD wCurBlockNum = OoOiToWord(pbPara+dwOff);//块序号从0~n-1
 	
-	//memset(&g_FileBlkTrans, 0, sizeof(TFileBlkTrans));
-	PartReadFile(USER_DATA_PATH"downinfo.dat", 0, (BYTE *)&g_FileBlkTrans, sizeof(TFileBlkTrans));
+	if (!PartReadFile(USER_DATA_PATH"downinfo.dat", 0, (BYTE *)&g_FileBlkTrans, sizeof(TFileBlkTrans)))
+	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method8 error  read downinfo.dat  false\r\n"));
+		return -1;
+	}
 	if (wCurBlockNum > g_FileBlkTrans.wTotalBlks)
 	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method8  error  wCurBlockNum=%d  wTotalBlks=%d  wCurBlockNum > g_FileBlkTrans.wTotalBlks\r\n",wCurBlockNum, g_FileBlkTrans.wTotalBlks));
 		return -1;//块序号大于了总块数
 	}
 	dwOff += 2;
-	if (pbPara[dwOff] != 0x09)
+	if (pbPara[dwOff] != DT_OCT_STR)
+	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method8 error  dwOff=%d pbPara[dwOff] != DT_OCT_STR\r\n",dwOff));
 		return -1;//格式字不对
-		
+	}	
 	dwOff++;
 	if (pbPara[dwOff] != 0)//数据块长度
 	{
@@ -339,20 +370,24 @@ int FileBlkTransMethod8(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 		iLenArea = DecodeLength(pbPara+dwOff, &dwDataLen);	
 		dwOff += iLenArea;
 		if (dwDataLen > g_FileBlkTrans.wBlkSize)
+		{
+			DTRACE(DB_FAPROTO, ("FileTrans Method8  error  dwDataLen=%d  wBlkSize=%d  dwDataLen > g_FileBlkTrans.wBlkSize\r\n",dwDataLen, g_FileBlkTrans.wBlkSize));
 			return -1;//下载的块长度大于了启动时约定的块长度
+		}
 		//把数据写入文件
-		PartWriteFile(USER_DATA_PATH"FileTrans.tmp", wCurBlockNum*g_FileBlkTrans.wBlkSize, pbPara+dwOff, dwDataLen);
+		if (!PartWriteFile(USER_DATA_PATH"FileTrans.tmp", wCurBlockNum*g_FileBlkTrans.wBlkSize, pbPara+dwOff, dwDataLen))
+		{
+			DTRACE(DB_FAPROTO, ("FileTrans Method8 error write FileTrans.tmp false \r\n"));
+			return -1;
+		}	
+			
 		g_FileBlkTrans.dwTranLen += dwDataLen;
 
-		//g_FileBlkTrans.bBlkStatus[wCurBlockNum/8] |= 0x01<<(wCurBlockNum%8);
-		//DTRACE(DB_FAPROTO, ("SCN=%d\r\n",wCurBlockNum));
 		g_FileBlkTrans.bBlkStatus[wCurBlockNum/8] |= 0x80>>(wCurBlockNum%8);
 		if (IsAllABit(g_FileBlkTrans.bBlkStatus, g_FileBlkTrans.wTotalBlks))//状态位的各bit都为1则认为传输完成
 		{
 			DTRACE(DB_FAPROTO, ("FileTrans over!\r\n"));
 			g_FileBlkTrans.wEndBlkSize  = dwDataLen;
-			//g_FileBlkTrans.wEndBlockNum = wCurBlockNum;
-			//DWORD dwTmpTotalLenthg = wCurBlockNum*g_FileBlkTrans.wBlkSize+dwDataLen;
 			if (g_FileBlkTrans.dwTotalLen != g_FileBlkTrans.dwTranLen)//终端接收到的文件长度与启动时下发的总长度不一致
 			{
 				PartWriteFile(USER_DATA_PATH"downinfo.dat", 0, (BYTE*)&g_FileBlkTrans, sizeof(TFileBlkTrans));
@@ -364,55 +399,68 @@ int FileBlkTransMethod8(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 			if(UpdFile()>0)
 			{
 				DTRACE(DB_FAPROTO, ("TransFile:UpdFile OK !!!\r\n"));
-				//g_dwExtCmdClick = GetClick();
-				//g_dwExtCmdFlg = FLG_HARD_RST;
 			}
 			
 		}
+		PartWriteFile(USER_DATA_PATH"downinfo.dat", 0, (BYTE*)&g_FileBlkTrans, sizeof(TFileBlkTrans));
+		return 0;
 	}
-	PartWriteFile(USER_DATA_PATH"downinfo.dat", 0, (BYTE*)&g_FileBlkTrans, sizeof(TFileBlkTrans));//tll 为了调试，先加上这一句
-	return 0;
+	else
+	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method8 error  BlkSize =0\r\n"));
+		return -1;
+	}
+		
 }
 //读取文件(参数)
-//目前只做支持一次读取一块数据，即使读取多块也只回一块的数据
+//一次读取一块数据，
 int FileBlkTransMethod9(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	WORD dwOff = 2;//指向块序号
 	BYTE iLenArea = 0;
-	int fDataLen = 0;
+	int iDataLen = 0;
 	BYTE bBuf[2048];
 	WORD wDtaLen = 0;
 	BYTE bLength;
 	BYTE* pbRes0 = pbRes;
 	
-	if (pbPara[dwOff] != 0x12)
+	if (pbPara[dwOff] != DT_LONG_U)
+	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method9 error  dwOff=%d pbPara[dwOff] != DT_LONG_U\r\n",dwOff));
 		return -1;//格式字不对
+	}	
 	dwOff++;
-	PartReadFile(USER_DATA_PATH"downinfo.dat", 0, (BYTE *)&g_FileBlkTrans, sizeof(TFileBlkTrans));
+	if (!PartReadFile(USER_DATA_PATH"downinfo.dat", 0, (BYTE *)&g_FileBlkTrans, sizeof(TFileBlkTrans)))
+	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method8 error  read downinfo.dat  false\r\n"));
+		return -1;
+	}
 	WORD wCurBlockNum = OoOiToWord(pbPara+dwOff);//块序号从0~n-1
 	if (wCurBlockNum > g_FileBlkTrans.wTotalBlks)
 	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method9  error  wCurBlockNum=%d  wTotalBlks=%d  wCurBlockNum > g_FileBlkTrans.wTotalBlks\r\n",wCurBlockNum, g_FileBlkTrans.wTotalBlks));
 		return -1;//读取的块不存在
 	}
-	*pbRes ++ = 0x02;
+	*pbRes ++ = DT_STRUCT;
 	*pbRes ++ = 0x01;
-	*pbRes ++ = 0x09;
+	*pbRes ++ = DT_OCT_STR;
 	if (wCurBlockNum == g_FileBlkTrans.wTotalBlks)
-		fDataLen = g_FileBlkTrans.wEndBlkSize;
+		iDataLen = g_FileBlkTrans.wEndBlkSize;
 	else
-		fDataLen = g_FileBlkTrans.wBlkSize;
+		iDataLen = g_FileBlkTrans.wBlkSize;
 	
-	if (PartReadFile(USER_DATA_PATH"FileTrans.tmp", wCurBlockNum*g_FileBlkTrans.wBlkSize,bBuf, fDataLen) == false)
+	if (PartReadFile(USER_DATA_PATH"FileTrans.tmp", wCurBlockNum*g_FileBlkTrans.wBlkSize,bBuf, iDataLen) == false)
 	{
+		DTRACE(DB_FAPROTO, ("FileTrans Method8 error  read FileTrans.tmp  false\r\n"));
 		return -1;//读取的文件不存在
 	}
-	bLength = EncodeLength(fDataLen, pbRes );
+	bLength = EncodeLength(iDataLen, pbRes );
 	pbRes += bLength;
-	memcpy(pbRes, bBuf, fDataLen);
-	pbRes += fDataLen;
+	memcpy(pbRes, bBuf, iDataLen);
+	pbRes += iDataLen;
 
-	fDataLen = pbRes-pbRes0;
-	return fDataLen;
+	iDataLen = pbRes-pbRes0;
+	return iDataLen;
 }
 
 //软件比对（参数）
@@ -435,31 +483,21 @@ int UpdFile()
 	//	return 0;
 #endif			
 	
-	//PartReadFile(USER_DATA_PATH"clou.tgz", 0, bFileHead, sizeof(bFileHead));
 
 #ifdef KANWU_170303
 	if (g_FileBlkTrans.bFileType == 0)
 #endif		
 	{
-		j = g_FileBlkTrans.dwTotalLen / sizeof(bFileHead);
-		for(i=0; i<j; i++)
+		char szTmp[128];
+		sprintf(szTmp, "rm -f /mnt/data/clmain.*");
+		system(szTmp);
+		sprintf(szTmp, "rm -fr /mnt/data/clmain/*");
+		system(szTmp);		
+		sprintf(szTmp, "cp %s /mnt/data/clmain.tgz", USER_DATA_PATH"FileTrans.tmp");
+		if (system(szTmp) < 0)
 		{
-			memset(bFileHead, 0x00, sizeof(bFileHead));
-			PartReadFile(USER_DATA_PATH"FileTrans.tmp", i*sizeof(bFileHead), bFileHead, sizeof(bFileHead));
-			//PartWriteFile(USER_DATA_PATH"clou.tgz", i*sizeof(bFileHead), bFileHead, sizeof(bFileHead));
-			PartWriteFile("/mnt/data/clmain.tgz", i*sizeof(bFileHead), bFileHead, sizeof(bFileHead));
-			if (g_FileBlkTrans.bChkType == 0)//默认为0,即CRC16校验
-				wCrc = get_crc_16( wCrc, bFileHead, sizeof(bFileHead));
-		}
-		j = g_FileBlkTrans.dwTotalLen % sizeof(bFileHead);
-		if(j > 0)
-		{
-			memset(bFileHead, 0x00, sizeof(bFileHead));
-			PartReadFile(USER_DATA_PATH"FileTrans.tmp", i*sizeof(bFileHead), bFileHead, j);
-			//PartWriteFile(USER_DATA_PATH"clou.tgz", i*sizeof(bFileHead), bFileHead, sizeof(bFileHead));
-			PartWriteFile("/mnt/data/clmain.tgz", i*sizeof(bFileHead), bFileHead, sizeof(bFileHead));
-			if (g_FileBlkTrans.bChkType == 0)//默认为0,即CRC16校验
-				wCrc = get_crc_16( wCrc, bFileHead, j);
+			DTRACE(DB_FAPROTO, ("cp FileTrans.tmp  Error\r\n"));
+			return -1;			
 		}
 		if (g_FileBlkTrans.bChkVal[0] != 0)
 		{
@@ -467,77 +505,24 @@ int UpdFile()
 			if(wCrcOld != wCrc)
 			{
 				DTRACE(DB_FAPROTO, ("CFaProto::RxCmd_TransFile CRC Error\r\n"));
-				//DeleteFile(g_FileBlkTrans->szFileTitle);
-				//g_fUpdateFirmware = false; 
 				return -1;			
 			}
 		}
 		DTRACE(DB_FAPROTO, ("TransFile:CRC OK !!!\r\n"));
 #ifndef SYS_WIN		
-#if 1
 //升级文件改为升clmain和\或驱动文件，再加上update脚本一起压缩的包
-		char szTmp[128];
 
 		sprintf(szTmp, "tar zxvf /mnt/data/clmain.tgz -C /mnt/data/");
+		if (system(szTmp) < 0)
+		{
+			DTRACE(DB_FAPROTO, ("tar zxvf /mnt/data/clmain.tgz -C /mnt/data/  Error\r\n"));
+			return -1;			
+		}
+
 		system(szTmp);
 		sprintf(szTmp, "source /mnt/data/clmain/update&");
 		system(szTmp);
 		return 1;
-#else
-		//if (g_RemoteDown.m_dwFileSize>=0)//其它文件
-		//{
-			
-			//if((g_FileBlkTrans->bFileValid == 0x01) && strstr(g_FileBlkTrans->szFileTitle, ".tgz")!= NULL)	//Linux下升级，更新编程次数和最后一次编程时间
-			{
-				//g_fUpdateFirmware = true;//xzz add.
-				Sleep(1000);
-				/*if(strstr(g_FileBlkTrans->szFileTitle, "clmain.tgz")!= NULL)
-				{
-					
-					DTRACE(DB_FAPROTO,  ("Linux Updated : started!Updated Parameter clmain\n"));
-					char szTmp[128];
-
-					sprintf(szTmp, "tar zxvf %s -C /", g_FileBlkTrans->szFileTitle);
-					system(szTmp);
-
-					memset(szTmp, 0x00, sizeof(szTmp));
-					sprintf(szTmp, "tar zcvf /mnt/data/clou.tgz /clou");
-					system(szTmp);
-
-					memset(szTmp, 0x00, sizeof(szTmp));
-					sprintf(szTmp, "cp  /mnt/data/clou.tgz /mnt/app/clou.tgz");
-					system(szTmp);
-
-					DeleteFile(g_FileBlkTrans->szFileTitle);
-					//DeleteFile(USER_DATA_PATH"downinfo.dat");
-
-
-				}
-				else*/
-				{
-					DTRACE(DB_FAPROTO,  ("Linux Updated : started!Updated Parameter\n"));
-					DTRACE(DB_FAPROTO,  ("Linux Updated : End!Updated Parameter\n"));
-					char szTmp[128];
-					//sprintf(szTmp, "cp %s /mnt/app/clou.tgz", USER_DATA_PATH"clou.tgz");
-					sprintf(szTmp, "cp %s /mnt/app/oob/clou.tgz", USER_DATA_PATH"clou.tgz");//湖南的
-					system(szTmp);
-					DeleteFile(USER_DATA_PATH"clou.tgz");
-					//DeleteFile(USER_DATA_PATH"downinfo.dat");//这个文件先不删，可能主站还会有读取
-					return 1;
-					//还要处理终端复位等动作
-				}
-			}
-			/*else
-			{
-				DTRACE(DB_FAPROTO,  ("Linux Updated : It isn't Updated file\n"));
-				DeleteFile(USER_DATA_PATH"downinfo.dat");
-				g_fUpdateFirmware = false; 
-				return 0;
-
-			}*/
-			
-		//}	
-#endif		
 #else
 		//DeleteFile(USER_DATA_PATH"clou.tgz");
 		return 1;
@@ -565,163 +550,5 @@ int FileExtTransmit(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPar
 
 
 
-//==========================以下代码是黄工的
 
-#if 0
-bool GetFileInfoFromAtr2(TFileInfo *stFileInfo)
-{
-    
-    // 从系统库取数据
-    // 假设stFileInfoFromAt2 是取出来的信息
-    TFileInfo stFileInfoFromAt2;    
-
-    // 获取信息到stFileInfoFromAt2
-
-    #if 0
-    DWORD dwDataLen = 0;
-    BYTE *pdData = NULL;
-    //获取源文件路径
-    pdData = GetDataBuffInfo(dwDataLen, stFileInfoFromAt2.cPathNameSrc);
-    memcpy(stFileInfo->cPathNameSrc, pdData, dwDataLen);
-    stFileInfo->cPathNameSrc[dwDataLen] = '\0';
-
-    //获取目标文件路径
-    pdData = GetDataBuffInfo(dwDataLen, stFileInfoFromAt2.cPathNameDst);
-    memcpy(stFileInfo->cPathNameDst, pdData, dwDataLen);
-    stFileInfo->cPathNameDst[dwDataLen] = '\0';
-
-    // 获取文件大小    
-    stFileInfo->dwFileSize =  stFileInfoFromAt2.dwFileSize;
-
-    //获取文件属性
-    stFileInfo->bFileAtr = stFileInfoFromAt2.bFileAtr;
-
-    // 获取文件版本
-    pdData = GetDataBuffInfo(dwDataLen, stFileInfoFromAt2.cFileVersion);
-    memcpy(stFileInfo->cFileVersion, pdData, dwDataLen);
-    stFileInfo->cFileVersion[dwDataLen] = '\0';   
-    #endif
-    *stFileInfo = stFileInfoFromAt2;
-    return true;
-    
-}
-
-/*
-*文件传输 -- 方法7 启动分块传输
-*@ stFileTranStartPara 
-参数∷=structure
-{
-  文件信息    structure，
-  传输块大小  long-unsigned，
-  校验        structure
-}
-*/
-bool OoFileTranBlockStart(TFileTranStartPara stFileTranStartPara)
-{
-    // stTFileTranStartPara 要做入库处理
-
-    // 要传输的总块数
-    DWORD dwBlockTotal;
-    if(stFileTranStartPara.stFileInfo.dwFileSize%stFileTranStartPara.wBlkSize!=0)
-    {
-        dwBlockTotal = stFileTranStartPara.stFileInfo.dwFileSize/stFileTranStartPara.wBlkSize+1;
-    }
-    else{
-        dwBlockTotal = stFileTranStartPara.stFileInfo.dwFileSize/stFileTranStartPara.wBlkSize;
-    }
-    // 清传输块记录状态字
-    /*
-    读取
-    清零 
-    写入
-    */
-    // 清除缓存文件
-}
-
-/*
-方法8：写文件
-参数∷=structure
-{
-   块序号  long-unsigned，
-   块数据  octet-string
-}
-*/
-bool OoFileTranBlockWrite(TBlockInfo stBlockInfo)
-{
-    DWORD dwOffset = 0;
-    DWORD dwBlockTotal;// 获取总块数的值
-    DWORD dwBlkSize;
-    int iRet;
-    bool fIsSuccess;
-    DWORD dwDataLen=0;
-    TFileTranStartPara stFileTranStartPara;
-
-    dwOffset = dwBlkSize*stBlockInfo.wBlockSN;
-    if(stBlockInfo.wBlockSN <dwBlockTotal-1)
-    {        
-        dwDataLen = dwBlkSize;
-    }
-    else  if(stBlockInfo.wBlockSN <dwBlockTotal-1)
-    {
-        dwDataLen = stFileTranStartPara.stFileInfo.dwFileSize%stFileTranStartPara.wBlkSize;
-    }
-
-    iRet = WriteFile(stFileTranStartPara.stFileInfo.cPathNameDst, dwOffset, stBlockInfo.pbBlockData);
-    if(fIsSuccess)
-    {
-        //更新属性4 传输块状态字
-        //读取
-        //跟新   buf[stBlockInfo.wBlockSN>>3] = buf[stBlockInfo.wBlockSN>>3]|(1<<(stBlockInfo.wBlockSN&0x07));        
-        //写入
-        // 检测传输块是否完成
-        return true;
-    }
-    else{
-        return false;
-    }    
-}
-
-
-//bool OoFileTranBlockRead(TBlockInfo *pstBlockInfo);
-
-bool OoFileTranBlockRead(WORD wBlockSN)
-{
-    DWORD dwOffset = 0;
-    DWORD dwBlockTotal;// 获取总块数的值
-    DWORD dwBlkSize;
-    int iRet;
-    bool fIsSuccess;
-    DWORD dwDataLen=0;
-    TFileTranStartPara stFileTranStartPara;
-    TBlockInfo *stBlockInfo; // 暂且认为时形参
-    BYTE bDataHeadNum = 0;
-
-    {
-        // 通过接口取相关参数
-    }
-    dwOffset = dwBlkSize*wBlockSN;
-    if(wBlockSN <dwBlockTotal-1)
-    {        
-        dwDataLen = dwBlkSize;
-    }
-    else  if(wBlockSN == dwBlockTotal-1)
-    {
-        dwDataLen = stFileTranStartPara.stFileInfo.dwFileSize%stFileTranStartPara.wBlkSize;
-    }
-
-    stBlockInfo->pbBlockData[0] = 0x82;
-    stBlockInfo->pbBlockData[1] = (BYTE)((dwDataLen>>8)&0xff);
-    stBlockInfo->pbBlockData[2] = (BYTE)(dwDataLen&0xff); 
-
-    fIsSuccess = ReadFile(stFileTranStartPara.stFileInfo.cPathNameDst, dwOffset,stBlockInfo.pbBlockData+3, dwDataLen);
-
-    if(fIsSuccess)
-    {
-        return true;
-    }
-    else{
-        return false;
-    }    
-}
-#endif
 

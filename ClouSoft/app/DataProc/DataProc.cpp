@@ -126,24 +126,22 @@ void CDataProc::TimeToIntvS(TTime tmVal, BYTE bInterv, TIntvSec* pIntervS)
 //描述：清零电能块数据
 void CDataProc::ClsBlockE(WORD wBank, WORD wID, int64* piValBuf, int64 iDstVal, DWORD dwSec)
 {
+	SetArrVal64(piValBuf, iDstVal, TOTAL_RATE_NUM);
+
 	if (wID>=0x2306 && wID<=0x2309)
 	{
 		BYTE bBuf[64];
-		piValBuf[0]  = m_bRateNum; //费率数
-		SetArrVal64(&piValBuf[1], iDstVal, TOTAL_RATE_NUM);
 		bBuf[0] = DT_ARRAY;
-		bBuf[1] = RATE_NUM+1;
-		for (int j=0; j<BLOCK_ITEMNUM-1;j++)
+		bBuf[1] = TOTAL_RATE_NUM;
+		for (int j=0; j<BLOCK_ITEMNUM;j++)
 		{
 			bBuf[2+9*j] = DT_LONG64;
-			OoInt64ToLong64(iDstVal, &bBuf[3+9*j]);
+			OoInt64ToLong64(piValBuf[j], &bBuf[3+9*j]);
 		}
 		WriteItemEx(wBank, m_wPn, wID, bBuf, dwSec); //清零
 	}
 	else
 	{
-		piValBuf[0]  = m_bRateNum; //费率数
-		SetArrVal64(&piValBuf[1], iDstVal, TOTAL_RATE_NUM);
 		WriteItemVal64(wBank, m_wPn, wID, piValBuf, dwSec); //清零	
 	}
 }

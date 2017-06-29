@@ -71,7 +71,7 @@ extern CProtoIf *g_pGprsFaProtoIf;
 extern CFaProto g_FaProto;
 extern CFaProto g_FapTest;
 extern TFaProPara g_GbProPara;
-extern CFaProto g_FapLinkProto;
+//extern CFaProto g_FapLinkProto;
 extern CFaProto g_FapLocal;
 extern CCommIf g_CommIf;
 extern TSocketPara g_SocketPara;

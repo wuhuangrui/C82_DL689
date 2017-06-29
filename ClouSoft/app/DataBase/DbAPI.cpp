@@ -184,20 +184,26 @@ BYTE GetGrpProp(WORD wPn)
 	if (wPn >= GB_MAXSUMGROUP)
 		return INVALID_POINT;
 
-	BYTE bProp[GRPPARA_LEN]={0};
-	if (ReadItemEx(BN0, wPn, 0x2301, bProp) <= 0)
-		return INVALID_POINT;
+	WORD wLen;
+	BYTE *pbBuf, bType, bBuf[120];
+	if (ReadItemEx(BN0, wPn, 0x2301, bBuf) > 0)
+	{		
+		const ToaMap* pOadMap = GetOIMap(0x23010200);
+		for (BYTE i=0; i<bBuf[1]; i++)
+		{
+			pbBuf = OoGetField(bBuf, pOadMap->pFmt, pOadMap->wFmtLen, i, &wLen, &bType);
+			if (pbBuf == NULL)
+				return INVALID_POINT;
 
-	if (bProp[1] == 0) //测量点个数为0
-		return INVALID_POINT;	
-
-	for (int i=0; i<bProp[1]; i++) //当配置有无效的测量点时,总加组无效
-	{
-		if ( !IsPnValid(MtrAddrToPn(&bProp[i*25+3], bProp[i*25+3])) )
-			return INVALID_POINT;
+			if (MtrAddrToPn(pbBuf+3, pbBuf[3]+1)>0 || PulseAddrToPn(pbBuf+3, pbBuf[3]+1)>0) //电表测量点号 || 脉冲测量点
+				continue;
+			else
+				return INVALID_POINT;
+		}
+		return bBuf[1];
 	}
 
-	return bProp[1];
+	return INVALID_POINT;
 }
 
 #ifdef PRO_698
@@ -692,7 +698,7 @@ void CopyAcData(WORD wFromPn, WORD wToPn)
 }
 #endif
 
-
+#if 0 
 //描述:初始化交采测量点,自动按照0xa044(交采默认测量点号)配置交采测量点参数F10
 void InitAcPn()
 {
@@ -732,54 +738,8 @@ void InitAcPn()
 	}
 //#endif	//EN_AC
 }
+#endif
 
-//描述:格式化硬盘后校正参数保存到一个临时文件中,现在把它保存到数据库中
-void SaveAdjParaAferFormat()
-{
-#ifdef SYS_VDK
-	BYTE bBuf[32];
-	//如果是格式化硬盘后的重新启动,则把备份的校正参数写回数据库
-	if (ReadFile("/root/user/para/adjpara.dat", bBuf, 24))
-	{
-		WriteItemEx(BN3, PN0, 0x3090, bBuf); //0x3090 24 新的校正参数
-		
-		bool fSaveOK = true;
-
-		if (WriteFile(g_BankCtrl[BANK3].pszPathName, g_BankCtrl[BANK3].pbBankData, g_BankCtrl[BANK3].dwBankSize) == false)
-		{
-			fSaveOK = false;
-			DTRACE(DB_DB, ("CDataManager::DbInitHook : fail to save bank3 data for adj.\r\n"));
-		}
-		
-		if (fSaveOK)  //如果保存OK,则删除备份校正参数文件,
-		{			  //否则让下回复位的时候再进行尝试
-			unlink("/root/user/para/adjpara.dat");   //删除
-		}
-	}
-#endif //SYS_VDK
-
-#ifdef SYS_LINUX
-	BYTE bBuf[128];
-	//如果是格式化硬盘后的重新启动,则把备份的校正参数写回数据库
-	if (ReadFile("/mnt/app/adjpara.dat", bBuf, 72))
-	{
-		WriteItemEx(BN3, PN0, 0x30c0, bBuf); //0x30c0 72 新的校正参数
-		
-		bool fSaveOK = true;
-
-		if (WriteFile(g_BankCtrl[BANK3].pszPathName, g_BankCtrl[BANK3].pbBankData, g_BankCtrl[BANK3].dwBankSize) == false)
-		{
-			fSaveOK = false;
-			DTRACE(DB_DB, ("CDataManager::DbInitHook : fail to save bank3 data for adj.\r\n"));
-		}
-		
-		if (fSaveOK)  //如果保存OK,则删除备份校正参数文件,
-		{			  //否则让下回复位的时候再进行尝试
-			unlink("/mnt/app/adjpara.dat");   //删除
-		}
-	}
-#endif //SYS_LINUX
-}
 
 //终端软件版本变更保存
 void SaveSoftVerChg()
@@ -807,38 +767,40 @@ void ApllyCfgAuto(void)
 	char  szPathNameEx[PATHNAME_LEN+1] = { 0 };
 	int iCfgLen = readfile(USER_CFG_PATH"cfgpermit.cfg", bCfgBuf, sizeof(bCfgBuf));
 	int iRet = 0;
-	
-	printf("ApllyCfgAuto 0!\r\n");
-	if (iCfgLen<=0)
+
+	DTRACE(DB_FA, ("ApllyCfgAuto Step0 iCfgLen=%d.\r\n", iCfgLen));
+	if (iCfgLen <= 0)
 		return;
 
 	if ('\n'==bCfgBuf[iCfgLen-1] || '\a'==bCfgBuf[iCfgLen-1] || '\r'==bCfgBuf[iCfgLen-1])
 	{
 		bCfgBuf[iCfgLen-1] = 0;
 	}
+
 	memcpy(szPathNameEx, bCfgBuf, iCfgLen);
-	printf("ApllyCfgAuto szPathNameEx=%s!\r\n",szPathNameEx);
+	DTRACE(DB_FA, ("ApllyCfgAuto szPathNameEx=%s!\r\n", szPathNameEx));
 	iRet = g_pmParaMgr.LoadPara(szPathNameEx);
 	if ( iRet == 0)
 	{
-		printf("ApllyCfgAuto 1!\r\n");
+		DTRACE(DB_FA, ("ApllyCfgAuto Step1 start to apply dft.\r\n"));
 		g_pmParaMgr.Parse();
-	//	WriteItemEx(BN10, PN0, 0xa1d4, (BYTE*)szPathNameEx);//存储上次读取的配置文件名.
 
 		sprintf(command, "rm -rf "USER_CFG_PATH"cfgpermit.cfg");
 		system(command);
-//			FaSave();		
-//			FaSavePara();
-//			DoFaSave();
-		TrigerSaveBank(BANK0, SECT4, -1);
-		DoTrigerSaveBank();
 
-		Sleep(1000);
-		//SetInfo(INFO_APP_RST);
+		TrigerSavePara();
+		while (GetClick()<=10)	//上电超过10秒才会触发保存
+		{
+			Sleep(50);
+		}
+		
+		DoFaSave();
+		Sleep(100);
+
 		ResetCPU();
 	}
-	printf("ApllyCfgAuto iRet=%d!\r\n",iRet);
-	printf("ApllyCfgAuto 2!\r\n");
+
+	DTRACE(DB_FA, ("ApllyCfgAuto Step2 iRet = %d exit.\r\n", iRet));
 }
 
 
@@ -879,10 +841,10 @@ void PostDbInit()
 
 	TermSoftVerChg();
 
-	SaveAdjParaAferFormat();
-	InitAcPn();
+	//SaveAdjParaAferFormat();
+	//InitAcPn();
 
-	UpdMeterPnMask();
+	//UpdMeterPnMask();
 	UpdPnMask();
 	ClrPnChgMask();
 #ifdef EN_CCT
@@ -1115,10 +1077,10 @@ void ClrPulsePnData(WORD wPn)
 //清总加组数据
 void ClrGrpPnData(WORD wPn)
 {
-	static WORD wBank0Id[] = {0x109f, 0x10af, 0x10bf, 0x10cf, //C1F17,C1F18,C1F19,C1F20  //当前(日,月)总加功率及电量
-		0x10df, 0x10ef, 0x130f, 0x131f, //C1F21,C1F22,C1F19+,C1F20+ 
-		0x320f, 0x321f, 0x322f, 0x323f, 0x324f, 0x325f, 0x326f, 0x327f, //上日(月)统计
-		0x328f, 0x329f, }; //C2F57+~C2F76+ //上一曲线点
+	static WORD wBank0Id[] = {0x2302, 0x2303, 0x2304, 0x2305, //总加功率
+		0x2306, 0x2307, 0x2308, 0x2309, //总加电量
+		0x230a, 0x230b, 0x230f, 0x2310,}; //控制状态
+ 
 	BYTE bBuf[128];
 	if (wPn >= GB_MAXSUMGROUP)
 		return;
@@ -1131,11 +1093,12 @@ void ClrGrpPnData(WORD wPn)
 		WriteItemEx(BN0, wPn, wBank0Id[i], bBuf, (DWORD )0);	//清数据清时间
 	}
 
-	static WORD wBank18Id[] = {0x026f, 0x029f, 0x02cf, 0x02df, //C2F57+,C2F60+,C2F65+,C2F66+ //当日(月)统计
+	static WORD wBank18Id[] = {0x003f, 0x004f, 0x005f, 0x006f, 0x009f, 0x00af, 0x00bf, 0x00cf, //当日月累计
 		0x035f, 0x036f, 0x037f, 0x038f, 0x039f, 0x03af, 0x03bf, 0x03cf};//当日(月)总加累计起点及示值起点
 
 	for (WORD i=0; i<sizeof(wBank18Id)/sizeof(WORD); i++)
 	{
+		WriteItemEx(BN18, 0, wBank18Id[i], bBuf, (DWORD )0);	//清数据清时间
 		WriteItemEx(BN18, wPn, wBank18Id[i], bBuf, (DWORD )0);	//清数据清时间
 	}
 }
@@ -1854,7 +1817,7 @@ bool IsMtrFrzSelf(WORD wPn)
 {
 	return IsV07Mtr(wPn);	
 }
-
+#if 0
 //描述:获取测量点冻结参数设置
 void GetFrzStatus(WORD wPn, BYTE* pbCurveStatus, BYTE* pbDayFrzStatus, BYTE* pbDayFlgFrzStatus, BYTE* pbMonFrzStatus)
 {
@@ -1863,7 +1826,7 @@ void GetFrzStatus(WORD wPn, BYTE* pbCurveStatus, BYTE* pbDayFrzStatus, BYTE* pbD
 	ReadItemEx(BN10, wPn, 0xa1b2, pbDayFlgFrzStatus);
 	ReadItemEx(BN10, wPn, 0xa1ba, pbMonFrzStatus);
 }
-
+#endif
 //描述：清除测量点曲线每天的96点设置，用于正常换日时
 void ClearCurveFrzFlg(WORD wPn)
 {

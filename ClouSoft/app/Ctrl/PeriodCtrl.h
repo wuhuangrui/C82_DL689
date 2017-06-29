@@ -50,6 +50,7 @@ protected:
 	void RstCtrl(void);									//复位内存中本类控制状态量.
 	bool GetSysCmd(int iGrp);							//获取某总加组的本类控制命令,并把命令放到 m_NewCmd 中.(注意: 对不同的类,m_NewCmd的结构是不同的)
 	bool ClrSysCmd(int iGrp);							//清除系统库本总加组本类控制命令.
+	bool SetSysCtrlTurnsStatus(int iGrp, BYTE bTurnsStatus);
 
 	void ClrCmd(void)									//清除内存中本类控制的控制命令.
 	{

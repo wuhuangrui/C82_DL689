@@ -394,17 +394,6 @@ void ReinitSearch(BYTE bPort)
     g_tMtrRdSchInf[bPort].bCurTryLevel = 0;
 }
 
-//将通配符中的AA换成FF
-void TransAAToFF(BYTE bD, BYTE bS, BYTE *pbAddr, BYTE bLen)
-{
-    BYTE i;
-    for (i=0; i<bLen; i++)
-    {
-        if (pbAddr[i] == bS)
-            pbAddr[i] = bD;
-    }
-}
-
 //检查下表地址是否有效
 //返回1-有效，0-无效
 BYTE CheckMetAddr(BYTE *pbMAC)
@@ -472,9 +461,7 @@ BYTE IsMetOrNot(BYTE bPort, BYTE bMetType, BYTE bAddrLen)
 	WORD wPortNum, wPortMin, wPortMax;
 	GetLogicPortNum(&wPortNum, &wPortMin, &wPortMax);
    
-    if (g_tMeterPro[bMetType].bProto == CCT_MTRPRO_NJSL)
-        memset(bMAC, 0xff, 6);
-	else if (g_tMeterPro[bMetType].bProto == CCT_MTRPRO_69845)
+	if (g_tMeterPro[bMetType].bProto == CCT_MTRPRO_69845)
 	{
 		memset(bMAC+1, 0xaa, bAddrLen);
 	}
@@ -888,11 +875,7 @@ BYTE SearchMeter(BYTE bPort, BYTE bMetType, BYTE bAddrLen)
 		GetTryAddr(&g_tMtrRdSchInf[bPort], bMtrAddr);            //todotodo:分协议   
 	if (g_tMtrRdSchInf[bPort].bFinish)
         return SEARCH_OVER; 
-
-	if (g_tMeterPro[bMetType].bProto == CCT_MTRPRO_NJSL)
-	{
-		 TransAAToFF(0xFF, 0xAA, bMtrAddr, 6);       
-	} 
+	
 	for (BYTE i=0; i<1; i++)  //重复三次
 	{
 		for (BYTE j=0; j<1; j++)  //重复三次
@@ -996,7 +979,7 @@ void DoSearch(BYTE bPort)
         if (IsMetOrNot(bPort, 0) >= 2)//是否有多块97的表
             g_tMtrRdSchInf[bPort].bSearchState = PRO97;
         else 
-            g_tMtrRdSchInf[bPort].bSearchState = PRONJSLMETORNOT;
+            g_tMtrRdSchInf[bPort].bSearchState = PRO69845ORNOT;  //liyan
         break;
     case PRO97:              //97协议搜表 
         bSerState = SearchMeter(bPort, 0);
@@ -1005,24 +988,7 @@ void DoSearch(BYTE bPort)
             if (g_tMtrRdSchInf[bPort].bFinish)//97搜完
             {
                 ReinitSearch(bPort);
-                g_tMtrRdSchInf[bPort].bSearchState = PRONJSLMETORNOT;
-            }
-        }
-        break;
-    case PRONJSLMETORNOT:        
-        if (IsMetOrNot(bPort, 0) >= 2)//是否有多块南京松林的表
-            g_tMtrRdSchInf[bPort].bSearchState = PRONJSL;
-        else
-            g_tMtrRdSchInf[bPort].bSearchState = PRO69845;//-----------------
-        break;
-    case PRONJSL: 
-        bSerState = SearchMeter(bPort, 0);
-        if (bSerState == SEARCH_OVER) 
-        {
-            if (g_tMtrRdSchInf[bPort].bFinish)//
-            {
-                ReinitSearch(bPort);
-                g_tMtrRdSchInf[bPort].bSearchState = PRO69845;//-----------------------
+                g_tMtrRdSchInf[bPort].bSearchState = PRO69845ORNOT;
             }
         }
         break;

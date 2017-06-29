@@ -422,7 +422,12 @@ bool CStatMgr::DoDataStat()
 	int	i;
 	TTime now;
 	GetCurTime(&now);
-	
+
+#ifdef SYS_WIN
+	DebugPulsePwr(TimeToSeconds(now));
+	DebugPulseEng(TimeToSeconds(now));//写入脉冲测量点的正向有功电能量	
+#endif
+
 	//测试点参数改变
 	if (GetInfo(INFO_STAT_PARA))//记得重新装载一下电压统计的那些参数
 	{
@@ -537,15 +542,6 @@ bool CStatMgr::DoDataStat()
 	return true;
 }
 
-void CStatMgr::InitDataStat()
-{
-	BYTE	bPn		=	0;
-	BYTE	bProp	=	0;
-
-	BYTE bEnCctStat = 0;
-	if (ReadItemEx(BN23, PN0, 0x3010, &bEnCctStat) <= 0)	//0x3010 1 是否允许集抄测量点统计,1允许;0不允许
-		bEnCctStat = 0;	//禁止集抄测量点统计
-}
 
 //描述：把相电压统计数据（包括协议和中间数据）保存到系统库
 //参数：@wOI分相电压统计OI
@@ -1117,25 +1113,6 @@ bool CStatMgr::IsCycleSwitch(TTime tmLastCycle, TTime tmNow, BYTE bUnit, WORD wV
 	return flage;
 }
 
-
-DWORD CStatMgr::OoDoubleLongUnsignedToDWordLen(BYTE* pbBuf, BYTE bLen)
-{	
-	if (bLen == 4)
-		return ((DWORD )pbBuf[0]<<24) | ((DWORD )pbBuf[1]<<16) | ((DWORD )pbBuf[2]<<8) | pbBuf[3];
-	else if (bLen == 2)
-		return ((DWORD )pbBuf[0]<<8) | pbBuf[1];
-	else
-		return ((DWORD )pbBuf[0]);
-}
-int CStatMgr::OoDoubleLongToIntLen(BYTE* pbBuf, BYTE bLen)
-{	
-	if (bLen == 4)
-		return ((int )pbBuf[0]<<24) | ((DWORD )pbBuf[1]<<16) | ((DWORD )pbBuf[2]<<8) | pbBuf[3];
-	else if (bLen == 2)
-		return ((int )pbBuf[0]<<8) | pbBuf[1];
-	else
-		return ((int )pbBuf[0]);
-}
 
 
 //描述：把区间统计结果进行格式转换并保存到系统库
@@ -1935,3 +1912,106 @@ void CStatMgr::ResetStat(WORD wOI)
 	}
 }
 
+#ifdef SYS_WIN
+void CStatMgr::DebugData(DWORD wID, DWORD dwSec)
+{
+	int64 iVal64[5] = {0};	
+	BYTE bBuf[64];
+	int i, iRet = 0;	
+
+	m_bPn = 0;
+	iRet = ReadItemEx(BN0, m_bPn, wID, bBuf);
+	if (iRet > 0)
+	{
+		for (i=0; i<BLOCK_ITEMNUM;i++)
+			iVal64[i] = OoDoubleLongToInt(&bBuf[3+5*i]);
+
+		for(i=0; i<5; i++)
+		{
+			if (i == 0)
+				iVal64[i] += 4;
+			else
+				iVal64[i] = iVal64[0]/4;
+		}
+
+		bBuf[0] = DT_ARRAY;
+		bBuf[1] = RATE_NUM+1;
+		for (i=0; i<BLOCK_ITEMNUM;i++)
+		{
+			bBuf[2+5*i] = DT_DB_LONG_U;
+			OoIntToDoubleLong(iVal64[i], &bBuf[3+5*i]);
+		}
+		WriteItemEx(BN0, m_bPn, wID, bBuf, dwSec);
+	}
+}
+
+void CStatMgr::DebugPulseEng(DWORD dwSec)
+{
+	BYTE bBuf[100];
+	memset(bBuf, 0,	sizeof(bBuf));
+	m_bPn = 0;
+	ReadItemEx(BN0, (WORD)m_bPn, 0x2403, bBuf);
+
+	BYTE bCfgNum = bBuf[1];	//脉冲实际配置路数
+
+	for (BYTE j=0; j<bCfgNum; j++)
+	{
+		DWORD dwOA = OoOadToDWord(bBuf+j*PULSE_CFG_LEN+5);	//OAD
+
+		if ((dwOA>>16) != OI_PULSE_INPUT)	//判断参数是否有效
+			continue;
+
+		switch (bBuf[j*PULSE_CFG_LEN+10])
+		{
+		case 0:
+			DebugData(0x2419, dwSec);	break;
+		case 1:
+			DebugData(0x241a, dwSec);	break;
+		case 2:
+			DebugData(0x241b, dwSec);	break;
+		case 3:
+			DebugData(0x241c, dwSec);	break;
+		default:
+			break;
+		}
+	}
+}
+
+void CStatMgr::DebugPulsePwr(DWORD dwSec)
+{
+	BYTE bBuf[100], bPwrBuf[10];
+	memset(bBuf, 0,	sizeof(bBuf));
+	m_bPn = 0;
+	ReadItemEx(BN0, (WORD)m_bPn, 0x2403, bBuf);
+
+	BYTE bCfgNum = bBuf[1];	//脉冲实际配置路数
+
+	for (BYTE j=0; j<bCfgNum; j++)
+	{
+		DWORD dwOA = OoOadToDWord(bBuf+j*PULSE_CFG_LEN+5);	//OAD
+
+		if ((dwOA>>16) != OI_PULSE_INPUT)	//判断参数是否有效
+			continue;
+
+		switch (bBuf[j*PULSE_CFG_LEN+10])
+		{
+		case 0:
+		case 2:
+			bPwrBuf[0] = DT_DB_LONG;
+			OoIntToDoubleLong(10000, &bPwrBuf[1]);
+			WriteItemEx(BN0, m_bPn, 0x2404, bPwrBuf, dwSec);
+			break;
+
+		case 1:
+		case 3:
+			bPwrBuf[0] = DT_DB_LONG;
+			OoIntToDoubleLong(10000, &bPwrBuf[1]);
+			WriteItemEx(BN0, m_bPn, 0x2405, bPwrBuf, dwSec);
+			break;
+
+		default:
+			break;
+		}
+	}
+}
+#endif

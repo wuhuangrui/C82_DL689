@@ -133,12 +133,9 @@ void DemandValToDb(int* piVal, BYTE* pbBuf, WORD wLen)
 
 //总功率入库
 void GeneralPowerValToDb(int* piVal, BYTE* pbBuf, WORD wLen)
-{
-	pbBuf[0] = 0x01;
-	pbBuf[1] = 0x01;
-	pbBuf[2] = DT_DB_LONG;	//格式double-long
-//		memcpy(&pbBuf[1], (BYTE *)&piVal[0], 4);
-	OoIntToDoubleLong(piVal[0],&pbBuf[3]);
+{	
+	pbBuf[0] = DT_DB_LONG;	//格式double-long
+	OoIntToDoubleLong(piVal[0], &pbBuf[1]);
 }
 
 void CosValToDb(int* piVal, BYTE* pbBuf, WORD wLen)
@@ -533,10 +530,63 @@ BYTE AcFmtToEng(WORD wID, int64 *pi64E, BYTE* pbBuf, bool fHigPre, bool fSign, B
 }
 
 
+//从高精度ID(8字节，4位小数位)数据库读出数据到脉冲电量
+BYTE PulseHiFmtToLoEng(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum)
+{
+	BYTE *p = pbBuf;
+	WORD wLen;
+
+	p += 2; //所有的电量数据，前面有01,05的标记
+	for (WORD j=0; j<wRateNum; j++)
+	{	
+		pi64E[j] = OoLong64ToInt64(&p[1]);
+		p += 9;
+	}
+
+	return (p-pbBuf);
+}
+
+
+//从脉冲ID(4字节，4位小数位)数据库高精度ID读出脉冲电量
+BYTE PulseFmtToEng(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum)
+{
+	BYTE *p = pbBuf;
+	WORD wLen;
+
+	p += 2; //所有的电量数据，前面有01,05的标记
+	for (WORD j=0; j<wRateNum; j++)
+	{	
+		pi64E[j] = OoDoubleLongUnsignedToDWord(&p[1]);
+		p += 5;
+	}
+
+	return (p-pbBuf);
+}
 
 
 
 
+//脉冲电量入库
+//脉冲电量入库格式DT_DB_LONG（4字节, 4位小数位）
+BYTE PulseEngToFmt(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum)
+{
+	DWORD dwVal;
+	BYTE *p = pbBuf;
+	
+	*p++ = 0x01;
+	*p++ = wRateNum;
+	for (WORD j=0; j<wRateNum; j++)
+	{
+		p[0] = DT_DB_LONG_U;
+		
+		dwVal = abs(pi64E[j]);
+		OoDWordToDoubleLongUnsigned(dwVal, &p[1]);
+
+		p += 5;
+	}
+
+	return (p-pbBuf);
+}
 
 
 bool IsDemFmt5(WORD wOI)

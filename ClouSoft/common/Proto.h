@@ -46,7 +46,7 @@ public:
 	DWORD GetRcvClick(){ return m_dwRcvClick;};	
 
     //Ðéº¯Êý
-	virtual bool RcvFrm();
+	virtual bool RcvFrm(bool fSingleMode=false);
 	virtual bool Login();
 	virtual bool Logoff() { return true; };
 	virtual bool Beat();
@@ -81,6 +81,7 @@ protected:
 
 	//Ðéº¯Êý
 	virtual int RcvBlock(BYTE* pbBlock, int nLen){ return 0; };
+	virtual int SingleRcvBlock(BYTE* pbBlock, int nLen){ return 0; };
 	virtual bool HandleFrm(){ return false; };
 };
 	

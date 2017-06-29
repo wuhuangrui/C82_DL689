@@ -86,7 +86,7 @@ bool CPulse::Init(TPulseCfg* pPulseCfg)
 	if (!PulseLoadPara(pPulseCfg, &m_PulsePara))
 		return false;
 
-	ReadItemEx(BN3, PN0, 0x30d0+pPulseCfg->bPortNo, (BYTE* )&m_PulseCfg);	//读取该路脉冲旧的参数配置
+	ReadItemEx(BN1, PN0, 0x2040+pPulseCfg->bPortNo, (BYTE* )&m_PulseCfg);	//读取该路脉冲旧的参数配置
 
 	if (memcmp(&m_PulseCfg, pPulseCfg, sizeof(TPulseCfg)) != 0)	//第1次上电初始化且该路脉冲配置改变
 	{
@@ -94,8 +94,8 @@ bool CPulse::Init(TPulseCfg* pPulseCfg)
 	    DTRACE(DB_FA, ("CPulse::Init Cfg Change: New Cfg wPn=%d,bPortNo=%d,bType=%d,iConst=%u.\r\nClearPulseLog.\r\n", pPulseCfg->wPn, pPulseCfg->bPortNo, pPulseCfg->bType, pPulseCfg->i64Const));	    
 
 	    m_PulseCfg = *pPulseCfg;
-	    WriteItemEx(BN3, PN0, 0x30d0+pPulseCfg->bPortNo, (BYTE* )pPulseCfg);
-	    TrigerSaveBank(BN3, 0, -1);
+	    WriteItemEx(BN1, PN0, 0x2040+pPulseCfg->bPortNo, (BYTE* )pPulseCfg);
+	    TrigerSaveBank(BN1, 0, -1);
 
     	ClearLogBlock(pPulseCfg->bPortNo);//清除该路所在块的日志数据
 	}
@@ -109,9 +109,11 @@ bool CPulse::Init(TPulseCfg* pPulseCfg)
 
 	m_Energy.Init(&m_PulsePara.EnergyPara);   //多费率电能
 	//m_Demand.Init(&m_PulsePara.DemandPara);   //需量
-	
+
+#ifdef ACLOG_ENABLE
 	m_Energy.ResetLog();	//重新初始化日志
 	//m_Demand.ResetLog();	//重新初始化日志
+#endif	
 	
 	memset(m_dwPulse, 0, sizeof(m_dwPulse));
 	memset(m_dwLastPulse, 0 , sizeof(m_dwLastPulse));  //上次计算时的电能脉冲数
@@ -209,14 +211,36 @@ void CPulse::Run(bool fCalcuPwr)
 	RunMeter();
 }
 
+void CPulse::TransferHiToLo()
+{
+	BYTE bType;
+	WORD wID;
+	BYTE bBuf[100];
+	int64 i64E[MAX_PULSE_TYPE][RATE_NUM+1]; //与数据库对应的电能
+	const WORD wRateNum = RATE_NUM+1;
+
+	wID = PULSE_HI_POSE_ID + bType;
+	ReadItemEx(BN0, m_PulseCfg.wPn, wID, bBuf);			//高精度电能
+	TraceBuf(DB_FA, "step444-> ", (BYTE*)bBuf, 47);
+	PulseHiFmtToLoEng(wID, i64E[bType], bBuf, wRateNum);	//当前电能示值
+	DTRACE(DB_FA, ("CPulse::RunMeter step555 -> i64E[0]=%lld, i64E[1]=%lld, i64E[2]=%lld, i64E[3]=%lld, i64E[4]=%lld.\r\n", i64E[bType][0] , i64E[bType][1], i64E[bType][2], i64E[bType][3], i64E[bType][4]));
+
+	wID = PULSE_LO_POSE_ID + bType;
+	PulseEngToFmt(wID, i64E[bType], bBuf, wRateNum);	//转成DT_DB_LONG (4位小数格式)
+	TraceBuf(DB_FA, "step666-> ", (BYTE*)bBuf, 27);
+	WriteItemEx(BN0, m_PulseCfg.wPn, wID, bBuf);
+}
 
 //描述:计算电表的电能和需量,每秒调用一次
 void CPulse::RunMeter()
 {
     BYTE bPortIndex, bType;
-	WORD i, wTypeNum, wInnerID;
+	WORD i, wTypeNum, wInnerID, wID;
 	int iDiffPulse[ENERGY_NUM_MAX];  //前后两次电能脉冲数的差
 	DWORD dwDemandPulse[AC_DEMAND_NUM];
+	BYTE bBuf[100];
+	int64 i64E[MAX_PULSE_TYPE][RATE_NUM+1]; //与数据库对应的电能
+	const WORD wRateNum = RATE_NUM+1;
 	//DWORD dwDemandTick[ENERGY_NUM_MAX];
 	
 	memset(iDiffPulse, 0, sizeof(iDiffPulse));
@@ -231,7 +255,11 @@ void CPulse::RunMeter()
 	iDiffPulse[0] = m_dwPulse[wInnerID] - m_dwLastPulse[wInnerID];
 
 	m_Energy.AddPulse(iDiffPulse);   //多费率电能
-	
+	if (iDiffPulse[0] > 0)
+	{
+		TransferHiToLo();
+	}
+
 	/*if (m_fClrDemand)	//清需量标志,别的线程设置,交采线程去执行
 	{
 		m_Energy.TransferMonth();
@@ -384,7 +412,8 @@ bool CPulse::ResetData()
 		{
 			for (i=0; i<TOTAL_RATE_NUM; i++)
 			{
-				memset(bBuf+9*i+3, 0, 8);	//8 高精度电能量∷=long64-unsigned 
+				bBuf[5*i+2] = DT_DB_LONG_U;
+				memset(bBuf+5*i+3, 0, 4);	//4 4字节，4位小数位
 			}
 
 			OoWriteAttr(wOI, bAttr, bBuf);
@@ -411,6 +440,32 @@ CPulseManager::~CPulseManager()
 
 }
 
+void CPulseManager::CheckPulseCfg(WORD wOI)
+{
+	BYTE bBuf[PULSE_CFG_ID_LEN];
+	DWORD dwOAD;
+	int iLen;
+	const ToaMap* pOI;
+	
+	dwOAD = GetOAD(wOI, ATTR4, 0);	//脉冲配置 属性4
+	pOI = GetOIMap(dwOAD);
+	if (pOI == NULL)
+	{
+		DTRACE(DB_CRITICAL, ("CPulseManager::CheckPulseCfg: dwOAD=%08x, fail\r\n", dwOAD));
+		return;
+	}
+
+	memset(bBuf, 0, sizeof(bBuf));	
+	iLen = ReadItemEx(BN0, pOI->wPn, pOI->wID, bBuf);
+	if (iLen>0 && IsAllAByte(bBuf, 0, sizeof(bBuf)))	//格式化后，配置一个默认值
+	{
+		DTRACE(DB_CRITICAL, ("CPulseManager::Init: set default val.\r\n"));
+		bBuf[0] = DT_ARRAY;
+		WriteItemEx(BN0, pOI->wPn, pOI->wID, bBuf);
+		TrigerSaveBank(BN0, SECT15, -1);
+	}
+}
+
 bool CPulseManager::Init()
 {
     int iLen = 0;
@@ -433,12 +488,15 @@ bool CPulseManager::Init()
     
     memset(&g_PulseInData, 0, sizeof(g_PulseInData));
     memset(m_PulsePnDesc, 0, sizeof(m_PulsePnDesc));
+
+	ReadItemEx(BN0, PN0, PULSE_LO_POSE_ID, bBuf);			//高精度电能
+	TraceBuf(DB_FA, "step888-> ", (BYTE*)bBuf, 27);
 	
 	for (bType=0; bType<MAX_PULSE_TYPE; bType++)
 	{
-		wID = PULSE_HI_POSE_ID + bType;
+		wID = PULSE_LO_POSE_ID + bType;
 		ReadItemEx(BN0, wPn, wID, bBuf);
-		AcFmtToEng(wID, m_i64LastE[bType], bBuf, false, false, 0, wRateNum);	//当前电能示值
+		PulseFmtToEng(wID, m_i64LastE[bType], bBuf, wRateNum);	//当前电能示值
 	}
 
 	ReadItemEx(BN10, PN0, 0xa1bd, &bNum);
@@ -463,6 +521,8 @@ bool CPulseManager::Init()
     {
         fPulsePnValid = false;
 		wOI = OI_PULSE_BASE + wPn;
+		CheckPulseCfg(wOI);
+
 		DTRACE(DB_FA, ("CPulseManager::Init: wOI=0x%04x\r\n", wOI));
 		iLen = OoReadAttr(wOI, ATTR4, bBuf, &pbFmt, &wFmtLen);	//脉冲配置参数
 
@@ -524,18 +584,21 @@ bool CPulseManager::Init()
 	m_bPulsePnNum = bPulsePnIndex;	//脉冲测量点个数
 	if (m_bPulseNum == 0)	//F9清脉冲配置后，需要把各路脉冲的铁电数据也清除
 	{
-	    iLen = ReadItemEx(BN3, PN0, 0x30d1, bBuf);
+	    iLen = ReadItemEx(BN1, PN0, 0x2041, bBuf);
 	    if (iLen>0 && bBuf[0]!=0)
 	    {
 			memset(bBuf, 0, sizeof(bBuf));
 			for (i=0; i<MAX_YMNUM; i++)
-				WriteItemEx(BN3, PN0, 0x30d1+i, bBuf);
+				WriteItemEx(BN1, PN0, 0x2041+i, bBuf);
 
-			TrigerSaveBank(BN3, 0, -1);
+			TrigerSaveBank(BN1, 0, -1);
 	    }
 	}
 
 	DTRACE(DB_FA, ("CPulseManager::Init: m_bPulseNum=%d\r\n", m_bPulseNum));
+	ReadItemEx(BN0, PN0, PULSE_LO_POSE_ID, bBuf);			//高精度电能
+	TraceBuf(DB_FA, "step999-> ", (BYTE*)bBuf, 27);
+	
 
 	return true;
 }
@@ -612,10 +675,10 @@ void CPulseManager::CalcPnStatEnergy(WORD wPnIndex, bool fClrDayEnergy, bool fCl
 	WORD i, wPn, wID;
 	int64 i64E[MAX_PULSE_TYPE][RATE_NUM+1]; //与数据库对应的电能
 	int64 i64DeltaE[MAX_PULSE_TYPE][RATE_NUM+1];
-	WORD wEDayID[] = { 0x2406, 0x2410, 0x2408, 0x2412 };
-	WORD wEMonthID[] = { 0x2407, 0x2411, 0x2409, 0x2413 };
-	WORD wStartDayID[] = {0x0d01, 0x0d05, 0x0d03, 0x0d07 };
-	WORD wStartMonthID[] = {0x0d02, 0x0d06, 0x0d04, 0x0d08 };
+	WORD wEDayID[MAX_PULSE_TYPE] = { 0x2406, 0x2410, 0x2408, 0x2412 };
+	WORD wEMonthID[MAX_PULSE_TYPE] = { 0x2407, 0x2411, 0x2409, 0x2413 };
+	WORD wStartDayID[MAX_PULSE_TYPE] = {0x0d01, 0x0d05, 0x0d03, 0x0d07 };
+	WORD wStartMonthID[MAX_PULSE_TYPE] = {0x0d02, 0x0d06, 0x0d04, 0x0d08 };
 
 	BYTE bBuf[80];
 	int64 i64LastDayE[MAX_PULSE_TYPE][RATE_NUM+1];		//当日起点电量
@@ -640,9 +703,8 @@ void CPulseManager::CalcPnStatEnergy(WORD wPnIndex, bool fClrDayEnergy, bool fCl
 		DTRACE(DB_FA, ("CPulseManager::CalcPnStatEnergy: wPn=%d day chg.\r\n", wPn));
 		for (bType=0; bType<MAX_PULSE_TYPE; bType++)
 		{
-			wID = PULSE_HI_POSE_ID + bType;
+			wID = PULSE_LO_POSE_ID + bType;
 			ReadItemEx(BN0, wPn, wID, bBuf);
-
 			WriteItemEx(BN11, wPn, wStartDayID[bType], bBuf);		//更新日起点值
 		}
 
@@ -652,7 +714,7 @@ void CPulseManager::CalcPnStatEnergy(WORD wPnIndex, bool fClrDayEnergy, bool fCl
 		{
 			for (bType=0; bType<MAX_PULSE_TYPE; bType++)
 			{
-				wID = PULSE_HI_POSE_ID + bType;
+				wID = PULSE_LO_POSE_ID + bType;
 				ReadItemEx(BN0, wPn, wID, bBuf);
 				WriteItemEx(BN11, wPn, wStartMonthID[bType], bBuf);		//更新月起点值
 			}
@@ -672,23 +734,24 @@ void CPulseManager::CalcPnStatEnergy(WORD wPnIndex, bool fClrDayEnergy, bool fCl
 	{	
 		memset(bBuf, 0, sizeof(bBuf));
 		ReadItemEx(BN11, wPn, wStartDayID[bType], bBuf);
-		AcFmtToEng(wStartDayID[bType], i64LastDayE[bType], bBuf, false, false, 0, wRateNum);	//当日起点电能示值
+		TraceBuf(DB_FA, "stepaaaa-> ", (BYTE*)bBuf, 27);
+		PulseFmtToEng(wStartDayID[bType], i64LastDayE[bType], bBuf, wRateNum);	//当日起点电能示值
 		if (bType == 0)
-			DTRACE(DB_FA, ("wStartDayID[bType]=%d, i64LastDayE[bType][0]=%lld, i64LastDayE[bType][1]=%lld, i64LastDayE[bType][2]=%lld, , i64LastDayE[bType][3]=%lld.\r\n",  wStartDayID[bType], i64LastDayE[bType][0], i64LastDayE[bType][1], i64LastDayE[bType][2], i64LastDayE[bType][3]));
+			DTRACE(DB_FA, ("wStartDayID[bType]=0x%04x, i64LastDayE[bType][0]=%lld, i64LastDayE[bType][1]=%lld, i64LastDayE[bType][2]=%lld, , i64LastDayE[bType][3]=%lld.\r\n",  wStartDayID[bType], i64LastDayE[bType][0], i64LastDayE[bType][1], i64LastDayE[bType][2], i64LastDayE[bType][3]));
 
 		memset(bBuf, 0, sizeof(bBuf));
 		ReadItemEx(BN11, wPn, wStartMonthID[bType], bBuf);
-		AcFmtToEng(wStartMonthID[bType], i64LastMonthE[bType], bBuf, false, false, 0, wRateNum);	//当月起点电能示值		
+		PulseFmtToEng(wStartMonthID[bType], i64LastMonthE[bType], bBuf, wRateNum);	//当月起点电能示值		
 	}
 
 	//读取当前值，并用当前值-起点值，计算出差值
 	for (bType=0; bType<MAX_PULSE_TYPE; bType++)
 	{
-		wID = PULSE_HI_POSE_ID + bType;
+		wID = PULSE_LO_POSE_ID + bType;
 		ReadItemEx(BN0, wPn, wID, bBuf);
-		AcFmtToEng(wID, i64E[bType], bBuf, false, false, 0, wRateNum);	//当前电能示值
+		PulseFmtToEng(wID, i64E[bType], bBuf, wRateNum);	//当前电能示值
 		if (bType == 0)
-			DTRACE(DB_FA, ("wCurID = %04x , i64E[bType][0]=%lld, i64E[bType][1]=%lld, i64E[bType][2]=%lld, i64E[bType][3]=%lld.\r\n",  wID, i64E[bType][0], i64E[bType][1], i64E[bType][2], i64E[bType][3]));
+			DTRACE(DB_FA, ("wCurID = 0x%04x , i64E[bType][0]=%lld, i64E[bType][1]=%lld, i64E[bType][2]=%lld, i64E[bType][3]=%lld.\r\n",  wID, i64E[bType][0], i64E[bType][1], i64E[bType][2], i64E[bType][3]));
 
 		if (memcmp(i64E[bType], m_i64LastE[bType], wRateNum*sizeof(int64))!=0 || fClrDayEnergy || fClrMonthEnergy)		//当日/当月有变化
 		{
@@ -707,15 +770,14 @@ void CPulseManager::CalcPnStatEnergy(WORD wPnIndex, bool fClrDayEnergy, bool fCl
 					else
 						i64DeltaE[bType][i] = 0;
 
-					DTRACE(DB_FA, ("bType=%d i64E[%d][i]=%lld, i64LastDayE=%lld, i64DeltaE=%lld.\r\n",  bType, bType, i, i64E[bType][i], i64LastDayE[bType][i], i64DeltaE[bType][i]));
+					DTRACE(DB_FA, ("bType=%d i=%d, i64E=%lld, i64LastDayE=%lld, i64DeltaE=%lld.\r\n",  bType, i, i64E[bType][i], i64LastDayE[bType][i], i64DeltaE[bType][i]));
 				}
 			}
 
 			memset(bBuf, 0, sizeof(bBuf));
-			AcEngToFmt(wEDayID[bType], i64DeltaE[bType], bBuf, false, false, wRateNum);
-			DTRACE(DB_FA, ("step111 wPn=%d, wEDayID[%d]=%04x, i64DeltaE[0]=%lld, i64DeltaE[1]=%lld, i64DeltaE[2]=%lld, i64DeltaE[3]=%lld.\r\n", wPn, bType, wEDayID[bType], i64DeltaE[bType][0], i64DeltaE[bType][1], i64DeltaE[bType][2], i64DeltaE[bType][3]));
-			//DTRACE(DB_FA, ("step222 wPn=%d, bBuf[0]=%lld, i64DeltaE[1]=%lld, i64DeltaE[2]=%lld, i64DeltaE[3]=%lld.\r\n", wPn, i64DeltaE[bType][0], i64DeltaE[bType][1], i64DeltaE[bType][2], i64DeltaE[bType][3]));
-			//TraceBuf(DB_FA, "step333-> ", (BYTE*)bBuf, 27);
+			PulseEngToFmt(wEDayID[bType], i64DeltaE[bType], bBuf, wRateNum);
+			DTRACE(DB_FA, ("step111 wPn=%d, wEDayID[%d]=%04x, i64DeltaE[0]=%lld, i64DeltaE[1]=%lld, i64DeltaE[2]=%lld, i64DeltaE[3]=%lld.\r\n", wPn, bType, wEDayID[bType], i64DeltaE[bType][0], i64DeltaE[bType][1], i64DeltaE[bType][2], i64DeltaE[bType][3]));			
+			TraceBuf(DB_FA, "step333-> ", (BYTE*)bBuf, 27);
 			WriteItemEx(BN0, wPn, wEDayID[bType], bBuf);
 
 			//当月电量计算
@@ -728,19 +790,53 @@ void CPulseManager::CalcPnStatEnergy(WORD wPnIndex, bool fClrDayEnergy, bool fCl
 				for (i=0; i<wRateNum; i++)
 				{
 					if (i64E[bType][i] > i64LastMonthE[bType][i])
-						i64DeltaE[bType][i] = i64E[bType][i]-i64LastMonthE[bType][i];
+						i64DeltaE[bType][i] = i64E[bType][i] - i64LastMonthE[bType][i];
 					else
 						i64DeltaE[bType][i] = 0;
 				}
 			}
 
 			memset(bBuf, 0, sizeof(bBuf));
-			AcEngToFmt(wEMonthID[bType], i64DeltaE[bType], bBuf, false, false, wRateNum);
+			PulseEngToFmt(wEMonthID[bType], i64DeltaE[bType], bBuf, wRateNum);
 			WriteItemEx(BN0, wPn, wEMonthID[bType], bBuf);
 
 			memcpy(m_i64LastE[bType], i64E[bType], wRateNum*sizeof(int64));
+
+			if (fClrDayEnergy || fClrMonthEnergy)	//收到参数/数据初始化命令,清0日/月起点值
+			{
+				if (fClrDayEnergy)
+					ClrPnStartVal(BN11, wPn, wStartDayID[bType]);	
+
+				if (fClrMonthEnergy)
+					ClrPnStartVal(BN11, wPn, wStartMonthID[bType]);							
+
+				TrigerSaveBank(BN11, 0, -1);
+			}
 		}
 	}
+}
+
+
+//01 05 06 00 00 00 16 06 00 00 00 00 06 00 00 00 15 06 00 00 00 00 06 00 00 00 00
+void CPulseManager::ClrPnStartVal(WORD wBank, WORD wPn, WORD wID)
+{
+	WORD i;
+	BYTE bBuf[80];
+
+	DTRACE(DB_FA, ("CPulseManager::ClrPnStartVal: wBank=%d wPn=%d wID=0x%04x.\r\n", wBank, wPn, wID));
+
+	memset(bBuf, 0, sizeof(bBuf));
+		
+	bBuf[0] = DT_ARRAY;
+	bBuf[1] = 0x05;
+	for (i=0; i<TOTAL_RATE_NUM; i++)
+	{
+		bBuf[5*i+2] = DT_DB_LONG_U;
+		memset(bBuf+5*i+3, 0, 4);	//4 4字节，4位小数位
+	}
+
+	TraceBuf(DB_FA, "stepbbb-> ", (BYTE*)bBuf, 27);
+	WriteItemEx(wBank, wPn, wID, bBuf);
 }
 
 //当日&当月电量统计
@@ -757,7 +853,9 @@ void CPulseManager::CalcStatEnergy()
 
 void CPulseManager::Run()
 {
-	WORD i;	
+	BYTE bPn;
+	WORD i;
+	BYTE bBuf[10];	
 
 	if (GetInfo(INFO_PULSE))	//脉冲配置参数8903更改
 	{
@@ -770,6 +868,15 @@ void CPulseManager::Run()
 
 	if (GetInfo(INFO_PULSEDATA_RESET))	//收到复位数据命令
 	{
+		for (bPn=PN0; bPn<PULSE_PN_NUM; bPn++)		//脉冲计量点号<-->测量点号 映射
+		{
+			bBuf[0] = bPn;
+			bBuf[1] = 0xA5;	//有效标志
+			WriteItemEx(BN11, bPn, 0x0b14, bBuf);
+		}
+
+		TrigerSaveBank(BN11, 0, -1); //触发保存
+
 		ResetPulseData();
 		SetInfo(INFO_PULSE);	//重新初始化
 		return;
@@ -832,6 +939,8 @@ bool  CPulseManager::ResetPulseData()
 	WORD i, wPn, wPnIndex;
 	bool fTrigSave = false;
 	BYTE bBuf[10];
+	
+	DTRACE(DB_FA, ("CPulseManager::ResetPulseData at Click=%ld.\r\n", GetClick()));
 
 	for (wPn=PN0; wPn<PULSE_PN_NUM; wPn++)		//脉冲计量点号<-->测量点号 映射
 	{
@@ -865,6 +974,8 @@ bool  CPulseManager::ResetPulseData()
 			fTrigSave = true;
 		}
 	}
+
+	memset(m_i64LastE, 0, sizeof(m_i64LastE));	//清零上次数据
 
 	if (fTrigSave)
 		TrigerSaveBank(BN11, 0, -1); //触发保存
@@ -949,12 +1060,12 @@ int OnAddPulseCfgCmd(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPa
 	{
 		if (FieldCmp(DT_PULSE_CFG, &bBuf[i*PULSE_CFG_LEN + 3], DT_PULSE_CFG, pbPara+1) == 0)	//完全相同，则认为是无效参数,保证OAD唯一性
 		{
-			*pbRes = 3;	//拒绝读写 （3）
-			return -1;
+			*pbRes = 0;	//成功  （0）// 返回结果
+			return 1;	//过台体需要回确认
 		}
 		else if (FieldCmp(DT_PULSE_CFG, &bBuf[i*PULSE_CFG_LEN + 3], DT_OAD, pbPara+OFFSET_PULSE_PORT) == 0)	//OAD相同，但脉冲属性或脉冲常数不同,修改
 		{
-			fTypeAlreadyExist = false;
+			/*fTypeAlreadyExist = false;
 			for (j=0; j<bCfgNum; j++)	//遍历是否已经存在 bBuf+j*PULSE_CFG_LEN+5
 			{
 				if (j == i)
@@ -968,7 +1079,7 @@ int OnAddPulseCfgCmd(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPa
 				}
 			}
 
-			if (!fTypeAlreadyExist)	//该脉冲属性没设置过
+			if (!fTypeAlreadyExist)	//该脉冲属性没设置过*/
 			{
 				memcpy(&bBuf[i*PULSE_CFG_LEN + 2], pbPara, PULSE_CFG_LEN);	//修改关联对象参数
 				break;
@@ -990,9 +1101,9 @@ int OnAddPulseCfgCmd(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPa
 		{
 			if (bBuf[j*PULSE_CFG_LEN + 10] == pbPara[OFFSET_PULSE_TYPE])
 			{
-				fTypeAlreadyExist = true;	//该属性已经存在
-				*pbRes = 3;	//拒绝读写 （3）
-				return -1;
+				fTypeAlreadyExist = true;	//该属性已经存在,则修改
+				memcpy(&bBuf[j*PULSE_CFG_LEN + 2], pbPara, PULSE_CFG_LEN);	//修改关联对象参数
+				break;
 			}
 		}
 
@@ -1001,7 +1112,7 @@ int OnAddPulseCfgCmd(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPa
 			memcpy(&bBuf[i*PULSE_CFG_LEN + 2], pbPara, PULSE_CFG_LEN);
 			bCfgNum++;
 			bBuf[1] = bCfgNum;	//数组元素个数
-		}		
+		}
 	}
 
 	if (OoWriteAttr(wOI, ATTR4, bBuf) <= 0)		//设置脉冲配置

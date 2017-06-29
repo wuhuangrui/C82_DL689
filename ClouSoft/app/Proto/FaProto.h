@@ -721,6 +721,7 @@ public:
 	virtual void DoProRelated();	//做一些协议相关的非标准的事情
 ////////////////////////////LINK layer ////////////////////////////////////////////
 	int  RcvBlock(BYTE *pbBuf,int wLen);//检测有效帧
+	int  SingleRcvBlock(BYTE *pbBuf,int wLen);//单帧检测有效帧
 
 	CQueue 	m_TrsQueue;  //转发的报文消息队列
 	void DoNoComuTimeout();
@@ -783,8 +784,9 @@ private:
 	TLPduPool	m_TxLPduPool;//From APP
 
 	BYTE	m_bRxBuf[MAXFRMSIZE];//接收帧的缓存区
-	BYTE	m_nRxStep;
+	int		m_nRxStep;
 	WORD	m_wRxPtr,m_nRxCnt;
+	BYTE	m_bSingleRxBuf[PRO_FRM_SIZE];//接收帧的缓存区
 
 	BYTE	m_bTxBuf[MAXFRMSIZE];//发送帧的缓存区
 	WORD	m_wTxPtr;
@@ -807,6 +809,7 @@ private:
 	int		m_iStart;
 	int		m_iRdPn;	//本次读的测量点	
 	int		m_iRsd10Pn;
+	DWORD	m_dwFrmStartClick;  //接收到帧起始时标
 private:
 	TNegoSizeDef  m_NegoSizeDef;//空间协商参数块
 	void InitCommSize(BYTE bType);
@@ -817,8 +820,7 @@ private:
 	int  VeryFrm();//链路层接收检验
 
 	//以下为链路层发送处理函数
-	int Tx_RegisterBeat();
-	int Tx_PriorFrm(bool fFinal);
+	int Tx_RegisterBeat();	
 
 	int MakeFrm(BYTE *pbBuf, WORD wLen);
 	int MakeAutoFrm(bool fFinal);//链路层主动上报发送帧的统一出口，完成帧头帧尾和校验码，实现物理发送
@@ -879,7 +881,6 @@ private:
 	TDataPool	m_RxDPool;
 	TDataPool	m_TxDPool;  
 	void ClsDataPool(TDataPool *p){ memset(p,0,sizeof(TDataPool)); };//清应用层的数据缓存池
-	bool IsNeedReport();//判断是否有主动上报的新事件
 	int GetEvent(BYTE *pb);//完成上报事件的应用层信息组帧
 	int AutoReport();//完成上报事件的一帧编码和发送
 

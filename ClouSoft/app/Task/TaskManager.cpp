@@ -880,8 +880,8 @@ bool DoTaskSwitch(TMtrRdCtrl* pMtrRdCtrl)
 void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModified)
 {
 	BYTE bBuf[128];
-	DWORD *pdwOAD, dwOAD;
-	WORD *pwDataLen, *pInID, wCSDLen, wNum, wFailCnt = 0;
+	DWORD *pdwOAD;
+	WORD *pwDataLen, *pInID, wNum, wFailCnt = 0;
 	WORD wInterv = GetMeterInterv();
 	DWORD dwSec = GetCurTime()/(wInterv*60)*wInterv*60;
 	pInID = MtrGetFixedInItems();
@@ -893,6 +893,14 @@ void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 
 	if (dwSec != pMtrRdCtrl->mtrTmpData.dwTime) //间隔切换
 	{
+		for (WORD wIndex=0; wIndex<wNum; wIndex++)
+		{
+			if (pInID[wIndex]>=0xa010 && pInID[wIndex]<=0xa040)
+			{
+				ReadItemEx(BN0, wPn, pInID[wIndex], bBuf);
+				WriteItemEx(BN0, wPn, pInID[wIndex]+0x0100, bBuf, pMtrRdCtrl->mtrTmpData.dwTime);
+			}
+		}
 		InitMtrTmpData(&pMtrRdCtrl->mtrTmpData, pdwOAD, pwDataLen, wNum);
 		pMtrRdCtrl->mtrTmpData.dwTime = dwSec;
 	}
@@ -904,10 +912,10 @@ void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 			int iRet = AskMtrItem(pMtrPro, 1, pdwOAD[wIndex], bBuf);
 			if (iRet > 0)	//抄表正常
 			{
-				dwOAD = OoOadToDWord((BYTE *)&pdwOAD[wIndex]);
-				wCSDLen = OoGetDataLen(DT_OAD, (BYTE *)&dwOAD);
+				DWORD dwOAD = OoOadToDWord((BYTE *)&pdwOAD[wIndex]);
+				WORD wCSDLen = OoGetDataLen(DT_OAD, (BYTE *)&dwOAD);
 				SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, pdwOAD[wIndex], bBuf, wCSDLen);
-				WriteItemEx(BN0, wPn, pInID[wIndex], bBuf);
+				WriteItemEx(BN0, wPn, pInID[wIndex], bBuf, GetCurTime());
 				*pfModified = true; //测量点数据已修改
 				wFailCnt = 0;
 				if (IsMtrErr(wPn))
@@ -927,14 +935,6 @@ void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 					DoPortRdErr(true);
 					break;
 				}
-			}
-			else
-			{
-				dwOAD = OoOadToDWord((BYTE *)&pdwOAD[wIndex]);
-				wCSDLen = OoGetDataLen(DT_OAD, (BYTE *)&dwOAD);
-				memset(bBuf, INVALID_DATA_MTR, sizeof(bBuf));
-				SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, pdwOAD[wIndex], bBuf, wCSDLen);
-				UpdItemErr(BN0, wPn, pInID[wIndex], ERR_ITEM, GetCurTime());
 			}
 		}
 	}
@@ -965,6 +965,9 @@ int DoTask(WORD wPn, TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, bool* pfModified)
 			if (SaveMtrData(pMtrRdCtrl, tRdItem.bReqType, tRdItem.bCSD, bBuf, iRet))	//+1:跳过1字节DAR
 				*pfModified = true; //测量点数据已修改
 
+			if (tRdItem.bReqType == 1)
+				SaveMtrInItemMem(wPn, tRdItem.dwOAD, bBuf);
+
 			//hyl 20170412 特殊处理3105事件，按任务方案存储
 			if (tRdItem.dwOAD==0x40000200)
 				SaveMtrDataHook(tRdItem.dwOAD,&pMtrRdCtrl->mtrExcTmp, 1);	
@@ -994,6 +997,16 @@ int DoTask(WORD wPn, TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, bool* pfModified)
 				OnMtrErrEstb(wPn);
 				DoPortRdErr(true);
 				break;
+			}
+		}
+		else if (iRet == -2)
+		{
+			int iLen = OoGetDataLen(DT_OAD, (BYTE *)&tRdItem.dwOAD); //ROAD直接取主OAD的长度
+			if (iLen > 0)
+			{
+				memset(bBuf, INVALID_DATA, sizeof(bBuf));
+				if (SaveMtrData(pMtrRdCtrl, tRdItem.bReqType, tRdItem.bCSD, bBuf, iLen))
+					*pfModified = true; //测量点数据已修改
 			}
 		}
 	}

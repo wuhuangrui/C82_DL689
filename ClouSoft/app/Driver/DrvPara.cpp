@@ -80,7 +80,7 @@ void InitYK()
 	g_YkPara.wMode = bBuf[0];   //遥控输出方式:YK_MODE_LEVEL | YK_MODE_PULSE
 	
 	WORD wPulseWide = 0;
-	if(ReadItemEx(BN24, PN0, 0x5023, bBuf) > 0)
+	if(ReadItemEx(BN10, PN0, 0xa1be, bBuf) > 0)
 	{
 		wPulseWide = BcdToDWORD(bBuf, 2);
 	}
@@ -94,8 +94,8 @@ void InitYK()
 							   //超过此时间,脉冲每dwSlowInterv分钟跳一次
 							   //如果设置为0,则都按照每分钟跳一次
 	g_YkPara.dwSlowInterv = 1; //慢跳间隔,单位分钟
-	ReadItemEx(BN24, PN0, 0x5006, bBuf);  //有效轮次，目前只对福建版本有效，其他不生效
-	g_YkPara.dwValidTurn = bBuf[0]>4 ? 4 : bBuf[0]; //有效轮次
+	
+	g_YkPara.dwValidTurn = 4; //有效轮次 YK由单片机控制，这里其实都可以去掉了
 	YKInit(&g_YkPara,4);
 }
 
@@ -130,7 +130,7 @@ void YXLoadPara(TYxPara* pYxPara)
 		DTRACE(DB_CRITICAL, ("YXLoadPara : after bit reverse bBuf[4]=%x, bBuf[7] =%x.\n", bBuf[4], bBuf[7]));
 		#endif
 
-		iLen = ReadItemEx(BN3, PN0, 0x30d0, &bTmp);	//遥信脉冲是否共用 0：不公用 1：共用
+		iLen = ReadItemEx(BN1, PN0, 0x2040, &bTmp);	//遥信脉冲是否共用 0：不公用 1：共用 
 		if (iLen < 0)
 			bTmp = 0;
 
@@ -144,16 +144,16 @@ void YXLoadPara(TYxPara* pYxPara)
 		BYTE bVal = 0;
 		ReadItemEx(BN10, PN0, 0xa1a6, &bVal);
 		if (bVal > 0)
-			pYxPara->wYxPolar = (~bBuf[7]) & 0x000f;
+			pYxPara->wYxPolar = (~bBuf[7]) & 0x00ff;
 		else
-			pYxPara->wYxPolar = (bBuf[7]) & 0x000f;
+			pYxPara->wYxPolar = (bBuf[7]) & 0x00ff;
 		DTRACE(DB_CRITICAL, ("YXLoadPara : pYxPara->wYxFlag=%x, pYxPara->wYxPolar =%x.\n", pYxPara->wYxFlag, pYxPara->wYxPolar));
 	}
 	else
 	{
 		pYxPara->wYxFlag = bYMFlag & 0x000f;
 		pYxPara->wYxFlag |= 0x10; //门禁点固定有效
-		pYxPara->wYxPolar = 0x000f;		//默认a型触点
+		pYxPara->wYxPolar = 0x00ff;		//默认a型触点
 	}
 
 	SetYxInitFlag(false);	//开关量标志初始化，每次修改参数都重新初始化一次

@@ -7,7 +7,6 @@
 #include "DataManager.h"
 #include "FaProto.h"
 #include "TaskManager.h"
-#include "FapLink.h"
 #include "sysapi.h"
 #include "sysdebug.h"
 #include "ComAPI.h"
@@ -18,6 +17,7 @@
 #include "TermEvtTask.h"
 #include "Pulse.h"
 #include "OoFmt.h"
+#include "DpGrp.h"
 #include "StatMgr.h"
 #ifndef SYS_WIN
 #include "AcSample.h"
@@ -88,14 +88,10 @@ extern CQueue g_Queue;     //协议线程的报文消息队列
 extern int g_iRstCnt[3]; //8010,8011,8012三个通道登录连续失败的次数
 extern int g_iCurChannel; //当前使用的主站地址 0-主通讯通道, 1-备用通道1, 2-备用通道2
 
-extern TSoftVerChg g_SoftVerChg; 
 extern bool g_fMasterTerm;
 extern WORD g_wLinkInterv;
 
 extern BYTE g_bTermChanelInfo[5];
-extern TParaChg g_ParaChg;	
-extern void SetParaChg(WORD wClass, BYTE* pbObis);
-extern void SaveParaChgEvt();
 
 extern bool IsMountUsb();
 extern bool IsInUsbProcess();
@@ -213,6 +209,7 @@ extern void FaResetCctPara();
 extern void FaClearEnergy();
 extern bool IsInProgState();
 extern bool IsFkTermn();
+extern void DoFaSave();
 
 //描述：初始化线程ID
 void InitThreadMaskId(BYTE bId);
@@ -242,6 +239,8 @@ int DoMtrFwdFunc(WORD wPort, WORD wTestId, BYTE bMtrPro, BYTE* pbMtrAddr, BYTE* 
 void InitMtrPortSch(BYTE bStartState);
 void DoMtrPortSch();
 
+void RequestThreadsSem();
+void ReleaseThreadsSem();
 #endif  //FAAPI_H
 
 

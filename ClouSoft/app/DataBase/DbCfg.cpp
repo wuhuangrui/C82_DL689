@@ -409,7 +409,6 @@ TItemDesc g_VariableDesc[] =   //变量类对象
 
 
 //总加组ID
-	{0x2301, 	102, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加配置表 支持4个测量点配置
 	{0x2302, 	9, 			DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加有功功率
 	{0x2303, 	9, 			DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加无功功率
 	{0x2304, 	9, 			DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加滑差时间内平均有功功率
@@ -420,12 +419,8 @@ TItemDesc g_VariableDesc[] =   //变量类对象
 	{0x2309, 	47, 		DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加月正向无功电量
 	{0x230a, 	9, 			DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加剩余电量（费）
 	{0x230b, 	9, 			DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//当前功率下浮控控后总加有功功率冻结值
-	{0x230c, 	2, 			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加组滑差时间周期
-	{0x230d, 	3,	 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加组功控轮次配置
-	{0x230e, 	3,	 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加组电控轮次配置
 	{0x230f, 	19, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加组控制设置状态
 	{0x2310, 	28, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加组当前控制状态
-	{0x2311, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//换算及单位	
 	
 	{0x2404, 	5, 					DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,		},//有功功率  --- 脉冲数据
 	{0x2405, 	5, 					DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,		},//无功功率
@@ -572,10 +567,10 @@ TItemDesc g_EventParaDesc[] =   //事件类对象参数
 	*/
 	//{0x3114, 	0, 						DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//终端对时事件，属性6，无配置参数
 	//{0x3115, 	0, 						DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//遥控跳闸记录，属性6，无配置参数
-	{0x3116, 	DIFF_COMP_CFG_ID_LEN, 	DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	1,		},//有功总电能量差动越限事件记录，属性2，属性6	28*n+2 = 282, n = 10
-	/* 不支持
+
+	{0x3116, 	DIFF_COMP_CFG_ID_LEN, 	DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//有功总电能量差动越限事件记录，属性6	27*n+2 = 272, n = 10
 	//{0x3117, 	0, 						DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//输出回路接入状态变位事件记录，属性6，无配置参数
-	*/
+
 	//{0x3118, 	0, 						DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//终端编程记录，属性6，无配置参数
 	//{0x3119, 	0, 						DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//终端电流回路异常事件，属性6，无配置参数
 	/* 不支持
@@ -637,10 +632,12 @@ TItemDesc g_EventParaDesc[] =   //事件类对象参数
 	{0x3A0F, 	8, 						DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		1,		},//电能表需量超限事件单元∷超限期间需量最大值发生时间  date_time_s
 	{0x3A10, 	3, 						DI_HIGH_PERM, DI_READ, 			0, 	INFO_NONE,	FMT_UNK,		1,		},//停/上电事件记录单元∷属性标志     bit-string（SIZE(8)）
 	{0x3A11, 	74, 						DI_HIGH_PERM, DI_READ, 			0, 	INFO_NONE,	FMT_UNK,		1,		},//遥控事件记录单元∷控后2分钟总加组功率 array long64
+
  	{0x3A12, 	9, 						DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		1,		},//有功总电能量差动越限事件记录单元∷越限时对比总加组有功总电能量 long64（单位：kWh，换算：-4），
  	{0x3A13, 	9, 						DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		1,		},//有功总电能量差动越限事件记录单元∷越限时参照总加组有功总电能量 long64（单位：kWh，换算：-4），
  	{0x3A14, 	2, 						DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		1,		},//有功总电能量差动越限事件记录单元∷越限时差动越限相对偏差值 integer（单位：%，换算：0）	
  	{0x3A15, 	9, 						DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		1,		},//有功总电能量差动越限事件记录单元∷越限时差动越限绝对偏差值 long64（单位：kWh，换算：-4）	
+
 	{0x3A16, 	EVT_CLR_LIST_LEN, 		DI_HIGH_PERM, DI_READ, 			0, 	INFO_NONE,	FMT_UNK,		1,		},//事件清零事件记录单元∷事件清零事件记录单元，array OMD
 	{0x3A17, 	8, 						DI_HIGH_PERM, DI_READ, 			0, 	INFO_NONE,	FMT_UNK,		1,		},//终端对电表校时记录单元∷校时前时钟    date_time_s，
 	{0x3A18, 	2, 						DI_HIGH_PERM, DI_READ, 			0, 	INFO_NONE,	FMT_UNK,		1,		},//终端对电表校时记录单元∷时钟误差      integer（单位：秒，无换算）
@@ -735,7 +732,8 @@ BYTE g_EventParaDefault[] =
 	DT_STRUCT,0x02,DT_UNSIGN,0x00,DT_UNSIGN,0x00,		//0x310F 终端抄表失败事件，属性6
 	DT_STRUCT,0x01,DT_DB_LONG_U,0x00,0x00,0x00,0x00,	//0x3110 月通信流量超限事件，属性6
 
-	0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,	//0x3116有功总电能量差动越限事件记录，属性2，属性6	28*n+2 = 282, n = 10
+
+	0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,	////有功总电能量差动越限事件记录，属性2，属性6	28*n+2 = 282, n = 10
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -749,7 +747,8 @@ BYTE g_EventParaDefault[] =
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,//0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//3//300
+	0x00,0x00,	//0x3116 有功总电能量差动越限事件记录，属性6  282
+
 
 	DT_STRUCT,0x01,DT_UNSIGN,0x00,				//0x311C 电能表数据变更监控记录，属性6
 
@@ -1612,8 +1611,13 @@ BYTE g_bParaDefault[] =
 		DT_ENUM, 0x00,	//连接应用方式 主备模式（0），多连接模式（1）
 		DT_ARRAY, 0x01,	//帧听端口列表
 			DT_LONG_U, 0x11, 0x22, 
+#ifdef VER_698_JIBEI
+		DT_VIS_STR, 0x0b,		//APN
+			'P', 'O', 'W',  '8', '-', 'L', 'A', 'F', '.', 'H', 'E',
+#else
 		DT_VIS_STR, 0x05,		//APN
 			'c', 'm', 'n',  'e', 't',
+#endif
 		DT_VIS_STR, 0x04,		///用户名
 			'c', 'a', 'r', 'd',	
 		DT_VIS_STR, 0x04,		///密码
@@ -1638,17 +1642,26 @@ BYTE g_bParaDefault[] =
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+#ifdef VER_698_JIBEI
+		0x00, 0x00, 0x00, 
+#else
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00,
-		
+#endif
 
 	//4501 公网通信模块1——主站通信参数表
 	DT_ARRAY, 2,
 		DT_STRUCT, 0x02,
 			DT_OCT_STR, 4, 
+#ifdef VER_698_JIBEI
+				0xD3, 0x8F, 0x66, 0x8A,
+			DT_LONG_U,
+				0x07, 0xEC,
+#else
 				0x3A, 0xFB, 0x4A, 0x65,	//58.251.74.101
 			DT_LONG_U, 
 				0x19, 0x22,	//6434
+#endif
 		DT_STRUCT, 0x02,
 			DT_OCT_STR, 4, 
 				0x00, 0x00, 0x00, 0x00,
@@ -1916,7 +1929,7 @@ TItemDesc g_CtrlDesc[] = //控制类对象
 	{0x8100, 	9, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//终端保安定值
 	{0x8101, 	26,		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//终端功控时段，属性2
 	{0x8102, 	18,		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//功控告警时间，属性2 
-	{0x8103, 	242,	DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,},//时段功控，属性2
+	{0x8103, 	241,	DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,},//时段功控，属性2
 	{0x8104, 	28,		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,},//厂休控，属性2
 	{0x8105, 	30,		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,},//营业报停控，属性2
 	//{0x8106, 	1, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,},//当前功率下浮控，属性2，方法127，
@@ -1931,9 +1944,9 @@ TItemDesc g_CtrlDesc[] = //控制类对象
 	{0x810F, 	1, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//跳闸轮次
 	{0x8110, 	1, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//电控定值
 
-	{0x8200, 	2, 		DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		1,		},//遥控，属性3（继电器输出状态，只读)
-	{0x8201, 	2, 		DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		1,		},//遥控，属性4(告警状态，只读)
-	{0x8202, 	2,	 	DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		1,		},//遥控，属性5（命令状态，只读)
+	{0x8200, 	3, 		DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		1,		},//遥控，属性3（继电器输出状态，只读)
+	{0x8201, 	3, 		DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		1,		},//遥控，属性4(告警状态，只读)
+	{0x8202, 	3,	 	DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		1,		},//遥控，属性5（命令状态，只读)
 	{0x8203, 	8,		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GB_MAXCONTROLTURN,			},//遥控命令
 
 	{0x8210, 	3, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//保电，属性3,允许最大无通讯时间
@@ -1941,7 +1954,7 @@ TItemDesc g_CtrlDesc[] = //控制类对象
 	{0x8212, 	146, 	DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//保电，属性5,自动保电时段(最多24个时段)
 	{0x8213, 	1, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//保电投入命令
 
-	{0x8220, 	207, 	DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//催费告警投入（参数）
+	{0x8220, 	211, 	DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//催费告警投入（参数）
 
 	{0x8230, 	7,		DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,},//时段功控，属性3,投入状态
 	{0x8231, 	8,		DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,},//时段功控，属性4,输出状态
@@ -2034,7 +2047,7 @@ BYTE g_InOutDevDefault[] = {	 //输入输出设备类对象
 			'0', '0', '0', '0', '0', '0', '0', '0',
 		DT_COMDCB,	//端口参数
 			0x06,	//9600bps
-			0x00,	//无校验
+			0x02,	//偶校验
 			0x08,	//8位数据位
 			0x01,	//停止位
 			0x00,	//流控
@@ -2047,7 +2060,7 @@ BYTE g_InOutDevDefault[] = {	 //输入输出设备类对象
 			'0', '0', '0', '0', '0', '0', '0', '0',
 		DT_COMDCB,	//端口参数
 			0x03,	//2400bps
-			0x02,	//无校验
+			0x02,	//偶校验
 			0x08,	//8位数据位
 			0x01,	//停止位
 			0x00,	//流控
@@ -2059,8 +2072,8 @@ BYTE g_InOutDevDefault[] = {	 //输入输出设备类对象
 			'0', '0', '0', '0', '0', '0', '0', '0',
 			'0', '0', '0', '0', '0', '0', '0', '0',
 		DT_COMDCB,	//端口参数
-			0x03,	//2400bps
-			0x02,	//无校验
+			0x02,	//1200bps
+			0x02,	//偶校验
 			0x08,	//8位数据位
 			0x01,	//停止位
 			0x00,	//流控
@@ -2075,11 +2088,11 @@ BYTE g_InOutDevDefault[] = {	 //输入输出设备类对象
 			'0', '0', '0', '0', '0', '0', '0', '0',
 			'0', '0', '0', '0', '0', '0', '0', '0',
 		DT_ENUM,	//当前状态 
-			0x01,	//未输出（0），输出（1）
+			0x00,	//未输出（0），输出（1）
 		DT_ENUM,	//开关属性 
-			0x01,	//脉冲式（0），保持式（1）
+			0x00,	//脉冲式（0），保持式（1）
 		DT_ENUM,	//接线状态
-			0x01,	//接入（0），未接入（1)
+			0x00,	//接入（0），未接入（1)
 	//F206属性2--告警输出
 	DT_ENUM,	//告警输出
 		0x00,	//未输出（0），输出（1）
@@ -2135,6 +2148,7 @@ BYTE g_InOutDevDefault[] = {	 //输入输出设备类对象
 
 TItemDesc g_DisPlayDesc[] = //输入输出设备类对象
 {
+	{0xF2F0, 	BN_VER_LEN,		 DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//版本控制
 	{0xF300, 	15, 	DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//自动轮显，属性2，显示对象列表
 	{0xF301, 	15, 	DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//按键轮显，属性2，显示对象列表
 	{0xF900, 	3, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//自动轮显，属性3，显示时间
@@ -2262,6 +2276,15 @@ TItemDesc  g_PointDataDesc[] =
 	{0xa052, 	22, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//有功功率总，A/B/C，带格式，
 	{0xa053, 	22, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//无功功率总，A/B/C，带格式，
 	{0xa054, 	14, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//功率因素总，A/B/C，带格式，
+
+	//上一间隔正向有功电能，总，1~4费率
+	{0xa110, 	27, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//正向有功电能，带格式，
+	//反向有功电能，总，1~4费率
+	{0xa120, 	27, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//反向有功电能，带格式，
+	//组合无功1电能，总，1~4费率
+	{0xa130, 	27, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//组合无功1电能，带格式，
+	//组合无功2电能，总，1~4费率
+	{0xa140, 	27, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//组合无功2电能，带格式，
 };
 
 
@@ -2269,6 +2292,7 @@ TItemDesc  g_PointDataDesc[] =
 //sect15 Ext-Variable-Para
 TItemDesc g_ExtVarParaDesc[] = 
 {
+	{0x20F0, 	BN_VER_LEN,				DI_HIGH_PERM, DI_READ,			0, 	INFO_NONE,				FMT_UNK,		1,		},//版本控制
 // 区间统计参数ID,2+5+(2+5*10)+2+4=65,按最大10个超限参数来考虑
 	{0x2100, 	65*STAT_OAD_NUM+2, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_CLASS14_STAT_CHG,	FMT_UNK,		1,		},//分钟区间统计
 	{0x2101, 	65*STAT_OAD_NUM+2, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_CLASS14_STAT_CHG,	FMT_UNK,		1,		},//小时区间统计
@@ -2287,6 +2311,13 @@ TItemDesc g_ExtVarParaDesc[] =
 	{0x2122, 	13*STAT_OAD_NUM+2, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_CLASS16_STAT_CHG,	FMT_UNK,		1,		},//日极值
 	{0x2123, 	13*STAT_OAD_NUM+2, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_CLASS16_STAT_CHG,	FMT_UNK,		1,		},//月极值
 	{0x2124, 	13*STAT_OAD_NUM+2, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_CLASS16_STAT_CHG,	FMT_UNK,		1,		},//年极值
+	//总加组接口类参数
+	{0x2300, 	1, 			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加有效标志
+	{0x2301, 	102, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_GRP_PARA,	FMT_UNK,		GRP_NUM,		},//总加配置表 支持4个测量点配置
+	{0x230c, 	2, 			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加组滑差时间周期
+	{0x230d, 	3,	 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加组功控轮次配置
+	{0x230e, 	3,	 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//总加组电控轮次配置
+	{0x2311, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		GRP_NUM,		},//换算及单位	
 	//脉冲接口类参数
 	{0x2401, 	(TSA_LEN+1), 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,		},//通信地址
 	{0x2402, 	8,	 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,		},//互感器倍率
@@ -2299,226 +2330,65 @@ TItemDesc g_ExtVarParaDesc[] =
 
 //终端参数描述表：标识--长度--权限--读写--偏移
 TItemDesc  g_Bank1Desc[] =   //标准版
-{ 
-	{0x1001, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //调试输出自动关断时间,单位分钟,0不自动关断
-	{0x1002, 16,DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //调试输出开关
-	{0x100f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
+{
+	{0x0001,	BN_VER_LEN,	DI_HIGH_PERM,	DI_READ,			0,		INFO_NONE},	   //版本控制
+	{0x1001,	2,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_NONE},    //调试输出自动关断时间,单位分钟,0不自动关断
+	{0x1002,	16,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_NONE},    //调试输出开关
+	{0x100f,	0,			DI_LOW_PERM,	DI_READ|DI_WRITE,   0,		INFO_NONE},
 
-	//0
-	{0x2000, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},  //地方版本,01广东版,02江西,03承德
-	{0x200f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
+    {0x2012,	1,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_APP_RST},  //GPRS模块型号,0表示GR47 1.3版,1表示SIM,2表示WAVECOM,3表示华为,4表示GR47 1.5版
+	{0x2013,	1,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_WK_PARA},    //GPRS连接等待时间 HEX 秒
+	{0x201f,	0,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_APP_RST},    
 
-	//1
-    {0x2010, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //扩展协议中用到的本公司的厂商编号
-    {0x2011, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_COMM_RLD},    //心跳间隔,单位分钟HEX
-    {0x2012, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},  //GPRS模块型号,0表示GR47 1.3版,1表示SIM,2表示WAVECOM,3表示华为,4表示GR47 1.5版
-	{0x2013, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_WK_PARA},    //GPRS连接等待时间 HEX 秒
-	{0x201f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},    
+	{0x2022,	1,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_APP_RST},  //继电器输出方式,0电平,1脉冲
+	{0x202f,	0,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_NONE},
 
-	//2
-    {0x2020, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //功控来源
-	{0x2021, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //电控来源
-	{0x2022, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},  //继电器输出方式,0电平,1脉冲
-	{0x2023, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //对比度 
-	{0x2024, 32, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //任务使能屏蔽
-	{0x202f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    
+	{0x2030,	2,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_NONE},	//面向对象--服务器模式下的心跳周期次数 NN.NN
+	{0x2032, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 	0, 		INFO_APP_RST},  //TCP/IP协议库：0模块自带,1终端
 
-	{0x2030, 16,DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	  //校准参数
-	{0x2031, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	  //三相三线的电压互感器数量,0或2:2个, 3:3个
-	{0x2032, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},  //TCP/IP协议库：0模块自带,1终端
-	{0x2033, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //CT一次侧短路高值，HEX
-	{0x2034, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //CT二次侧短路高值，HEX
-	{0x2035, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //CT二次侧开路低值，HEX
-	{0x2036, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //CT一次侧短路不平衡值，HEX
-	{0x2037, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //CT二次侧短路低值，HEX
-	{0x2038, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //CT检测投退,0退出,1投入
-	{0x2039, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //无压百分比
-	{0x203a, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //无流百分比
-	{0x203b, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //负荷过载相对变压器容量的比例
-	{0x203c, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //负荷过载恢复相对变压器容量的比例
-	{0x203d, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //电表异常的判断间隔,BCD,单位分钟
-	{0x203e, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_COMM_RLD},    //重连方案等价于8a60,RRTT BCD RR重连次数,缺省3次,TT重连等待间隔,缺省30分钟	
-	{0x203f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    
-	
-	{0x2040, 16, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //告警次数限制,定义与8033类似,0限定每天送一次,1不限定
-	{0x2041, 48, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //PPP用户名
-	{0x2042, 48, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    //PPP密码
-	{0x2043, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},     //通信错误复位终端时间,BCD,HHMM,0表示不复位
-	{0x204f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},    
+	{0x2040,	1,			DI_LOW_PERM,    DI_READ|DI_WRITE,	0,		INFO_YX_PARA},	//遥信脉冲是否共用 0：不公用 1：共用 BN3,30D0
 
-	{0x2050, 4, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},    //电表->645费率对照表0，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	{0x2051, 4, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},    //电表->645费率对照表1，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	{0x2052, 4, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},    //电表->645费率对照表2，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	{0x2053, 4, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},    //电表->645费率对照表3，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	{0x2054, 4, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},    //电表->645费率对照表4，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	{0x2055, 4, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},    //电表->645费率对照表5，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	{0x2056, 4, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},    //电表->645费率对照表6，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	{0x2057, 4, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},    //电表->645费率对照表7，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	{0x2058, 4, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},    //电表->645费率对照表8，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-    {0x205f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},    //
+	{0x2041,	12,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_YX_PARA},	//第1路脉冲参数配置 BN3, 30D1
+	{0x2042,	12,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_YX_PARA},	//第2路脉冲参数配置
+	{0x2043,	12,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_YX_PARA},	//第3路脉冲参数配置
+	{0x2044,	12,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_YX_PARA},	//第4路脉冲参数配置
+	{0x2045,	12,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_YX_PARA},	//第5路脉冲参数配置
+	{0x2046,	12,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_YX_PARA},	//第6路脉冲参数配置
+	{0x2047,	12,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_YX_PARA},	//第7路脉冲参数配置
+	{0x2048,	12,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_YX_PARA},	//第8路脉冲参数配置 BN3, 30D8
 	
-	{0x2060, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	    //抄表时间间隔,BCD,1-15,
-	{0x2061, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //测量点0等价于892a判断负荷过载相对额定值的比例（缺省为1） 
-	{0x2062, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //测量点1等价于892a判断负荷过载相对额定值的比例（缺省为1） 
-	{0x2063, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //测量点2等价于892a判断负荷过载相对额定值的比例（缺省为1） 
-	{0x2064, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //测量点3等价于892a判断负荷过载相对额定值的比例（缺省为1） 
-	{0x2065, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //测量点4等价于892a判断负荷过载相对额定值的比例（缺省为1） 
-	{0x2066, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //测量点5等价于892a判断负荷过载相对额定值的比例（缺省为1） 
-	{0x2067, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //测量点6等价于892a判断负荷过载相对额定值的比例（缺省为1） 
-	{0x2068, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //测量点7等价于892a判断负荷过载相对额定值的比例（缺省为1） 
-	{0x2069, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //测量点8等价于892a判断负荷过载相对额定值的比例（缺省为1） 
-	{0x206f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //
-	
-	{0x2070, 3, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //等价于8038启动电压(NN)缺省为额定的70%，恢复电压(MM)缺省为额定的85%，启动电流(LL)缺省为额定的10% 
-	{0x2071, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //8065 判断断相、缺相时间，缺省5分钟
-	{0x2072, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //8066判断断相、缺相恢复时间，缺省5分钟
-	{0x2073, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //8067判断电压逆向序时间，缺省1分钟
-	{0x2074, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //8068判断电压逆向序恢复时间，缺省1分钟
-	{0x2075, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //8069判断电流反极性时间，缺省值1分钟
-	{0x2076, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //806a判断电流反极性恢复时间，缺省值1分钟
-	{0x2077, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //806b时钟误差阈值，缺省10分钟
-	{0x2078, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //806c电能表飞走阈值，缺省为10倍
-	{0x2079, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //806d电能表停走阈值：电量示度停止增长时按照有功功率计算应走电量值，越此值则电表停走，缺省值为0.1kWh
-	{0x207f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //	
-	
-	{0x2080, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //CT正常时电流值
-	{0x2081, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //CT一次侧短路电流低值
-	{0x2082, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //CT一次侧短路电流高值
-	{0x2083, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //CT二次侧短路电流低值
-	{0x2084, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //CT二次侧短路电流高值
-	{0x2085, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //CT二次侧开路电流低值
-	{0x2086, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},		//对应位置1则测量点1的瞬时功率值取自测量点1的15分钟的平均功率值
-	{0x208f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //	
-	
-	{0x2090, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},		//终端电流互感器型号,0--5A,1--10A
-	{0x2091, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_WK_PARA},   //休眠到模块掉电次数,0表示不允许给模块掉电,HEX
-	{0x209f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},      //
-	
-	{0x2100, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_APP_RST},  //863终端功能：1:集中器，2:专变终端
-	{0x210f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	
-	{0x2110, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},  //控制模块电平控制方式
-	{0x211f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},		
-	//备用空间
-	{0x2f01, 15, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //备用空间
-	{0x2f0f,  0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-
-	{0x3000,  2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	//面向对象--服务器模式下的心跳周期次数
-	
+	{0x2049,	10,			DI_LOW_PERM,	DI_READ|DI_WRITE,	0,		INFO_NONE},	//轮显的使能，每bit对应一屏显示 BN3, 30D9
+	{0x2100, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 	0, 		INFO_APP_RST},  //终端功能：1:集中器，2:专变终端
 };
 
 BYTE g_bBank1Default[] =   
 {
-	0x1e, 0x00,     //0x1001 2 调试输出自动关断时间,单位分钟,0不自动关断
-	0x99, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 
-	//0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	                //0x1002 16 各项的调试输出开关
-	0x01,           //0x2000 1 地方版本,01广东版,02江西,03承德
+	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //Ver(20)	
 
-	//1
-	0x00,   //0x2010 1 厂商编号
-	0x0f,   //0x2011 1 心跳间隔,单位分钟HEX
+	0x1e, 0x00,     //0x1001 2 调试输出自动关断时间,单位分钟,0不自动关断
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	//0x1002 16 各项的调试输出开关
+	
 	0x16,	//0x2012 1 GPRS模块型号,ff表示自动识别,0表示GR47 1.3版,1表示SIM,2表示WAVECOM,3表示华为,4表示GR47 1.5版
 	0x1e,   //0x2013 1 GPRS连接等待时间 HEX 秒
-	        
-	//2
-	0x00,   //0x2020 1 功控来源
-	0x00,   //0x2021 1 电控来源
-	0x01,	//0x2022 1 继电器输出方式,0电平,1脉冲
-	0x1a,   //0x2023 1 对比度 
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  //0x00~0x3f  //0x2024 32 任务使能屏蔽
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80,  //0x40~0x7f	
-  	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,  //0x80~0xbf
-  	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,  //0xc0~0xff
-  	
-  	0x00, 0x10, 0x00, 0x10, 0x00, 0x10, 0x00, 0x10,  //0x2030  校准参数，默认4096
-	0x00, 0x10, 0x00, 0x10, 0x00, 0x10, 0x00, 0x10,  //0x2030  校准参数
-	
-	//后加参数
-	0x02, //0x2031 1 三相三线的电压互感器数量,0或2:2个, 3:3个
-	0x01, //0x2032 1 TCP/IP协议库：0模块自带,1终端
-	0x28, 0x00,	  //0x2033 2 CT一次侧短路高值，HEX
-	0x80, 0x00,   //0x2034 2 CT二次侧短路高值，HEX
-	0x08, 0x00,	  //0x2035 2 CT二次侧开路低值，HEX
-	0x07, 0x00,	  //0x2036 2 CT一次侧短路不平衡值，HEX
-	0x0d, 0x00,   //0x2037 2 CT二次侧短路低值，HEX
-	0x00, //0x2038 1 CT检测投退,0退出,1投入
 
-	0x10,   //0x2039 1 无压百分比
-	0x10,   //0x203a 1 无流百分比
-	0x10,	//0x203b 1 负荷过载相对变压器容量的比例
-	0x10,	//0x203c 1 负荷过载恢复相对变压器容量的比例
-	0x01,	//0x203d 1 电表异常的判断间隔,BCD,单位分钟
-	0x00, 0x05,  //0x203e 2 重连方案,RRTT BCD RR重连次数,缺省3次,TT重连等待间隔,缺省30分钟	
-	
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f, //0x2040 16 告警次数限制,定义与8033类似,0限定每天送一次,1不限定
-	'C',  'A',  'R',  'D',  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0x2041 48 PPP用户名	
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-	'C',  'A',  'R',  'D',  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0x2042 48 PPP密码
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+	0x01,	//0x2022 1 继电器输出方式,0电平,1脉冲.
 
-	0x00, 0x00,	 //0x2043 2 通信错误复位终端时间,BCD,HHMM
+	0x00, 0x10,	//0x2030 10.00次
 	
-	
-	0x00, 0x00, 0x00, 0x00, //0x2050 4 电表->645费率对照表0，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	0x00, 0x00, 0x00, 0x00, //0x2051 4 电表->645费率对照表1，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	0x00, 0x00, 0x00, 0x00, //0x2052 4 电表->645费率对照表2，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	0x00, 0x00, 0x00, 0x00, //0x2053 4 电表->645费率对照表3，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	0x00, 0x00, 0x00, 0x00, //0x2054 4 电表->645费率对照表4，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	0x00, 0x00, 0x00, 0x00, //0x2055 4 电表->645费率对照表5，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	0x00, 0x00, 0x00, 0x00, //0x2056 4 电表->645费率对照表6，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	0x00, 0x00, 0x00, 0x00, //0x2057 4 电表->645费率对照表7，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	0x00, 0x00, 0x00, 0x00, //0x2058 4 电表->645费率对照表8，N4N3N2N1,N1表示电表的第一个费率对应645的费率
-	
-	0x01,//0x2060 抄表时间间隔
-	
-	0x20, 0x01, //0x2061 判断负荷过载相对额定值的比例 (缺省为1)
-	0x20, 0x01, //0x2062 判断负荷过载相对额定值的比例 (缺省为1)
-	0x20, 0x01, //0x2063 判断负荷过载相对额定值的比例 (缺省为1)
-	0x20, 0x01, //0x2064 判断负荷过载相对额定值的比例 (缺省为1)
-	0x20, 0x01, //0x2065 判断负荷过载相对额定值的比例 (缺省为1)
-	0x20, 0x01, //0x2066 判断负荷过载相对额定值的比例 (缺省为1)
-	0x20, 0x01, //0x2067 判断负荷过载相对额定值的比例 (缺省为1)
-	0x20, 0x01, //0x2068 判断负荷过载相对额定值的比例 (缺省为1)
-	0x20, 0x01, //0x2069 判断负荷过载相对额定值的比例 (缺省为1)
-	
-	0x85, 0x10, 0x70, //0x2070 3 启动电压 恢复电压 启动电流 等价于8038
-	
-	0x05,//2071
-	0x05,//2072
-	
-	0x01,//2073
-	0x01,//2074
-	
-	0x01,//2075
-	0x01,//2076
-	
-	0x10,//2077
-	
-	0x10,//2078
-	
-	0x10, 0x00,//2079
-	
-	//表8
-	0x00, 0x01,//2080
-	0x05, 0x00,//2081
-	0x20, 0x00,//2082
-	0x05, 0x00,//2083
-	0x20, 0x00,//2084
-	0x40, 0x00,//2085
-	
-	0x00,//2086
-	0x01, //0x2090 1 终端电流互感器型号,0--5A,1--10A
-	0x02, //0x2091 1 休眠到模块掉电次数,HEX
-	0x01, //0x2100， 863终端功能 1：集中器， 2：专变终端，其他：集中器
-	0x00, // 0x2110控制模块电平控制方式1-脉冲方式,0-电平方式
-	0x00, 0x00, 0x00, 0x00, 0x00, 
-	0x00, 0x00, 0x00, 0x00, 0x00, 
-	0x00, 0x00, 0x00, 0x00, 0x00,  //0x2fX1 16 密码
+	0x01,	//0x2032  1 TCP/IP协议库：0模块自带,1终端
 
-	//0x3000
-	0x00, 0x10,	//1000次
+	0x00,	//0x2040 1 遥信脉冲是否共用
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0x2041 第1路脉冲参数配置
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0x2042 第2路脉冲参数配置
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0x2043 第3路脉冲参数配置
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0x2044 第4路脉冲参数配置
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0x2045 第5路脉冲参数配置
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0x2046 第6路脉冲参数配置
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0x2047 第7路脉冲参数配置
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0x2048 第8路脉冲参数配置
+
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0x2049 10 轮显的使能，每bit对应一屏显示
+	0x02, //0x2100， 863终端功能 1：集中器， 2：专变终端，其他：集中器
 };
 
 
@@ -2718,1461 +2588,84 @@ TItemDesc  g_Bank2Desc[] =   //标准版
 	{0x3117,	5,			DI_HIGH_PERM, DI_READ, 0,	INFO_NONE,	FMT_UNK,		1,		},//当前有功需量
 	{0x3118,	5,			DI_HIGH_PERM, DI_READ, 0,	INFO_NONE,	FMT_UNK,		1,		},//当前无功需量
 	{0x3119,	5,			DI_HIGH_PERM, DI_READ, 0,	INFO_NONE,	FMT_UNK,		1,		},//当前视在需量
-
-	//{0x5001, 1, DI_HIGH_PERM, DI_READ|DI_WRITE,0, INFO_NONE},	 //协议切换
+	{0x4300,	2,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0,	INFO_NONE,	FMT_UNK,		1,		},//电气设备——红外控制命令
 	{0x5039, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //BYTE	m_PulseRatio;	// 脉冲放大倍数 liuzhixing 20170225
 
 };
 
-//终端参数描述表：标识--长度--权限--读写--偏移
-TItemDesc  g_Bank3Desc[] =   //标准版
-{ 
-	{0x3000, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //唤醒控制 HEX 0 不要唤醒 大于0表示唤醒字符数
-	{0x3001, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3002, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3003, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3004, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3005, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3006, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3007, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3008, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x300f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, 
-	
-	{0x3010, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //电能小数位数 Hex 默认 2
-	{0x3011, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3012, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3013, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3014, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3015, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3016, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3017, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3018, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x301f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, 
-	
-	{0x3020, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //需量小数位数 Hex 默认 4
-	{0x3021, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3022, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3023, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3024, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3025, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3026, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3027, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3028, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x302f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, 
-
-	{0x3030, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //电压小数位数 Hex 默认 0
-	{0x3031, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3032, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3033, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3034, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3035, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3036, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3037, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3038, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x303f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, 
-
-	{0x3040, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //电流小数位数 Hex 默认 2
-	{0x3041, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3042, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3043, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3044, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3045, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3046, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3047, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3048, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x304f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, 
-
-	{0x3050, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //有功功率小数位数 默认4
-	{0x3051, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3052, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3053, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3054, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3055, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3056, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3057, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3058, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x305f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, 
-	
-	{0x3060, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //无功功率小数位数 默认2
-	{0x3061, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3062, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3063, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3064, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3065, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3066, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3067, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3068, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x306f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, 
-
-	{0x3070, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //功率因数小数位数 默认 3
-	{0x3071, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3072, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3073, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3074, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3075, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3076, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3077, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x3078, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	{0x307f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, 
-
-	{0x3080, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //数据库瞬时量更新间隔
-	{0x3081, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //数据库非瞬时量更新间隔
-	{0x3082, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //电表飞走数据项是否需要对应量 0 不需要，1需要,2 部分需要
-	{0x3083, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	//电表子协议区分(目前只针对红相表) 1代表Mk3,非1代表Mk6
-	{0x3084, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	//符合过载恢复比例
-	{0x308f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, 
-	
-	{0x3090,24, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //新的校正参数
-	{0x309f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   
-	
-	{0x30a0, 4, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //CT一次短路阈值
-	{0x30a1, 4, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //CT二次短路阈值
-	{0x30a2, 4, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //CT二次开路阈值
-	{0x30af, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   
-
-	{0x30b0, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //视度下降终端走△
-	{0x30b1, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //示度下降电表走△
-	{0x30b2, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //压缩投退,0退出,1投入
-	{0x30b3, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //协议类型,0 TCP,1 UDP
-	{0x30b4, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //无功过补欠补投退, 0 反极性逆相序发生时无功过补欠补不判断,1 判断
-	{0x30b5, 2, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //电池关断电压值
-	{0x30bf, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-
-	{0x30c0, 72, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	//7022校准参数	
-	
-	{0x30d0, 1,  DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_YX_PARA},	//遥信脉冲是否共用 0：不公用 1：共用
-	
-	{0x30d1, 12,  DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_YX_PARA},	//第1路脉冲参数配置
-	{0x30d2, 12,  DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_YX_PARA},	//第2路脉冲参数配置
-	{0x30d3, 12,  DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_YX_PARA},	//第3路脉冲参数配置
-	{0x30d4, 12,  DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_YX_PARA},	//第4路脉冲参数配置
-	{0x30d5, 12,  DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_YX_PARA},	//第5路脉冲参数配置
-	{0x30d6, 12,  DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_YX_PARA},	//第6路脉冲参数配置
-	{0x30d7, 12,  DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_YX_PARA},	//第7路脉冲参数配置
-	{0x30d8, 12,  DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_YX_PARA},	//第8路脉冲参数配置
-	{0x30d9, 10,  DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	//轮显的使能，每bit对应一屏显示
-	{0x30e0, 4,   DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	//第1路直流模拟量校准参数
-	{0x30e1, 4,   DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	//第1路直流模拟量校准参数
-	{0x30e2, 4,   DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	//第2路直流模拟量校准参数
-	{0x30e3, 4,   DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	//第2路直流模拟量校准参数
-
-	{0x3100, 4,  DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	//额定电压，额定电流，接线方式
-	{0x3101, 7,  DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},	//额定电压NNNNN.N，额定电流NNN.NNN，接线方式NN	
-
-	
-	//剩余空间
-	{0x3f01, 165, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},   //备用空间
-	{0x3f0f,   0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},
-	
-	{0x5031, 8, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //DWORD	Iregion[2];	// 相位校准分区点，7022E只有2个相位校准分区点
-	{0x5032, 12, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //DWORD	Pgain[3];			// 功率校准值A,B,C
-	{0x5033, 12, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //DWORD	Phsreg[3];			// 三相校准点的相位补偿
-	{0x5034, 12, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //DWORD	Poffset[3]; 		// 三相有功功率Offset校正值
-	{0x5035, 6, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //WORD Ioffset[3];		// 电流有效值Offset校正值
-	{0x5036, 18, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE},//signed short	AngleOffset[3][3];//3个分区ABC三相相位误差补偿值，单位：0.01，带符号
-	{0x5037, 6, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //signed short EngErrAdj[3];			// 人为误差调整值,单位0.0001%.
-	{0x5038, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //BYTE	AdjustFlag; 		// 校准标志，校表后置位
-	{0x503f, 0, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, 
-  
-};
-
-BYTE g_bBank3Default[] = 
-{
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //唤醒字符数
-	0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, //电能小数位
-	0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, //需量小数位
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //电压小数位
-	0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, //电流小数位
-	0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, //有功功率小数位
-	0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, //无功功率小数位
-	0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, //功率因数小数位
-	0x09, 0x00, //3080
-	0x3c, 0x00, //3081
-	0x01, //3082 
-	0x00, //3083
-	0x95, 0x00,	//3084
-	
-	//0x3090 24 新的校正参数
-	//0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	//0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	0x00, 0x00, 0x00, 0x00, 
-	//0x00, 0x00, 0x00, 0x00, 
-	0x8E, 0x32, 0x32, 0x00, 0x7D, 0x32, 0x40, 0x00, 0x7D, 0x32, 
-	0x41, 0x00, 0x6B, 0x30, 0x00, 0x00, 0x62, 0x30, 0x00, 0x00,
-	0x58, 0x30, 0x00, 0x00,	
-	
-	0xA0, 0x86, 0x01, 0x00, //30a0 CT一次短路阈值10w
-	0xc0, 0x27, 0x09, 0x00,	//30a1 CT二次短路阈值60w
-	0x58, 0x02, 0x00, 0x00, //30a2 CT二次开路阈值600
-	
-	0x05, 0x00, //30b0
-	0x02, 0x00, //30b1
-	
-	0x00, //0x30b2 1 压缩投退,0退出,1投入
-	0x01, //0x30b3 1 协议类型,0 TCP,1 UDP
-	0x00, //0x30b4 1 无功过补欠补投退, 0 反极性逆相序发生时无功过补欠补不判断,1 判断
-	
-	0x40, 0x03, //0x30b5 2 电池关断电压值
-
-	0xc4, 0x21, 0xac, 0x00, 0xfc, 0xe5, 0xab, 0x00, 0xc8, 0x83, 0xab, 0x00, 0xe3, 0x7f, 0x00, 0x00, 
-	0xf4, 0x87, 0x00, 0x00, 0x96, 0xb0, 0x00, 0x00, 0xe1, 0x2d, 0x00, 0x00, 0x6e, 0x42, 0x00, 0x00, 
-	0x0b, 0x01, 0x00, 0x00, 0xd0, 0xa2, 0x00, 0x00, 0xa4, 0x34, 0x00, 0x00, 0x7d, 0x73, 0x00, 0x00, 
-	0x32, 0x50, 0xea, 0x00, 0xb0, 0xe0, 0xe9, 0x00, 0x52, 0x90, 0xe8, 0x00, 0x86, 0xcd, 0x9c, 0x00, 
-	0x64, 0xc4, 0x9c, 0x00, 0x8e, 0xe0, 0x9c, 0x00, //0x30c0 ATT7022的校正参数
-	
-	0x00,	//0x30D0
-	
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 	//第1路脉冲参数配置0x30d1
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, //第2路脉冲参数配置0x30d2
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,//第3路脉冲参数配置0x30d3
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //第4路脉冲参数配置0x30d4
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, //第5路脉冲参数配置0x30d5
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //第6路脉冲参数配置0x30d6
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //第7路脉冲参数配置0x30d7
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00,0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //第8路脉冲参数配置0x30d8
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,//轮显的使能，每bit对应一屏显示0x30d9
-	0x00, 0x00, 0x05, 0x00, //第1路直流模拟量校准参数
-	0x00, 0x00, 0x15, 0x00, //第1路直流模拟量校准参数
-	0x00, 0x00, 0x05, 0x00, //第2路直流模拟量校准参数
-	0x00, 0x00, 0x15, 0x00, //第2路直流模拟量校准参数
-	0x00,0x00,0x00,0x00, //额定电压，额定电流，接线方式0x3100
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //额定电压，额定电流，接线方式0x3101
-	0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	
-	
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	
-	
-		//new 75
-	//DWORD	Iregion[2];			// 相位校准分区点，7022E只有2个相位校准分区点
-	0xC8, 0x00, 0x00, 0x00,
-	0x0A, 0x00, 0x00, 0x00,
-	//DWORD Pgain[3];			// 功率校准值A,B,C
-	0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00,
-	//DWORD Phsreg[3];			// 三相校准点的相位补偿
-	0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00,
-	//DWORD Poffset[3]; 		// 三相有功功率Offset校正值
-	0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00,
-	//WORD	Ioffset[3];			// 电流有效值Offset校正值
-	0x08, 0x00,
-	0x08, 0x00,
-	0x08, 0x00,
-	//signed short	AngleOffset[3][3];	// 3个分区ABC三相相位误差补偿值，单位：0.01，带符号
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	//signed short EngErrAdj[3];			// 人为误差调整值,单位0.0001%.
-	0x00, 0x00, 
-	0x00, 0x00, 
-	0x00, 0x00,
-	//BYTE	AdjustFlag; 		// 校准标志，校表后置位
-	0x00, 
-	
-};
-
-
-//645参数
-TItemDesc g_Bank4Desc[] =   //标准版
-{//----标识-----长度------------权限-----------读写--------偏移----写操作-----------格式----------Pn个数------    
-	{0x0001, 	BN_VER_LEN,	DI_HIGH_PERM, 	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,		1,				},//Ver
-	{0x0002, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //645协议号选择
-        
-    {0x0600, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //485端口的波特率//缺省值4即1200bps,端口通信波特率/300
-	{0x0601, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_BCD, 		1}, //485端口的校验位//缺省无校验0, 0-无,1-偶,2-奇
-	{0x0602, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_BCD, 		1}, //485端口的数据位//缺省数据位8
-	{0x0603, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_BCD, 		1}, //485端口的停止位//缺省值0,0-1位停止位,1-1.5停止位,2-2位停止位
-	{0x060f, 	0,			DI_HIGH_PERM, 	DI_WRITE, 		  0,	INFO_NONE, 		FMT_UNK, 		GBC4_MTRPORTNUM},	
-   	
-	{0x0610, 	6, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_BCD, 		1}, //通信地址
-	{0x0611, 	32, 		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //资产管理编码
-	{0x0612, 	6, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //额定电压(ASCII码)
-	{0x0613, 	6, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //额定电流/基本电流(ASCII码)
-	{0x0614, 	6,	 		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //最大电流(ASCII码)
-	{0x0615, 	4, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //有功准确度等级(ASCII码)
-	{0x0616, 	4, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //无功准确度等级(ASCII码)
-	{0x0617, 	10,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //电表型号(ASCII码)
-	{0x0618, 	10,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //生产日期(ASCII码)
-	{0x0619, 	16,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //协议版本号(ASCII码)	
-	{0x061a, 	30,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //645_97 10级密码	
-	
-	{0x0620, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_AC_PARA, 		FMT_BCD, 		1}, //有功组合方式特征字
-	{0x0621, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_AC_PARA, 		FMT_BCD, 		1}, //无功组合方式1特征字
-	{0x0622, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_AC_PARA, 		FMT_BCD, 		1}, //无功组合方式2特征字	
-
-	{0x0623, 	1,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //负荷记录模式字
-	{0x0624, 	1,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //冻结数据模式字
-
-	{0x0630, 	4,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1},	//负荷记录起始时间
-	{0x0631, 	2,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //第1类负荷记录间隔时间
-	{0x0632, 	2,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //第2类负荷记录间隔时间
-	{0x0633, 	2,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //第3类负荷记录间隔时间
-	{0x0634, 	2,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //第4类负荷记录间隔时间
-	{0x0635, 	2,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //第5类负荷记录间隔时间
-	{0x0636, 	2,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //第6类负荷记录间隔时间
-	{0x063f, 	0,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, 
-
-	{0x0640, 	2,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //校表脉冲宽度
-	{0x0641, 	5,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //两套时区表切换时间
-	{0x0642, 	5,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //两套日时段表切换时间
-	{0x0643, 	32,			DI_LOW_PERM, 	DI_READ,		  0,	INFO_NONE, 		FMT_UNK, 		1}, //厂家软件版本号(ASCII码)
-	{0x0644, 	32,			DI_LOW_PERM, 	DI_READ,		  0,	INFO_NONE, 		FMT_UNK, 		1}, //厂家硬件版本号(ASCII码)
-	{0x0645, 	32,			DI_LOW_PERM, 	DI_READ,		  0,	INFO_NONE, 		FMT_UNK, 		1}, //厂家编号(ASCII码)
-
-	{0x0650, 	2, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_AC_PARA, 		FMT_BCD, 		1}, //每月第一结算日
-	{0x0651, 	2, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_AC_PARA, 		FMT_BCD, 		1}, //每月第二结算日
-	{0x0652, 	2, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_AC_PARA, 		FMT_BCD, 		1}, //每月第三结算日
-	{0xc022,	1,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_UNK,	1},	//周休日状态字
-	
-    //电表脉冲常数
-    {0xc030,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_BCD,	1}, //电表脉冲常数(有功) 
-    {0xc031,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_BCD,	1}, //电表脉冲常数(无功)
-    
-    //电表地址
-	{0xc032,	6,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_BCD,	1}, //表号(	645通讯地址 )
-    {0xc033,	6,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_BCD,	1}, //用户号
-	{0xc034,	6,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_BCD,	1}, //设备号
-	{0xc03f,	0,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_BCD,	1}, 
-
-    {0xc111,	1,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,	FMT_BIN,	1}, //最大需量周期
-    {0xc112,	1,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,	FMT_BIN,	1}, //滑差时间
-    {0xc113, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	0,	INFO_NONE, 		FMT_BCD,	1}, //循显时间
-	{0xc114, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	0,	INFO_NONE, 		FMT_BCD,	1}, //停显时间
-	{0xc115,	1,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_BCD,	1}, //显示电能小数位
-    {0xc116,	1,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_BCD,	1}, //显示功率(最大需量)小数位数 
-    {0xc117,	2,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,	FMT_BCD,	1}, //自动抄表日
-    {0xc118, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	0,	INFO_NONE, 		FMT_BCD,	1}, //负荷代表日
-	{0xc119, 	4, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	0,	INFO_NONE, 		FMT_BCD,	1}, //有功电能表起始读数
-	{0xc11a, 	4, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	0,	INFO_NONE, 		FMT_BCD,	1}, //无功电能表起始读数
-	{0xc11f, 	0, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	0,	INFO_NONE, 		FMT_BCD,	1},
-
-#ifdef VER_LIAONING
-	//参数设置扩展
-    {0xc148,	1, 			DI_LOW_PERM,DI_READ|DI_WRITE,	 0,	INFO_AC_PARA, 		FMT_BCD,	1}, //有功电能计量方式选择
-    {0xc149,	1, 			DI_LOW_PERM,DI_READ|DI_WRITE,	 0,	INFO_AC_PARA, 		FMT_BCD,	1}, //无功电能计量方式选择
-#endif    
-
-    {0xc211,	2, 			DI_LOW_PERM,DI_READ|DI_WRITE,	 0,	INFO_NONE, 		FMT_BCD, 	1}, //输出脉冲宽度
-    {0xc212,	4, 			DI_LOW_PERM,DI_WRITE,	 		 0,	INFO_NONE, 		FMT_BIN, 	1}, //密码权限及密码
-    
-    {0xc310,	1,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, //年时区数P
-    {0xc311,	1,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, //日时段表数q
-    {0xc312,	1,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, //日时段(每日切换数) m小于等于10
-	{0xc313,	1,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, //费率数 k小于等于14
-	{0xc314,	1,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, //公共假日数n
-	{0xc31f,	0,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},
-
-	//全年最多支持14个时区数
-    {0xc321,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//1时区起始日期及日时段表号
-    {0xc322,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//2时区起始日期及日时段表号 
-	{0xc323,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//3时区起始日期及日时段表号 
-	{0xc324,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//4时区起始日期及日时段表号 
-	{0xc325,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//5时区起始日期及日时段表号 
-    {0xc326,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//6时区起始日期及日时段表号 
-	{0xc327,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//7时区起始日期及日时段表号 
-	{0xc328,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//8时区起始日期及日时段表号 
-	{0xc329,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//9时区起始日期及日时段表号 
-    {0xc32a,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//10时区起始日期及日时段表号 
-	{0xc32b,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//11时区起始日期及日时段表号 
-	{0xc32c,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//12时区起始日期及日时段表号 
-	{0xc32d,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//13时区起始日期及日时段表号 
-	{0xc32e,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1},	//14时区起始日期及日时段表号 
-	{0xc32f,	0,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	
-	//日时段表1	(最大8套日时段表)	//脉冲测量点费率同测量点0
-	{0xc331,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc332,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc333,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc334,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc335,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc336,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc337,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc338,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc339,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc33a,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc33b,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc33c,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc33d,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc33e,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc33f,	0,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-
-	//日时段表2
-	{0xc341,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc342,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc343,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc344,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc345,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc346,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc347,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc348,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc349,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc34a,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc34b,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc34c,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc34d,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc34e,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc34f,	0,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-    
-	//日时段表3
-	{0xc351,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc352,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc353,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc354,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc355,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc356,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc357,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc358,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc359,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc35a,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc35b,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc35c,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc35d,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc35e,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc35f,	0,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	
-	//日时段表4
-	{0xc361,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc362,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc363,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc364,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc365,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc366,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc367,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc368,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc369,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc36a,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc36b,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc36c,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc36d,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc36e,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc36f,	0,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	
-	//日时段表5
-	{0xc371,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc372,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc373,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc374,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc375,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc376,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc377,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc378,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc379,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc37a,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc37b,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc37c,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc37d,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc37e,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc37f,	0,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-
-	//日时段表6
-	{0xc381,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc382,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc383,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc384,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc385,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc386,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc387,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc388,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc389,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc38a,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc38b,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc38c,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc38d,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc38e,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc38f,	0,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-    
-	//日时段表7
-	{0xc391,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc392,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc393,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc394,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc395,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc396,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc397,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc398,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc399,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc39a,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc39b,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc39c,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc39d,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc39e,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc39f,	0,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	
-	//日时段表8
-	{0xc3a1,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3a2,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3a3,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3a4,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3a5,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3a6,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3a7,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3a8,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3a9,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3aa,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3ab,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3ac,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3ad,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3ae,	3,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-	{0xc3af,	0,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, 
-
-	//公共假日
-    {0xc411,	3, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第一公共假日日期及日时段表号
-    {0xc412,	3, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第二公共假日日期及日时段表号
-    {0xc413,	3, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第三公共假日日期及日时段表号
-    {0xc414,	3, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第四公共假日日期及日时段表号
-    {0xc415,	3, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第五公共假日日期及日时段表号
-    {0xc416,	3, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第六公共假日日期及日时段表号
-    {0xc417,	3, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第七公共假日日期及日时段表号
-    {0xc418,	3, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第八公共假日日期及日时段表号
-	{0xc419,	3, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第九公共假日日期及日时段表号
-    {0xc41a,	3, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十公共假日日期及日时段表号
-    {0xc41b,	3, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十一公共假日日期及日时段表号
-    {0xc41c,	3, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十二公共假日日期及日时段表号
-    {0xc41d,	3, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十三公共假日日期及日时段表号
-    {0xc41e,	1, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //周休日采用的日时段表号
-    {0xc41f,	0, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1},
-
-	{0xc510,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE, 		FMT_BCD, 		1}, //负荷记录起始时间,月日时分
-    {0xc511,	2, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_CUR_PARA,	FMT_BCD, 		1}, //负荷曲线1类数据记录间隔,分
-       
-    {0xc512,	2, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_CUR_PARA,	FMT_BCD, 		1}, //负荷曲线2类数据记录间隔,分
-    {0xc513,	2, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_CUR_PARA,	FMT_BCD, 		1}, //负荷曲线3类数据记录间隔,分
-    {0xc514,	2, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_CUR_PARA,	FMT_BCD, 		1}, //负荷曲线4类数据记录间隔,分
-    {0xc515,	2, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_CUR_PARA,	FMT_BCD, 		1}, //负荷曲线5类数据记录间隔,分
-    {0xc516,	2, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_CUR_PARA,	FMT_BCD, 		1}, //负荷曲线6类数据记录间隔,分
-    {0xc517,	2, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_CUR_PARA,	FMT_BCD, 		1}, //负荷曲线7类数据记录间隔,分
-    {0xc51f,	0, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_CUR_PARA,	FMT_BCD, 		1}, //负荷曲线7类数据记录间隔,分
-#ifdef VER_LIAONING     
-    {0xc610, 	6,			DI_HIGH_PERM, 	DI_WRITE, 		  0,	INFO_NONE, 		FMT_UNK, 		1}, //手动复位密码
-    //{0xc611, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BCD,		1},	//三相三线失流判定值
-    //{0xc612, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BCD,		1},	//三相四线失流判定值
-
-    {0xc720, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//失压启动电压阀值
-    {0xc721, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//失压恢复电压阀值
-    {0xc722, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//失压启动电流阀值
-    {0xc723, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//失流启动平均值阀值
-    {0xc724, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//失流启动不平衡率阀值
-    //{0xc725, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//
-#endif
-
-	{0xc810, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//失压事件电压触发上限
-	{0xc811, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//失压事件电压恢复下限
-	{0xc812, 	3, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//失压事件电流触发下限
-	{0xc813, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//失压事件判定延时时间
-
-	{0xc814, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//欠压事件电压触发上限
-	{0xc815, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//欠压事件判定延时时间
-
-	{0xc816, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//过压事件电压触发下限
-	{0xc817, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//过压事件判定延时时间
-
-	{0xc818, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//断相事件电压触发上限
-	{0xc819, 	3, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//断相事件电流触发上限
-	{0xc81a, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//断相事件判定延时时间
-
-	{0xc81b, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//电压不平衡率限值
-	{0xc81c, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//电压不平衡率判定延时时间
-
-	{0xc81d, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//电流不平衡率限值
-	{0xc81e, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//电流不平衡率判定延时时间
-
-	{0xc820, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//失流事件电压触发下限
-	{0xc821, 	3, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//失流事件电流触发上限
-	{0xc822, 	3, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//失流事件电流触发下限
-	{0xc823, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//失流事件判定延时时间
-
-	{0xc824, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//过流事件电流触发下限
-	{0xc825, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//过流事件判定延时时间
-
-	{0xc826, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//断流事件电压触发下限
-	{0xc827, 	3, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//断流事件电流触发上限
-	{0xc828, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//断流事件判定延时时间
-
-	{0xc829, 	3, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//潮流反向事件有功功率触发下限
-	{0xc82a, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//潮流反向事件判定延时时间
-
-	{0xc82b, 	3, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//过载事件有功功率触发下限
-	{0xc82c, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//过载事件判定延时时间
-
-	{0xc82d, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//电压考核上限
-	{0xc82e, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//电压考核下限
-
-	{0xc830, 	3, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//有功需量超限事件需量触发下限
-	{0xc831, 	3, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//无功需量超限事件需量触发下限
-	{0xc832, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//需量超限事件判定延时时间
-
-	{0xc833, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//总功率因数超下限阀值
-	{0xc834, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//总功率因数超下限判定延时时间
-
-	{0xc835, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//电流严重不平衡限值
-	{0xc836, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//电流严重不平衡触发延时时间
-
-	{0xc840, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//负荷记录模式字
-	{0xc841, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//冻结数据模式字
-	{0xc842, 	4, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//负荷记录起始时间
-	{0xc843, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//第1类负荷记录间隔时间
-	{0xc844, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//第2类负荷记录间隔时间
-	{0xc845, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//第3类负荷记录间隔时间
-	{0xc846, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//第4类负荷记录间隔时间
-	{0xc847, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//第5类负荷记录间隔时间
-	{0xc848, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//第6类负荷记录间隔时间
-
-	{0xc849, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//定时冻结数据模式字
-	{0xc84a, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//瞬时冻结数据模式字
-	{0xc84b, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//约定冻结数据模式字
-	{0xc84c, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//整点冻结数据模式字
-	{0xc84d, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//日冻结数据模式字
-
-	{0xc850, 	5, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//整点冻结起始时间
-	{0xc851, 	1, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//整点冻结时间间隔
-	{0xc852, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//日冻结时间
-
-	{0xc853, 	4, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//冻结命令
-	{0xc854, 	4, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//瞬时冻结命令
-
-	{0xc855,	2,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, //公共假日数n	2	//从0xc314映射来
-
-	{0xc856,	1,			DI_LOW_PERM,DI_READ|DI_WRITE,	0,	INFO_AC_PARA,		FMT_BCD,	1}, //编程开关有效时间,单位分钟	BCD
-
-	//公共假日
-	{0xc861,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第一公共假日日期及日时段表号
-	{0xc862,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第二公共假日日期及日时段表号
-	{0xc863,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第三公共假日日期及日时段表号
-	{0xc864,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第四公共假日日期及日时段表号
-	{0xc865,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第五公共假日日期及日时段表号
-	{0xc866,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第六公共假日日期及日时段表号
-	{0xc867,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第七公共假日日期及日时段表号
-	{0xc868,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第八公共假日日期及日时段表号
-	{0xc869,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第九公共假日日期及日时段表号
-	{0xc86a,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十公共假日日期及日时段表号
-	{0xc86b,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十一公共假日日期及日时段表号
-	{0xc86c,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十二公共假日日期及日时段表号
-	{0xc86d,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十三公共假日日期及日时段表号
-	{0xc86e,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十四公共假日日期及日时段表号
-
-	{0xc871,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十五公共假日日期及日时段表号
-	{0xc872,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十六公共假日日期及日时段表号
-	{0xc873,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十七公共假日日期及日时段表号
-	{0xc874,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十八公共假日日期及日时段表号
-	{0xc875,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第十九公共假日日期及日时段表号
-	{0xc876,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第二十公共假日日期及日时段表号
-	{0xc877,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第二一公共假日日期及日时段表号
-	{0xc878,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第二二公共假日日期及日时段表号
-	{0xc879,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第二三公共假日日期及日时段表号
-	{0xc87a,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第二四公共假日日期及日时段表号
-	{0xc87b,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第二五公共假日日期及日时段表号
-	{0xc87c,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第二六公共假日日期及日时段表号
-	{0xc87d,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第二七公共假日日期及日时段表号
-	{0xc87e,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第二八公共假日日期及日时段表号
-
-	{0xc881,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第二九公共假日日期及日时段表号
-	{0xc882,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第三十公共假日日期及日时段表号
-	{0xc883,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第三一公共假日日期及日时段表号
-	{0xc884,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第三二公共假日日期及日时段表号
-	{0xc885,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第三三公共假日日期及日时段表号
-	{0xc886,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第三四共假日日期及日时段表号
-	{0xc887,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第三五共假日日期及日时段表号
-	{0xc888,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第三六共假日日期及日时段表号
-	{0xc889,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第三七共假日日期及日时段表号
-	{0xc88a,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第三八共假日日期及日时段表号
-	{0xc88b,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第三九公共假日日期及日时段表号
-	{0xc88c,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第四十公共假日日期及日时段表号
-	{0xc88d,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第四一公共假日日期及日时段表号
-	{0xc88e,	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_AC_PARA, 		FMT_BCD, 		1}, //第四二公共假日日期及日时段表号
-
-	{0xc890,	1, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE, 			FMT_BCD, 		1}, //是否返回实际个数费率参数
-	{0xc900,	1, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE, 			FMT_BCD, 		1}, //时段时区切换标志
-};	//    
-
-BYTE g_bBank4Default[] = {
-    //0x05ee	 20
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-
-	0x00,	//0x0002 1 00:645/2007协议 01:645/1997协议
-
-   	0x08,	//0x0600 1
-	0x01,	//0x0601 1
-	0x08,	//0x0602 1
-	0x00,	//0x0603 1
-	
-	0x01,0x00,0x00,0x00,0x00,0x00,	//0x0610 6
-
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //0x0611 32
-
-	0x00,0x00,0x00,0x00,0x00,0x00,	//0x0612 6
-	0x00,0x00,0x00,0x00,0x00,0x00,	//0x0613 6
-	0x00,0x00,0x00,0x00,0x00,0x00,	//0x0614 6
-	0x00,0x00,0x00,0x00, //0x0615 4
-	0x00,0x00,0x00,0x00, //0x0616 4
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //0x0617 10
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //0x0618 10
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //0x0619 16
-	
-	0x00,0x00,0x00,	//高级密码
-	0x00,0x00,0x00,	//编程密码
-	0x00,0x00,0x00,	//管理员密码
-	0x00,0x00,0x00,
-	0x11,0x11,0x11,	//操作员密码
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,	//0x061a 30	
-	
-	0x05, //0x0620
-	0x41, //0x0621	//正向无功 默认I+IV
-	0x14, //0x0622	//反向无功 默认II+III
-
-	0x00, //0x0623
-	0x00, //0x0624
-
-	0x00,0x00,0x00,0x00, //0x0630 4
-	0x00,0x00, //0x0631
-	0x00,0x00, //0x0632
-	0x00,0x00, //0x0633
-	0x00,0x00, //0x0634
-	0x00,0x00, //0x0635
-	0x00,0x00, //0x0636
-	
-	0x00,0x00, //0x0640
-	0x00,0x00,0x00,0x00,0x00, //0x0641 5
-	0x00,0x00,0x00,0x00,0x00, //0x0642 5
-
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //0x0643 32
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //0x0644 32
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //0x0645 32
-	
-	0x00,0x01,//0x0650
-	0xff,0xff,//0x0651
-	0xff,0xff,//0x0652
-
-	/*0x00,0x00, //0x0650
-	0x00,0x00, //0x0651
-	0x00,0x00, //0x0652
-	0x00,0x00, //0x0653
-	0x00,0x00, //0x0654
-	0x00,0x00, //0x0655
-	0x00,0x00, //0x0656*/	
-
-	//0x00, //0x0660
-	//0x00, //0x0661
-	//0x00, //0x0662
-	//0x00, //0x0663
-	//0x00, //0x0664
-
-	0xff, //0xc022 1
-	
-	0x00,0x64,0x00,	//0xc030 3
-	0x00,0x64,0x00,	//0xc031 3
-	
-	0x01,0x00,0x00,0x00,0x00,0x00,	//0xc032 6
-	0x01,0x00,0x00,0x00,0x00,0x00,	//0xc033 6
-	0x01,0x00,0x00,0x00,0x00,0x00,	//0xc034 6
-	
-	0x15, //0xc111 需量周期
-	0x01, //0xc112 滑差时间 
-	0x08, //0xc113 循显时间 
-	0x60, //0xc114 停显时间 
-	0x02, //0xc115 显示电能小数位
-	0x04, //0xc116
-	0x00,0x01, //0xc117 自动抄表日
-	0x01, //0xc118 负荷代表日
-	0x00,0x00,0x00,0x00, //0xc119 有功电能表起始读数
-	0x00,0x00,0x00,0x00, //0xc11a 无功电能表起始读数
-
-#ifdef VER_LIAONING
-	0x00, //0xc148 有功电能计量方式选择
-	0xc3, //0xc149 无功电能计量方式选择
-#endif
-
-	0x00,0x00, //0xc211
-	0x00,0x00,0x00,0x00, //0xc212
-	
-	0x01, //0xc310
-	0x01, //0xc311
-	0x07, //0xc312
-	0x04, //0xc313
-	0x00, //0xc314
-
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00, //0xc32f
-	
-	0x04,0x00,0x00,	//00:00~05:00 4 谷
-	0x03,0x00,0x05,	//05:00~07:30 3 平
-	0x02,0x30,0x07,	//07:30~11:30 2 峰
-	0x03,0x30,0x11,	//11:30~17:00 3 平
-	0x02,0x00,0x17, //17:00~21:00 2 峰
-	0x03,0x00,0x21,	//21:00~22:00 3 平
-	0x04,0x00,0x22, //22:00~24:00 4 谷
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00, //0xc33f
-	
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00, //0xc34f
-	
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00, //0xc35f
-	
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00, //0xc36f
-	
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00, //0xc37f
-	
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00, //0xc38f
-	
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00, //0xc39f
-	
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00, //0xc3af
-
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00,0x00,0x00,
-	0x00, //0xc41f
-	
-	0x00,0x00,0x01,0x01, //0xc510, 4, 负荷记录起始时间,分时日月
-    0x15,0x00,		//0xc511, 2, 负荷曲线1类数据记录间隔   
-    0x0,0x00,		//0xc512, 2, 负荷曲线2类数据记录间隔
-    0x0,0x00,		//0xc513, 2, 负荷曲线3类数据记录间隔
-    0x0,0x00,		//0xc514, 2, 负荷曲线4类数据记录间隔
-    0x0,0x00,		//0xc515, 2, 负荷曲线5类数据记录间隔
-    0x0,0x00,		//0xc516, 2, 负荷曲线6类数据记录间隔
-    0x0,0x00,		//0xc517, 2, 负荷曲线7类数据记录间隔
-#ifdef VER_LIAONING	
-	0x31,0x31,0x31,0x31,0x00,0x00,	//0xc610, 6字节ASCII码字符, 手动复位密码
-	//0x30,			//0xc611, 1, 三相三线失流判定值
-	//0x50,			//0xc612, 1, 三相四线失流判定值
-
-    0x40,0x15, 	//0xc720, 2, 失压启动电压阀值 %70Un 	154.0
-    0x70,0x18,	//0xc721, 2, 失压恢复电压阀值 %85Un 	187.0
-    0x00,0x01,	//0xc722, 2, 失压启动电流阀值 %2Ib  	0.1
-    0x05,0x00,	//0xc723, 2, 失流启动平均值阀值(%Ib)	5
-    0x50,0x00,	//0xc724, 2, 失流启动不平衡率阀值(%)	50
-    //{0xc725, 	2, 			DI_LOW_PERM,DI_READ|DI_WRITE, 	 0, INFO_NONE,		FMT_BCD,	1},	//
-
-#endif	
-	0x16, 0x17, //0xc810 2 失压事件电压触发上限 NNN.N
-	0x60, 0x17, //0xc811 2 失压事件电压恢复下限 NNN.N
-	0x00, 0x05, 0x00, //0xc812 3 失压事件电流触发下限 NN.NNNN
-	0x60, //0xc813 1 失压事件判定延时时间 秒
-
-	0x16, 0x17, //0xc814 2 欠压事件电压触发上限 NNN.N
-	0x60, //0xc815 1 欠压事件判定延时时间 秒
-
-	0x00, 0x00, //0xc816 2 过压事件电压触发下限
-	0x00, //0xc817 1 过压事件判定延时时间
-
-	0x16, 0x17, //0xc818 2 断相事件电压触发上限
-	0x00, 0x05, 0x00, //0xc819 3 断相事件电流触发上限
-	0x60, //0xc81a 1 断相事件判定延时时间
-
-	0x00, 0x00, //0xc81b 2 电压不平衡率限值
-	0x60, //0xc81c 1 电压不平衡率判定延时时间
-
-	0x00, 0x00, //0xc81d 2 电流不平衡率限值
-	0x60, //0xc81e 1 电流不平衡率判定延时时间
-
-	0x16, 0x17, //0xc820 2 失流事件电压触发下限
-	0x00, 0x00, 0x00, //0xc821 3 失流事件电流触发上限
-	0x00, 0x00, 0x00, //0xc822 3 失流事件电流触发下限
-	0x60, //0xc823 1 失流事件判定延时时间
-
-	0x00, 0x00, //0xc824 2 过流事件电流触发下限
-	0x60, //0xc825 1 过流事件判定延时时间
-
-	0x00, 0x00, //0xc826 2 断流事件电压触发下限
-	0x00, 0x00, 0x00, //0xc827 3 断流事件电流触发上限
-	0x60, //0xc828 1 断流事件判定延时时间
-
-	0x00, 0x00, 0x00, //0xc829 3 潮流反向事件有功功率触发下限
-	0x60, //0xc82a 1 潮流反向事件判定延时时间
-
-	0x00, 0x32, 0x01, //0xc82b 3 过载事件有功功率触发下限 NN.NNNN
-	0x60, //0xc82c 1 过载事件判定延时时间
-
-	0x00, 0x00, //0xc82d 2 电压考核上限
-	0x00, 0x00, //0xc82e 2 电压考核下限
-
-	0x00, 0x00, 0x00, //0xc830 3 有功需量超限事件需量触发下限
-	0x00, 0x00, 0x00, //0xc831 3 无功需量超限事件需量触发下限
-	0x60, //0xc832 1 需量超限事件判定延时时间
-
-	0x00, 0x00, //0xc833 2 总功率因数超下限阀值
-	0x60, //0xc834 1 总功率因数超下限判定延时时间
-
-	0x00, 0x00, //0xc835 2 电流严重不平衡限值
-	0x60, //0xc836 1 电流严重不平衡触发延时时间
-
-	0xff, //0xc840 1 负荷记录模式字
-	0xff, //0xc841 1 冻结数据模式字
-	0x00, 0x00, 0x01, 0x01, //0xc842 4 负荷记录起始时间
-	0x15, 0x00, //0xc843 2 第1类负荷记录间隔时间
-	0x15, 0x00, //0xc844 2 第2类负荷记录间隔时间
-	0x15, 0x00, //0xc845 2 第3类负荷记录间隔时间
-	0x15, 0x00, //0xc846 2 第4类负荷记录间隔时间
-	0x15, 0x00, //0xc847 2 第5类负荷记录间隔时间
-	0x15, 0x00, //0xc848 2 第6类负荷记录间隔时间
-
-	0xff, //0xc849 1 定时冻结数据模式字
-	0xff, //0xc84a 1 瞬时冻结数据模式字
-	0xff, //0xc84b 1 约定冻结数据模式字
-	0x03, //0xc84c 1 整点冻结数据模式字
-	0xff, //0xc84d 1 日冻结数据模式字
-
-	0x00, 0x00, 0x01, 0x01, 0x00,//0xc850 5 整点冻结起始时间
-	0x60, //0xc851 1 整点冻结时间间隔
-	0x00, 0x00, //0xc852 2 日冻结时间
-
-	0x00, 0x00, 0x00, 0x00, //0xc853 4 冻结命令
-	0x00, 0x00, 0x00, 0x00, //0xc854 4 瞬时冻结命令
-
-	0x00, 0x00,	//0xc855 2 公共假日数n
-
-	0x60, //0xc856 1 编程开关有效时间
-
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00, 
-	0x00,0x00,0x00,0x00, //0xc861-0xc86e  第1至十四公共假日日期及日时段表号
-
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00, 
-	0x00,0x00,0x00,0x00, //0xc871-0xc87e  第15至28公共假日日期及日时段表号
-
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00, 
-	0x00,0x00,0x00,0x00, //0xc881-0xc88e  第29至42公共假日日期及日时段表号
-
-	0x01,	//0xc890 是否返回实际个数费率参数
-	0x00,	//0xc900 时区时段切换标志
-};
-
-//07内表扩展数据
-TItemDesc g_Bank5Desc[] =   //标准版
-{//----标识-----长度------------权限-----------读写--------偏移----写操作-----------格式----------Pn个数------    
-	{0x0001, 	BN_VER_LEN,	DI_HIGH_PERM, 	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,		1},//Ver
-        
-    {0x5001, 	195,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //A相失压临时记录
-    {0x5002, 	195,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //B相失压临时记录
-    {0x5003, 	195,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //C相失压临时记录
-
-	{0x5004, 	15,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //全失压临时记录
-
-	{0x5005, 	195,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //A相断相临时记录
-	{0x5006, 	195,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //B相断相临时记录
-	{0x5007, 	195,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //C相断相临时记录
-
-	{0x5008, 	179,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //A相失流临时记录
-	{0x5009, 	179,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //B相失流临时记录
-	{0x500a, 	179,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //C相失流临时记录
-
-	{0x500b, 	140,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //电压逆相序临时记录
-	{0x500c, 	140,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //电流逆相序临时记录
-
-	{0x500d, 	140,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //A相过载临时记录
-	{0x500e, 	140,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //B相过载临时记录
-	{0x500f, 	140,		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //C相过载临时记录
-
-	{0x5010, 	8,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //最近一次编程时间 TTime格式	
-};
 
 TItemDesc g_Bank10Desc[] =
 {//----标识-----长度------------权限-----------读写--------偏移----写操作--------------格式----------Pn个数------格式描述串------测量点映射号----
-	{0xa000, 	BN_VER_LEN,	DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,		1,	},//Ver
-	
-	//电能计量
-	{0xa010, 	3,			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0, 	INFO_NONE,	   	FMT10,			1,	},//脉冲常数,BCD码
-	{0xa011, 	1,			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0, 	INFO_NONE,	   	FMT_UNK,		1,	},//有功单双向计量模式:0,双向 1单向
-	{0xa012, 	1,			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0, 	INFO_NONE,	   	FMT_UNK,		1,	},//终端无功电量累加标志,
-																										  //低4位用于正向无功:D0,D1,D2,D3分别表示一,二,三,四象限无功电量,为1:相加,为0:不加;
-																										  //高4位用于反向无功:D4,D5,D6,D7分别表示一,二,三,四象限无功电量,为1:相加,为0:不加;
-	{0xa013, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0, 	INFO_NONE,	   	FMT_UNK,		1,	}, //编程开关有效持续时间 NN(1~99分)
-	{0xa014, 	2, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0, 	INFO_NONE,	   	FMT_UNK,		1,	}, //防潜动脉冲最大间隔时间 NNNN(0~9999秒)
-	{0xa015, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0, 	INFO_NONE,	   	FMT_UNK,		1,	}, //角度方向,0表示角度按照逆时针方向表示,Ua,Ub,Uc分别为0,240,120
-																										   //	1表示角度按照顺时针方向表示,Ua,Ub,Uc分别为0,120,240	
-	//冻结
-	{0xa020, 	1,			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0, 	INFO_NONE,	   	FMT_UNK,		1,	},//日月冻结模式 BIN 0表示0点抄表再冻结,1表示提前抄表0点冻结
-	
-	//告警
-	{0xa030, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,  	INFO_NONE, 	    FMT_BIN, 	GB_MAXMETER,	NULL,		MTRPNMAP}, //电表互感器数量
-	{0xa031, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_BIN, 		1},   //电流/压不平衡发生时间限值 0xa031 HEX
-	{0xa032, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_BIN, 		1},   //电流/压不平衡恢复时间限值 0xa032 HEX 谐波越限，电流，电压，功率越限同电流/压不平衡不平衡
-	{0xa033, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_BIN, 		1},   //电压异常发生时间限值 0xa033 HEX
-	{0xa034, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_BIN, 		1},   //电压异常恢复时间限值 0xa034 HEX
-	{0xa035, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_BIN, 		1},   //相序异常延迟（发生/恢复）时间限值 0xa035 HEX
-	{0xa036, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_BIN, 		1},	  //判断电压回路异常时电压断相(缺相）门限电压百分比 HEX
-	{0xa037,    1,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_BIN, 		1},	  //判断断相缺相时的断相电压门限(V),HEX,-----本数据项去除不用
-	{0xa038,    1,			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_BIN, 		1},	  //启动电流为最大电流的千分比；
-	
-	//终端扩展参数
-	{0xa040, 	2, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_COMM_RLD, 		FMT_UNK, 		1}, //行政区划码
-	{0xa041, 	2, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_COMM_RLD, 		FMT_UNK, 		1}, //终端地址
-	{0xa042, 	4, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //厂商代码
-	{0xa043, 	8, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //设备编号
-	{0xa044, 	2, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //交采默认测量点号,0表示不默认
-	{0xa045, 	6, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //系统设置密码
-	{0xa046, 	11, 		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //SIM卡号码
-	{0xa04f, 	0, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //终端扩展参数块数据
-	
-	//电容器配置参数
-	{0xa05f, 	7, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 	GB_MAXMETER}, //第一组电容器配置参数
-	{0xa06f, 	7, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 	GB_MAXMETER}, //第二组电容器配置参数
-	{0xa07f, 	7, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 	GB_MAXMETER}, //第三组电容器配置参数
-	{0xa08f, 	7, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 	GB_MAXMETER}, //第四组电容器配置参数
-	{0xa09f, 	7, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 	GB_MAXMETER}, //第五组电容器配置参数
-	{0xa0af, 	7, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 	GB_MAXMETER}, //第六组电容器配置参数
-	{0xa0bf, 	7, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 	GB_MAXMETER}, //第七组电容器配置参数
-	{0xa0cf, 	7, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 	GB_MAXMETER}, //第八组电容器配置参数
-	{0xa0df, 	7, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 	GB_MAXMETER}, //第九组电容器配置参数
-	
-	//本地维护端口配置参数
-	{0xa100, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //波特率
-	{0xa101, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //校验位
-	{0xa102, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //数据位
-	{0xa103, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //停止位
-	{0xa104, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //端口功能
-	{0xa10f, 	0, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, 
-	
-	//级联端口配置参数
-	{0xa110, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //波特率
-	{0xa111, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //校验位
-	{0xa112, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //数据位
-	{0xa113, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //停止位
-	{0xa114, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //端口功能
-	{0xa11f, 	0, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, 
-	
-	//控制参数
-	{0xa120, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //上电保电时间,HEX,单位分钟
-	{0xa121, 	3, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //月电控告警时间,D0~D23分别对应0点~23点
+	{0xa000, 	BN_VER_LEN,	DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,		1}, //Ver
+		
+	{0xa014, 	2, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0, 	INFO_NONE,	   	FMT_UNK,		1}, //防潜动脉冲最大间隔时间 NNNN(0~9999秒)
+	{0xa015, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0, 	INFO_NONE,	   	FMT_UNK,		1}, //角度方向,0表示角度按照逆时针方向表示,Ua,Ub,Uc分别为0,240,120
+																										   //	1表示角度按照顺时针方向表示,Ua,Ub,Uc分别为0,120,240		
+	{0xa045, 	6, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //系统设置密码	
 
 	{0xa122, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_AC_PARA, 		FMT_UNK, 		1}, //有功电能计量方式选择
 	{0xa123, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_AC_PARA, 		FMT_UNK, 		1}, //正向无功电量累加标志
 	{0xa124, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_AC_PARA, 		FMT_UNK, 		1}, //反向无功电量累加标志
 	
-	{0xa130, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //直流模拟量检测类型,HEX, 01：PT100电阻， 其它值：直流电压量
-	
 	{0xa131, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_APP_RST, 	FMT_UNK, 		1}, //右起往左第1个485口功能定义
 	{0xa132, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_APP_RST, 	FMT_UNK, 		1}, //右起往左第2个485口功能定义
-
-	{0xa133, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //级联口校验方式 0:无校验，1：奇校验，2：偶校验
-	//国标版本
-	{0xa140, 	1,			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0, 	INFO_NONE,	   	FMT_UNK,		1,	},//国标版本选择 BIN 0表示国标2005版,1表示国标2004版
-	//主动上报
-	{0xa141, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,	GB_MAXCOMMTHREAD,	},//二类定时上报模式：BIN 1表示华北模式；0表示普通模式    
+	
 	//GPRS通信
 	{0xa142, 	2, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_COMM_RLD,	FMT_UNK,		1,	},//GPRS无通讯复位终端时间,单位分钟,HEX
 	//总加组相关参数变更
-	{0xa143, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,		1,	},//总加组相关参数变更，是否在原有日月累计电量的基础上累计：BIN 1表示不累计；0表示累计    
-	//终端地址显示
-	{0xa144, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,		1,	},//终端地址显示格式	BIN	1	缺省值0,0表示十进制显示，1表示十六进制显示
-	//终端通信方式
-	{0xa145, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_COMM_RLD,	FMT_UNK,		1,	},//终端网卡1通信方式BIN	1	缺省值0,0表示TCP方式，1表示UDP方式
-
-	{0xa150, 	6, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 	0, 	   INFO_COMM_RLD,	FMT_BIN,	 1},   //本机网卡1物理地址
-	{0xa151, 	4, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 	0, 	   INFO_COMM_RLD,	FMT_BIN,	 1},   //本机网卡1IP
-	{0xa152, 	4, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 	0, 	   INFO_COMM_RLD,	FMT_BIN,	 1},   //子网掩码
-	{0xa153, 	4, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 	0, 	   INFO_COMM_RLD,	FMT_BIN,	 1},   //网关
-	{0xa15f, 	0, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 	0, 	   INFO_COMM_RLD,	FMT_BIN,	 1},
-
-	{0xa160, 	4, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_APP_RST, 		FMT_UNK, 		1}, //红外口波特率
-	{0xa161, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_APP_RST, 		FMT_UNK, 		1}, //红外口校验位	
-	{0xa162, 	4, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_APP_RST, 		FMT_UNK, 		1}, //232口波特率
-	{0xa164, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_APP_RST, 		FMT_UNK, 		1}, //232口校验位
-
-	{0xa165, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 			FMT_UNK, 		1}, //主站通信密码校验的长度选择，0-2字节，1-16字节
-	{0xa166, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_APP_RST, 		FMT_UNK, 		1}, //485抄表口排列顺序,0:右->左分别是口1,口2...; 1:左->右分别是口1,口2...
-  
-  //显示专用
-	{0xa170, 	21, 		DI_LOW_PERM,   	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //液晶屏欢迎界面第1行
-	{0xa171, 	21, 		DI_LOW_PERM,   	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //液晶屏欢迎界面第2行
-	{0xa172, 	21, 		DI_LOW_PERM,   	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //液晶屏欢迎界面第3行
-	{0xa173, 	21, 		DI_LOW_PERM,   	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //液晶屏欢迎界面第4行
-	{0xa174, 	21, 		DI_LOW_PERM,   	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //液晶屏欢迎界面第5行
-	{0xa175, 	21, 		DI_LOW_PERM,   	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //液晶屏欢迎界面第6行
-	{0xa176, 	21, 		DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //液晶屏欢迎界面第7行
-	{0xa177, 	21, 		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //液晶屏欢迎界面第8行
-	{0xa178, 	21, 		DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //液晶屏欢迎界面第9行
-	{0xa179, 	2, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //记录轮显的测量点号
-
-	{0xa180, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_APP_RST, 	FMT_UNK, 		1}, //右起往左第3个485口功能定义
-
-	{0xa190, 	1 , 		DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_COMTASK_PARA,		FMT_BIN,		GB_MAXMETER,},	//电表曲线冻结模式字,对97版不起作用  0:不读取电表冻结,终端自行冻结、1:读取电表自身冻结
-	{0xa191, 	1 , 		DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_COMTASK_PARA,		FMT_BIN,		GB_MAXMETER,},	//电表日冻结模式字,对无日冻结功能的表不起作用 0:不读取电表冻结,终端自行冻结、1:读取电表自身日冻结
-
-	{0xa1a0, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //设置主动上报为多帧时帧序号每帧均按单帧传输，还是按有续帧规则传输 0:每帧都是单帧 1:按有续帧规则
-	{0xa1a1, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //设置是否根据电表返回电能数据的实际长度修改测量点的费率数，0:不修改费率数按照F10的配置 1:按照电表实际返回电能块长度修改
+	{0xa143, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,		1}, //总加组相关参数变更，是否在原有日月累计电量的基础上累计：BIN 1表示不累计；0表示累计
+	
+	{0xa166, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0,	INFO_APP_RST, 	FMT_UNK, 		1}, //485抄表口排列顺序,0:右->左分别是口1,口2...; 1:左->右分别是口1,口2...
+	{0xa180, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_APP_RST, 	FMT_UNK, 		1}, //右起往左第3个485口功能定义	
 
 	{0xa1a5, 	2, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //用来配置模块是否需要进入Dormant。设置为0的时候则不使用Dormant，非0的时候则在无通信后wDormantInterv时间内进入Dormant。	
-	{0xa1a6, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //遥信属性取反标志位 0-05 1-698
-	{0xa1a7, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //越限阀值不带符号位
-	{0xa1a8, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //终端工作模式
-
-	{0xa1a9, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //计量方式选择，0x00表示以总功率计量电量，0x01表示以分相功率计量电量	
-
-	{0xa1b0,	1,			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK,		GB_MAXMETER,}, //无功补偿模块  无功电能量计量模式：1为一次侧、2为二次侧、其他值无效,默认为二次侧
-
-	{0xa1b1, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_COMTASK_PARA, 		FMT_UNK, 		1}, //日月冻结滞后0点开始执行的分钟数，缺省为0表示无需滞后执行
-
-	{0xa1b2, 	1 , 		DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_COMTASK_PARA,	FMT_BIN,	GB_MAXMETER,},	//电表抄表日冻结模式字, 0:读实时数据、1:读取电表结算日
-
-    {0xa1b3, 	12, 		DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_COMM_RLD,	FMT_BIN,		1},	//设备号 ascii字符  12 BYTE
-	{0xa1b4, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BIN,		1},	//重抄次数，0~7,0表示不进行垃圾队列的重抄,7表示一直进行垃圾队列的重抄,其它表示次数
-	{0xa1b5, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BIN,		1},	//第4个485口功能定义 0：维护口, 0xFF为调试输出
+	{0xa1a6, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //遥信属性取反标志位 0-05 1-698	
 	{0xa1b6, 	1, 			DI_LOW_PERM,  	DI_READ|DI_WRITE, 0,	INFO_APP_RST, 	FMT_UNK, 		1}, //以太网口接入方式选择0：自动获取IP，1：pppoe拨号
-	{0xa1b7, 	2, 			DI_HIGH_PERM, 	DI_READ|DI_WRITE, 0, 	INFO_NONE, 		FMT_BIN, 		1},	//液晶背光点亮时间(单位：秒)
-	{0xa1b8, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BIN,		1},	//默认GPRS模块类型
-	
-    {0xa1b9, 	21, 		DI_HIGH_PERM,  	DI_READ|DI_WRITE, 0,	INFO_NONE, 		FMT_UNK, 		1}, //上次读取的配置文件名
-	
-	{0xa1ba, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_COMTASK_PARA,		FMT_BIN,		GB_MAXMETER,},	//电表月冻结模式字, 0:不读取电表冻结,终端自行冻结、1:读取电表自身日冻结; 2.读取电表结算日
-	{0xa1bb, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BIN,		1,},//设置读二类及主动上报二类数据中，如果没有冻结的历史数据，是否填无效上送: 0:不填无效（不上送）; 1:填无效
 
-	{0xa1bc, 	4, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BIN,		1,},//电表数据项间的抄读延时ms
 	{0xa1bd, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BIN,		1,},//第1个脉冲端口所对应的开关量
-	{0xa1be, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BIN,		1,},//调节LCD对比度
 
-	{0xa1c0, 	2, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BIN,		1,}, //TCP探测间隔，BIN,单位秒
-	{0xa1c1, 	6, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 0, 	INFO_COMM_RLD,	FMT_BIN,		1},   //本机网卡2物理地址
-
-	//终端通信方式
-	{0xa1c2, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_COMM_RLD,	FMT_UNK,		1,	},//终端网卡2通信方式BIN	1	缺省值0,0表示TCP方式，1表示UDP方式
-	{0xa323,	1,	  		DI_LOW_PERM,	DI_READ|DI_WRITE,0, 	INFO_NONE,		FMT_UNK,		1,	}, //是否保存调试信息到文件
-
+	{0xa1be, 	2, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BCD,		1,},//脉冲宽度 单位毫秒
+	{0xa1c0, 	1, 			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BIN,		1,},//是否保存调试信息（0：否 1：是）
+	{0xa1c1, 	4, 			DI_LOW_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BIN,		1,},//脉冲方式跳闸输出的秒数设置 BCD
 };
 
 BYTE g_bBank10Default[] = 
 {
 	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //Ver(20)	
-	
-	//电能计量
-	0x00, 0x64, 0x00, //0xa010 3 脉冲常数,BCD码
-	0x00, //0xa011 1 有功单双向计量模式:0,双向 1单向
-	0xc3, //0xa012 终端无功电量累加标志,
-	
-	0x30,	//0xa013 1 编程开关有效持续时间 NN(1~99分)
+
 	0x60, 0x00,	//0xa014 2 防潜动脉冲最大间隔时间 NNNN(0~9999秒)
 	0x01,	//0xa015 1	角度方向,0表示角度按照逆时针方向表示,Ua,Ub,Uc分别为0,240,120
 			//					 1表示角度按照顺时针方向表示,Ua,Ub,Uc分别为0,120,240
-
-	//冻结
-	0x00, //0xa020 1 日月冻结模式 BIN 0表示0点抄表再冻结,1表示提前抄表0点冻结
 	
-	//告警
-	0x03, //0xa030 1 电表互感器数量
-	0x01, //0xa031 1 电流/压不平衡发生时间限值
-	0x01, //0xa032 1 电流/压不平衡恢复时间限值
-	0x01, //0xa033 1 电压异常发生时间限值 0xa033；
-	0x01, //0xa034 1 电压异常恢复时间限值 0xa034；
-	0x01, //0xa035 1 相序异常延迟（发生/恢复）时间限值 0xa035;
-	0x4e,	//0xa036 1 判断电压回路异常时电压断相(缺相）门限电压百分比 HEX
-	0x00,   //0xa037  1 判断断相缺相时的断相电压门限(V)， 默认为无效值；
-	0x50,   //0xa038  1 启动电流为最大电流的千分比；默认为无效值；
-
-	0x11, 0x22, //行政区划码
-	0x33, 0x44, //终端地址
-	'C', 'L', 'O', 'U',//厂商代码	
-    #ifdef EN_AC
-    'C', 'L', '8', '1', '8', 'C', 'G', 'B', //设备编号	
-    0x01, 0x00, //0xa044 2 交采默认测量点号,0表示不默认
-    #else
-    'C', 'L', '8', '1', '8', 'C', 'J', 'C', //设备编号	
-	0x00, 0x00, //0xa044 2 交采默认测量点号,0表示不默认
-    #endif
-	'0', '0', '0', '0', '0', '0', //系统设置密码
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //终端扩展参数块数据
-
-	//电容器配置参数
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0xa05f 7 第一组
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0xa06f 7 第二组
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0xa07f 7 第三组
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0xa08f 7 第四组
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0xa09f 7 第五组
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0xa0af 7 第六组
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0xa0bf 7 第七组
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0xa0cf 7 第八组
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0xa0df 7 第九组
-	                         
-	//本地维护端口配置参数
-	0x08,//波特率  缺省值8即2400bps,端口通信波特率/300
-	0x00,//校验位  缺省无校验0, 0-无,1-偶,2-奇 
-	0x08,//数据位  缺省数据位8
-	0x00,//停止位  缺省值0,0-1位停止位,1-1.5停止位,2-2位停止位
-	0x00,//端口功能 缺省值0
-	 
-	//级联维护端口配置参数
-	0x06,//波特率  缺省值6即9600bps,端口通信波特率/300
-	0x00,//校验位  缺省无校验0, 0-无,1-偶,2-奇 
-	0x08,//数据位  缺省数据位8
-	0x00,//停止位  缺省值0,0-1位停止位,1-1.5停止位,2-2位停止位
-	0x01,//端口功能 缺省值0,0-多功能电能表抄表,1-485总线级联
-	                              
-
-	//控制参数
-	0x00, //0xa120 1 上电保电时间,HEX,单位分钟
-	0xff, 0xff, 0xff, //0xa121 3 月电控告警时间,D0~D23分别对应0点~23点
+	'0', '0', '0', '0', '0', '0', //0xa045 系统设置密码	
 	
 	0x00, //0xa122 1 有功电能计量方式选择
 	0x0f, //0xa123 1 正向无功电量累加标志
 	0xf0, //0xa124 1 反向无功电量累加标志
-
-	0x00, //0xa130 1 直流模拟量类型,HEX, 01：PT100电阻， 其它值：直流电压模拟量
-#ifdef SYS_WIN
-    0x00,//0x04, //0xa131 1 右起往左第1个485口功能定义 0：抄表口， 1：被抄口，2：级联口，3：接无功补偿装置
-#else
-	0x00, //0xa131 1 右起往左第1个485口功能定义 0：抄表口， 1：被抄口，2：级联口，3：接无功补偿装置
-#endif
-	0x00, //0xa132 1 右起往左第2个485口功能定义 0：抄表口， 1：被抄口，2：级联口，3：接无功补偿装置
-	0xc3, //0xa133 级联口通讯参数,默认9600,8位数据位,无校验
 	
-	//国标版本
-	0x00, //国标版本选择 BIN 0表示国标2005版,1表示国标2004版
-	//主动上报
-	0x01, //二类定时上报模式：BIN 1表示华北模式；0表示普通模式
+	0x00, //0xa131 1 右起往左第1个485口功能定义 0：抄表口， 1：被抄口，2：级联口，3：接无功补偿装置
+	0x00, //0xa132 1 右起往左第2个485口功能定义 0：抄表口， 1：被抄口，2：级联口，3：接无功补偿装置
+
 	//GPRS通信
-	0x80, 0x16,	  //0xa142 2 GPRS无通讯复位终端时间,单位分钟,HEX,默认4天
+	0x68, 0x01,	  //0xa142 2 GPRS无通讯复位终端时间,单位分钟,HEX,默认6小时
+
 	//总加组相关参数变更
-	0x00, //总加组相关参数变更，是否在原有日月累计电量的基础上累计：BIN 1表示不累计；0表示累计    
-	//总加组相关参数变更
-	0x00, //终端地址显示格式 缺省值0, 0表示十进制显示，1表示十六进制显示   	
-#ifdef SYS_WIN
-	0x00,//终端网卡1通信方式BIN	1	缺省值0,0表示TCP方式，1表示UDP方式
-#else
-	0x01,//终端网卡1通信方式BIN	1	缺省值0,0表示TCP方式，1表示UDP方式
-#endif
+	0x00, //0xa143 总加组相关参数变更，是否在原有日月累计电量的基础上累计：BIN 1表示不累计；0表示累计    
 
-	//0xa150
-	0x00, 0x87, 0xFC, 0x74, 0xA7, 0x00, //本机物理地址
-	0xC8, 0x01, 0xA8, 0xC0,  //本机IP	test:192.168.1.200
-	0x00, 0xFF, 0xFF, 0xFF, //子网掩码
-	0x00, 0x00, 0x00, 0x00, //网关
-
-	0x03, 0x00, 0x00, 0x00, //红外口波特率
-	0x00,//红外口校验位	
-	0x03, 0x00, 0x00, 0x00, //232口波特率
-	0x00,//232口校验位
-
-	16,//主站通信密码校验的长度选择，0-默认（2字节），其他为密码的字节数
 	0x00,//0xa166 1 485抄表口排列顺序,0:右->左分别是口1,口2...; 1:左->右分别是口1,口2...
 	
-	//显示专用 
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//(21)
-//	0xc9,0xee,0xdb,0xda,0xbf,0xc6,0xc2,0xbd,0xb5,0xe7,0xd7,0xd3,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//(21)
-#ifdef EN_CONCENTRATOR
-	#ifdef ENGLISH_DISP
-		'L', 'o' ,'w' ,'-' ,'V' ,'o' ,'t' ,'-','C' ,'o' ,'n' ,'c' ,'e' ,'n' ,'t' ,'o' ,'r' ,0x00,0x00,0x00,0x00,//(21) 低压集抄集中器---英文显示
-	#else
-		0xB5,0xCD,0xD1,0xB9,0xBC,0xAF,0xB3,0xAD,0xBC,0xAF,0xD6,0xD0,0xC6,0xF7,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//(21) 低压集抄集中器
-	#endif
-#else
-	#ifdef ENGLISH_DISP	//EN_SPECIAL_TRANSFORMER
-		'S' ,'P' ,'E' ,'C' ,'I','A' ,'L' ,'-' ,'T' ,'R' ,'A' ,'N' ,'S' ,'F' ,'O','R','M','E','R',0x00,0x00,//(21) 低压集抄集中器---英文显示
-	#else
-		0xD6,0xC7,0xC4,0xDC,0xD7,0xA8,0xB1,0xE4,0xD6,0xD5,0xB6,0xCB,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//(21) 智能专变终端
-	#endif
-#endif
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//(21)
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//(21)
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//(21)
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//(21)
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//(21)
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//(21)
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//(21)
-	0x00,0x00,
-	//9*21
-
-	0xFF, //0xa180 1 右起往左第3个485口功能定义 0：抄表口， 1：被抄口，2：级联口，3：接无功补偿装置, 0xFF为调试输出
-	0x00, //0xa190
-	0x00, //0xa191
-	0x00, //0xa1a0
-	0x00, //0xa1a1
+	0x06, //0xa180 1 右起往左第3个485口功能定义 0：抄表口， 1：被抄口，2：级联口，3：接无功补偿装置, 6:维护口， 0xFF为调试输出
+	
 	0x10, 0x00,//0xa1a5	用来配置模块是否需要进入Dormant。设置为0的时候则不使用Dormant，非0的时候则在无通信后wDormantInterv时间内进入Dormant。	
 	0x00, //0xa1a6 遥信属性取反标志位0-05,1-697
-	0x00,// 0xa1a7越限阀值不带符号位0标志1+系数，1直接使用系数
-	0x00,// 0xa1a8 测试模式开关，0，非测试模式，1.测试模式
-	0x00, //0xa1a9 0表示以总功率计量电量，1表示以分相功率计量电量
-	0x02, //0xa1b0 1为一次侧、2为二次侧、其他值无效 默认为二次侧
-	0x00, //0xa1b1	
-    0x00, //0xa1b2
 
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //0xa1b3 设备号
-	0x02, //0xa1b4 1 重抄次数，0~7,0表示不进行垃圾队列的重抄,7表示一直进行垃圾队列的重抄,其它表示次数
-	0x00, //0xa1b5
 	0x00, //0xa1b6 以太网口接入方式选择0：自动获取IP，1：pppoe拨号
-	60, 0, //LCD点亮时间
-	11,  //0xa1b8 默认GPRS模块类型 GC864==11
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,////0xa1b9(21)
-	0x00, //0xa1ba	
-	0x01, //0xa1bb	
 
-	0xF4, 0x01, 0x00, 0x00, //0xa1bc
-	0x03,//0xa1bd
-	0xa0,//0xa1be LCD默认对比度
+	0x03, //0xa1bd 第1个脉冲端口所对应的开关量
 
-	0x3c, 0x00, //0xa1c0 2 TCP探测间隔，BIN,单位秒
-	0x00, 0x87, 0xFD, 0x75, 0xA6, 0x00, //本机网卡2物理地址，其他网卡参数在标准参数中
-	0x01,//终端网卡2通信方式BIN	1	缺省值0,0表示TCP方式，1表示UDP方式
-	0x00,  //0xa323    //是否保存调试信息到文件
+	0x00, 0x03, //0xa1be 2 脉冲宽度 单位毫秒
+	0x00, //0xa1c0 1 是否保存调试信息（0：否 1：是）
+	0x60, 0x00, 0x00, 0x00, //0xa1c1 脉冲输出时长 默认60秒
 };
 
 //------------------------------------------------------------------------------------------------------
@@ -4329,14 +2822,14 @@ TItemDesc g_Bank11Desc[] =
 #endif
 
 	{0x0d00,	5,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲统计时标
-	{0x0d01,	47,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲日正有统计起点值
-	{0x0d02,	47,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲月正有统计起点值
-	{0x0d03,	47,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲日反有统计起点值
-	{0x0d04,	47,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲月反有统计起点值
-	{0x0d05,	47,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲日正无统计起点值
-	{0x0d06,	47,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲月正无统计起点值
-	{0x0d07,	47,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲日反无统计起点值
-	{0x0d08,	47,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲月反无统计起点值
+	{0x0d01,	27,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲日正有统计起点值
+	{0x0d02,	27,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲月正有统计起点值
+	{0x0d03,	27,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲日反有统计起点值
+	{0x0d04,	27,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲月反有统计起点值
+	{0x0d05,	27,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲日正无统计起点值
+	{0x0d06,	27,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲月正无统计起点值
+	{0x0d07,	27,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲日反无统计起点值
+	{0x0d08,	27,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		PULSE_PN_NUM,	}, //最近1次脉冲月反无统计起点值
 
 };
 
@@ -4370,50 +2863,53 @@ TItemDesc  g_Bank17Desc[] =
 	{0x6013,	1,			DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //每个以太网信模块存在多个主站IP地址，本参数用于区分不同IP地址
 };
 
+static const BYTE g_bGrpEngFmt[] = {FMT_BIN, 8, FMT_BIN, 8, FMT_BIN, 8, FMT_BIN, 8, FMT_BIN, 8, 0xff}; //固定按照费率数为4
 //------------------------------------------------------------------------------------------------------
 //中间数据描述表
 TItemDesc g_Bank18Desc[] =
 {//----标识-----长度------------权限-----------读写--------偏移----写操作-------格式----------Pn个数------------格式描述数组--------------------------------------
     {0x0001, 	BN_VER_LEN,			DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,		1,	},//Ver
-    {0x003f, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F41+
-    {0x004f, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F42+                                                                                                                    
-    {0x005f, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F43+
-    {0x006f, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F44+
+    {0x003f, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	g_bGrpEngFmt},//C1F41+
+    {0x004f, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	g_bGrpEngFmt},//C1F42+                                                                                                                    
+    {0x005f, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	g_bGrpEngFmt},//C1F43+
+    {0x006f, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	g_bGrpEngFmt},//C1F44+
     //{0x007f, 	41, 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		g_bC1F21Fmt},//C1F21+
     //{0x008f, 	41, 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		g_bC1F22Fmt},//C1F22+
-    {0x009f, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F45+
-    {0x00af, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F46+
-    {0x00bf, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F47+
-    {0x00cf, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F48+
-	{0x026f, 	12, 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,	},//C2F57
-	{0x029f, 	12, 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,	},//C2F60
-	{0x02cf, 	6 , 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,	},//C2F65 
-    {0x02df, 	6 , 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,	},//C2F66 
-	
-	{0x031f, 	8 , 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C2F97
-    {0x032f, 	8 , 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C2F98
-    {0x033f, 	8 , 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C2F99
-    {0x034f, 	8 , 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C2F100
+    {0x009f, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	g_bGrpEngFmt},//C1F45+
+    {0x00af, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	g_bGrpEngFmt},//C1F46+
+    {0x00bf, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	g_bGrpEngFmt},//C1F47+
+    {0x00cf, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	g_bGrpEngFmt},//C1F48+
+	//{0x026f, 	12, 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,	},//C2F57
+	//{0x029f, 	12, 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,	},//C2F60
+	//{0x02cf, 	6 , 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,	},//C2F65 
+ //   {0x02df, 	6 , 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,	},//C2F66 
+	//
+	//{0x031f, 	8 , 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C2F97
+ //   {0x032f, 	8 , 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C2F98
+ //   {0x033f, 	8 , 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C2F99
+ //   {0x034f, 	8 , 				DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C2F100
 
 	//总加组日月起点及起点时的累计值，用于处理参数变更
-	{0x035f, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		},//C1F19
-    {0x036f, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		},//C1F20
-	{0x037f, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		},//C1F21
-    {0x038f, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		},//C1F22
-	{0x039f, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		},//C1F19+
-    {0x03af, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		},//C1F20+
-	{0x03bf, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		},//C1F21+
-    {0x03cf, 	40+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		},//C1F22+
+	{0x035f, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		g_bGrpEngFmt},//C1F19
+    {0x036f, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		g_bGrpEngFmt},//C1F20
+	{0x037f, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		g_bGrpEngFmt},//C1F21
+    {0x038f, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		g_bGrpEngFmt},//C1F22
+	{0x039f, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		g_bGrpEngFmt},//C1F19+
+    {0x03af, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		g_bGrpEngFmt},//C1F20+
+	{0x03bf, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		g_bGrpEngFmt},//C1F21+
+    {0x03cf, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		g_bGrpEngFmt},//C1F22+
+	{0x03df, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		g_bGrpEngFmt},//总加有功示值
+	{0x03ef, 	40, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXSUMGROUP,		g_bGrpEngFmt},//总加无功示值
 
 	//测量点日月起点时的累计值,用于处理电表示度下降或满度,目前备用 
-	{0x040f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F41
-    {0x041f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F42
-	{0x042f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F43
-    {0x043f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F44
-	{0x044f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F45
-	{0x045f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F46
-    {0x046f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F47
-	{0x047f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F48
+	//{0x040f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F41
+ //   {0x041f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F42
+	//{0x042f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F43
+ //   {0x043f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F44
+	//{0x044f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F45
+	//{0x045f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F46
+ //   {0x046f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F47
+	//{0x047f, 	20+RATELEN, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	POINT_NUM,	},//C1F48
 	
 	{0x0610, 	4,					DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXMETER,}, //最后一次日冻结时间
 	{0x0611, 	4,					DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	GB_MAXMETER,}, //最后一次月冻结时间
@@ -4423,164 +2919,6 @@ TItemDesc g_Bank18Desc[] =
 	{0x0615, 	4,					DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	8,			}, //脉冲最后一次月冻结时间,每一路脉冲对应一个测量点
 	{0x0616, 	4,					DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,	8,			}, //脉冲最后一次月冻结时间,每一路脉冲对应一个测量点
 
-};
-
-//终端增补规约参数：标识--长度--权限--读写--偏移
-TItemDesc  g_Bank24Desc[] =   //
-{
-	{0x0001, 	BN_VER_LEN,	DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,		1,	},//Ver
-
-	{0x001f,	5,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, GB_MAXCONTROLTURN}, //C4F91
-	{0x002f,	12,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, GB_MAXMETER}, //C492
-	{0x003f,	36,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, 1}, //C493
-	{0x0040,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, 1}, //电台发送是否需要前导字节控制参数
-	{0x0041,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, 1}, //电台发送是否需要RS编码控制参数
-	{0x0042,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, 1}, //电台发送是否需要控制电台参数
-	{0x0043,	4,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_APP_RST,	FMT_UNK, 1}, //GPRS或电台接口波特率
-	{0x0044,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_APP_RST,	FMT_UNK, 1}, //GPRS或电台接口校验位
-	{0x0045,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_230M_PARA, FMT_UNK, 1}, //GPRS或电台接口校验位
-	{0x0046,	4,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, 1}, //电台接口读数据延时ms
-	{0x0047,	4,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, 1}, //电台发送后切换延时ms
-	{0x0048,	4,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_230M_PARA, FMT_UNK, 1}, //电台数传延时ms
-	{0x0049,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, 1}, //轮显时间间隔设置(未用)
-
-	{0x004a,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, 1}, //0x004a语音模块类型0-ISD4002；1-tts6188；
-	{0x004b,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, 1}, // 0x004b tts6188语音音量大小
-
-	{0x0060,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_APP_RST,	FMT_UNK, 1}, //辽宁230终端地区版本选择 0:大连 1:沈阳 2:盘锦 3:本溪 4:其它
-	{0x0061,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_APP_RST,	FMT_UNK, 1}, //是否带内置交采功能 0:不带 1:带
-	{0x0062,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_APP_RST,	FMT_UNK, 1}, //外置交采装置历史数据生成方式 0:抄交采装置 1:终端本身冻结
-	{0x4001,	140,	DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, 1},//FTP升级传输文件（下行）
-	{0x4002,	25,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, 1},//FTP升级传输文件结果（上行）
-	{0x4003,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK, 1},//FTP升级标志。1:刚升级，0:未升级 默认0
-	{0x4102,	6,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_BIN, GB_MAXMETER,},//记录最近一次收到主站回复的二类数据主动上报确认帧的时间
-	
-	{0x5001,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_BIN,	1},//是否进行版本判断,0不进行版本判断，非0启动版本判断
-	{0x5002,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_BIN,	1},//是否启用加密模块,1启用加密模块，其他值不启动
-	{0x5003,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_PORTSCH_PARA,	FMT_BIN,1},//是否启用启用自动搜表端口号,1启用，其他值不启动
-	{0x5004,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_BIN,	1},//是否开放ERC70事件,1开放，其他值关闭
-	{0x5005,	1, 		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_UNK,	1},	//跳闸版本1.为云南97协议,2为黑龙江模式
-	{0x5006,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_BIN,	1},//有效轮次个数
-	{0x5007,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_BIN,	1},//默认兰吉尔电表子协议号	
-	{0x5008,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_BIN,	1},// 对电表的抄读数据命令的应答中对电表的数据是否需要减去0x33
-	{0x5009,	1,		DI_LOW_PERM,		DI_READ|DI_WRITE, 0,	INFO_NONE,		FMT_BIN,	1},// 对3P3W接线方式的电表电压不平衡度计算方式 0:按三相计算 1:按二相计算
-	{0x5010, 	64, 	DI_HIGH_PERM,		DI_READ|DI_WRITE, 0, 	INFO_COMM_RLD,	FMT_UNK,	1,},//(海南05扩展)终端IP地址和端口
-	{0x5011, 	1, 		DI_HIGH_PERM,		DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,	1,},//F85(天津) 终端地址参数
-	{0x5012, 	8, 		DI_HIGH_PERM,		DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,	1,},//F243(天津)终端sim卡号码
-	{0x5015,    520,    DI_HIGH_PERM,		DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,	1,},//(新国标1类数据)文件下装未收到数据段 
-	{0x5016, 	1, 		DI_HIGH_PERM,		DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,	1,},//补抄方式（0:按冻结时标 1:按冻结次数）
-	{0x5017, 	1, 		DI_HIGH_PERM,		DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,	1,},//补抄冻结数据开始的时间（小时）
-	{0x5018,    10,     DI_HIGH_PERM,		DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,	1,},//参数设置F91
-	{0x5020, 	1, 		DI_HIGH_PERM,		DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,	1,},//补抄方式（0:按冻结时标 1:按冻结次数）
-	{0x5021, 	1, 		DI_HIGH_PERM,		DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_UNK,	1,},//补抄开关:0-全部关闭 1-只补抄曲线 2-只补抄日月冻结 3-都补抄
-	{0x5023, 	2, 		DI_HIGH_PERM,		DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BCD,	1,},//脉冲宽度 单位毫秒
-	{0x5024, 	1, 		DI_HIGH_PERM,		DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BIN,	1,},//随即延时登陆（D0:休眠时登陆 D1:失败时登陆）
-	{0x5025, 	1, 		DI_HIGH_PERM,		DI_READ|DI_WRITE, 0, 	INFO_NONE,		FMT_BIN,	1,},//是否保存调试信息（0：否 1：是）
-};
-
-BYTE g_bBank24Default[] = 
-{
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, //Ver(20)
-
-	0x00, 0x00, 0x00, 0x00, 0x00, //C491(5) 下浮控的告警时间和控制时间
-	'1', 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //C492(12) 电能表局编号
-	0x00, 0x05, 0x00, 0x05, 0x00, 0x05, 0x00, 0x05, 0x00, 0x05, 0x00, 0x05, 0x00, 0x05, 0x00, 0x05, 
-	0x00, 0x05, 0x00, 0x05, 0x00, 0x05, 0x00, 0x05, 0x00, 0x05, 0x00, 0x05, 0x00, 0x05, 0x00, 0x05, 
-	0x00, 0x05, 0x00, 0x05, //C493(36) 交流装置的各次谐波电压含有率上限参数
-	0x01, //0x0040 1 电台发送是否需要前导字节控制参数
-	0x00, //0x0041 1 电台发送是否需要RS编码控制参数
-	0x01, //0x0042 1 电台发送是否需要控制电台参数
-	0x02, 0x00, 0x00, 0x00, //0x0043 4 BCD GPRS或电台接口波特率
-	0x02, //0x0044 1 GPRS或电台接口校验位
-	0x02, //0x0045 1 电台接口发送数据时的校验位
-	0x00, 0x03, 0x00, 0x00, //0x0046 4 BCD 电台接口读数据延时ms
-	0x00, 0x00, 0x00, 0x00, //0x0047 4 BCD 电台发送后切换延时ms
-	0x50, 0x02, 0x00, 0x00, //0x0048 4 BCD 电台数传延时ms
-	0x10, //轮显时间间隔设置(未用)
-
-	0x01, //0x004a语音模块类型0-ISD4002；1-tts6188；
-	0x05, // 0x004b tts6188语音音量大小
-
-	0x00, //0x0060 辽宁230终端地区版本选择 0:大连 1:沈阳 2:盘锦 3:本溪 4:其它
-	0x00, //0x0061 是否带内置交采功能 0:不带 1:带
-	0x01, //0x0062 外置交采装置历史数据生成方式 0:抄交采装置 1:终端本身冻结
-	//0x4001 FTP升级传输文件（下行）
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-
-	//0x4002 FTP升级传输文件结果（上行）
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,
-
-	0x00,	//0x4003 FTP升级标志。1:刚升级，0:未升级 默认0
-
-	0x00,0x00,0x00,0x00,0x00,0x00,//0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,//是否进行版本判断 ,0不进行版本判断
-	0x01,//是否启用加密模块,0不进行不使用加密模块
-	0x01, //0x5003 是否启用启用自动搜表端口号,1启用，其他值不启动
-	0x01, //0x5004 是否开放ERC70事件,1开放，其他值关闭
-	0x01, //0x5005 跳闸版本1.为云南97协议,2为黑龙江模式	
-	0x04,//默认控制模块有效轮次个数
-	0x00,//默认兰吉尔电表子协议号	
-	0x00, //0x5008  对电表的抄读数据命令的应答中对电表的数据是否需要减去0x33 1--不需要，其他值不需要
-	0x00, //0x5009 对3P3W接线方式的电表电压不平衡度计算方式 0:按三相计算(台体测试方式) 1:按二相计算
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x00,0x00,0x00,0x00,//FN98 (64) 终端IP地址和端口
-	0x00, //0x5011
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,//0x5012
-
-	//0x5015 下装文件标志位，置1：未成功，置0：成功
-	0x00,0x00,//组1
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,//组2
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,//组3
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,//组4
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-	0x01,//0x5016
-	0x01,//0x5017
-	0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-	0x01,//0x5020
-	0x00,//0x5021
-	0x00,0x03,//0x5023
-	0x00,//0x5024
-	0x01,//0x5025
 };
 
 //终端校准参数描述表：标识--长度--权限--读写--偏移
@@ -4737,8 +3075,8 @@ TBankCtrl g_Bank0Ctrl[SECT_NUM] = {
 	},
 
 	//SECTION3
-	{"sect3 Event-Data",							//本SECTION的名称
-	 USER_PARA_PATH"EventData.cfg",					//本SECTION数据保存的路径文件名
+	{"sect3 Event-Para",							//本SECTION的名称
+	 USER_PARA_PATH"EventPara.cfg",					//本SECTION数据保存的路径文件名
 	 NULL,										//备份文件的路径文件名，为空表示不备份，备份文件不支持多测量点多文件的备份，只支持单文件(比如只支持交采测量点0），不支持时标的备份,
 	 g_EventParaDesc,									//本SECTION数据项描述表
 	 sizeof(g_EventParaDesc)/sizeof(TItemDesc),			//本SECTION数据项描述表的数据项个数
@@ -4752,7 +3090,7 @@ TBankCtrl g_Bank0Ctrl[SECT_NUM] = {
 
 	//SECTION4
 	{"sect4 para-varible",							//本SECTION的名称
-	 USER_PARA_PATH"ParaVar.dat",					//本SECTION数据保存的路径文件名
+	 USER_PARA_PATH"ParaVar.cfg",					//本SECTION数据保存的路径文件名
 	 NULL,										//备份文件的路径文件名，为空表示不备份，备份文件不支持多测量点多文件的备份，只支持单文件(比如只支持交采测量点0），不支持时标的备份,
 	 g_ParaDesc,									//本SECTION数据项描述表
 	 sizeof(g_ParaDesc)/sizeof(TItemDesc),			//本SECTION数据项描述表的数据项个数
@@ -4786,7 +3124,7 @@ TBankCtrl g_Bank0Ctrl[SECT_NUM] = {
 	 sizeof(g_CollecMonitorDesc)/sizeof(TItemDesc), //本SECTION数据项描述表的数据项个数
 	 NULL,										//本SECTION数据库的默认值	
 	 0,											//本SECTION数据库的默认值的大小
-	 0x02,										//本SECTION数据库的当前版本,0表示没有版本管理
+	 0x01,										//本SECTION数据库的当前版本,0表示没有版本管理
 	 1,											//本SECTION数据的测量点个数
 	 1,											//本SECTION数据的镜像个数
 	 false,										//本BANK数据是否需要更新时间
@@ -4873,7 +3211,7 @@ TBankCtrl g_Bank0Ctrl[SECT_NUM] = {
 	 sizeof(g_DisPlayDesc)/sizeof(TItemDesc),	//本SECTION数据项描述表的数据项个数
 	 NULL,										//本SECTION数据库的默认值
 	 0x00,										//本SECTION数据库的默认值的大小
-	 0x00,										//本BANK数据库的当前版本,0表示没有版本管理
+	 0x01,										//本BANK数据库的当前版本,0表示没有版本管理
 	 1,											//本SECTION数据的测量点个数
 	 1,											//本SECTION数据的镜像个数
 	 false,										//本BANK数据是否需要更新时间
@@ -4916,7 +3254,7 @@ TBankCtrl g_Bank0Ctrl[SECT_NUM] = {
 	sizeof(g_ExtVarParaDesc)/sizeof(TItemDesc),	//本SECTION数据项描述表的数据项个数
 	NULL,										//本SECTION数据库的默认值	g_ExtVarParaDefault
 	0x00,										//本SECTION数据库的默认值的大小	sizeof(g_ExtVarParaDefault)
-	0x00,										//本BANK数据库的当前版本,0表示没有版本管理
+	0x01,										//本BANK数据库的当前版本,0表示没有版本管理
 	1,											//本SECTION数据的测量点个数
 	1,											//本SECTION数据的镜像个数
 	false,										//本BANK数据是否需要更新时间
@@ -4977,7 +3315,7 @@ TBankCtrl g_BankCtrl[BANK_NUM] = {
 	 sizeof(g_Bank1Desc)/sizeof(TItemDesc), //本BANK数据项描述表的数据项个数
 	 g_bBank1Default,						//本BANK数据库的默认值	
 	 sizeof(g_bBank1Default),				//本BANK数据库的默认值的大小
-	 0x00,									//本BANK数据库的当前版本,0表示没有版本管理
+	 0x01,									//本BANK数据库的当前版本,0表示没有版本管理
 	 1,										//本BANK数据的测量点个数
 	 1,										//本BANK数据的镜像个数
 	 false,									//本BANK数据是否需要更新时间
@@ -4998,49 +3336,49 @@ TBankCtrl g_BankCtrl[BANK_NUM] = {
 	},
 
 	//BANK3
-	{"bank3 expara",						//本BANK的名称
-	 USER_PARA_PATH"bank3.cfg",             //本BANK数据保存的路径文件名
+	{"bank3",						//本BANK的名称
+	 NULL,				 		            //本BANK数据保存的路径文件名
 	 NULL,									//备份文件的路径文件名，为空表示不备份，备份文件不支持多测量点多文件的备份，只支持单文件(比如只支持交采测量点0），不支持时标的备份,
-	 g_Bank3Desc,					        //本BANK数据项描述表
-	 sizeof(g_Bank3Desc)/sizeof(TItemDesc), //本BANK数据项描述表的数据项个数
-	 g_bBank3Default,						//本BANK数据库的默认值	
-	 sizeof(g_bBank3Default),				//本BANK数据库的默认值的大小
+	 NULL,							        //本BANK数据项描述表
+	 0,										//本BANK数据项描述表的数据项个数
+	 NULL,									//本BANK数据库的默认值	
+	 0,										//本BANK数据库的默认值的大小
+	 0x00,									//本BANK数据库的当前版本,0表示没有版本管理
+	 1,										//本BANK数据的测量点个数
+	 1,										//本BANK数据的镜像个数
+	 false,									//本BANK数据是否需要更新时间
+	},
+	
+	//BANK4 --------------电表扩展参数-----------------
+	{"bank4",								//本BANK的名称
+	 NULL,        							//本BANK数据保存的路径文件名
+	 NULL,									//备份文件的路径文件名，为空表示不备份，备份文件不支持多测量点多文件的备份，只支持单文件(比如只支持交采测量点0），不支持时标的备份,
+	 NULL,									//本BANK数据项描述表
+	 0,										//本BANK数据项描述表的数据项个数
+	 NULL,									//本BANK数据库的默认值	
+	 0,										//本BANK数据库的默认值的大小
 	 0x00,									//本BANK数据库的当前版本,0表示没有版本管理
 	 1,										//本BANK数据的测量点个数
 	 1,										//本BANK数据的镜像个数
 	 false,									//本BANK数据是否需要更新时间
 	},
 	 
-	//BANK4 --------------电表扩展参数-----------------
-	{"bank4 net meter expara",				//本BANK的名称
-	 USER_PARA_PATH"bank4.cfg",        		//本BANK数据保存的路径文件名
-	 NULL,									//备份文件的路径文件名，为空表示不备份，备份文件不支持多测量点多文件的备份，只支持单文件(比如只支持交采测量点0），不支持时标的备份,
-	 g_Bank4Desc,					        //本BANK数据项描述表
-	 sizeof(g_Bank4Desc)/sizeof(TItemDesc), //本BANK数据项描述表的数据项个数
-	 g_bBank4Default,						//本BANK数据库的默认值	
-	 sizeof(g_bBank4Default),				//本BANK数据库的默认值的大小
-	 0x04,									//本BANK数据库的当前版本,0表示没有版本管理
-	 1,										//本BANK数据的测量点个数
-	 1,										//本BANK数据的镜像个数
-	 false,									//本BANK数据是否需要更新时间
-	},
-	 
 	//BANK5 -------------- 电表扩展数据 ---------------
-	{"bank5 07 645 exdata",					//本BANK的名称
-	 USER_PARA_PATH"bank5.dat",        		//本BANK数据保存的路径文件名
+	{"bank5",								//本BANK的名称
+	 NULL,						       		//本BANK数据保存的路径文件名
 	 NULL,									//备份文件的路径文件名，为空表示不备份，备份文件不支持多测量点多文件的备份，只支持单文件(比如只支持交采测量点0），不支持时标的备份,
-	 g_Bank5Desc,					        //本BANK数据项描述表
-	 sizeof(g_Bank5Desc)/sizeof(TItemDesc), //本BANK数据项描述表的数据项个数
+	 NULL,							        //本BANK数据项描述表
+	 0,										//本BANK数据项描述表的数据项个数
 	 NULL,									//本BANK数据库的默认值	
 	 0,										//本BANK数据库的默认值的大小
-	 0x02,									//本BANK数据库的当前版本,0表示没有版本管理
+	 0x00,									//本BANK数据库的当前版本,0表示没有版本管理
 	 1,										//本BANK数据的测量点个数
 	 1,										//本BANK数据的镜像个数
 	 false,									//本BANK数据是否需要更新时间
 	},
 
 	//BANK6 -------------- 电表冻结数据 ---------------
-	{"bank6 net meter frozen data",			//本BANK的名称
+	{"bank6",								//本BANK的名称
 	 NULL,           						//本BANK数据保存的路径文件名
 	 NULL,									//备份文件的路径文件名，为空表示不备份，备份文件不支持多测量点多文件的备份，只支持单文件(比如只支持交采测量点0），不支持时标的备份,
 	 NULL,					        		//本BANK数据项描述表
@@ -5054,7 +3392,7 @@ TBankCtrl g_BankCtrl[BANK_NUM] = {
 	},
 
 	//BANK7 -------------- 广东配变扩展参数 ---------------
-	{"bank7 gdpb expara",					//本BANK的名称
+	{"bank7",								//本BANK的名称
 	 NULL,           						//本BANK数据保存的路径文件名
 	 NULL,									//备份文件的路径文件名，为空表示不备份，备份文件不支持多测量点多文件的备份，只支持单文件(比如只支持交采测量点0），不支持时标的备份,
 	 NULL,					        		//本BANK数据项描述表
@@ -5082,7 +3420,7 @@ TBankCtrl g_BankCtrl[BANK_NUM] = {
 	 },
 
 	//BANK9 -------------- 扩展 ---------------
-	{"bank9 sd expara",						//本BANK的名称
+	{"bank9",								//本BANK的名称
 	 NULL,           						//本BANK数据保存的路径文件名
 	 NULL,									//备份文件的路径文件名，为空表示不备份，备份文件不支持多测量点多文件的备份，只支持单文件(比如只支持交采测量点0），不支持时标的备份,
 	 NULL,					        		//本BANK数据项描述表
@@ -5291,15 +3629,15 @@ TBankCtrl g_BankCtrl[BANK_NUM] = {
 	 false,									//本BANK数据是否需要更新时间
 	 },
 
-		//BANK24 -------------- 扩展 ---------------
-	{"bank24 GB Temp expara",						//本BANK的名称
-	 USER_PARA_PATH"bank24.cfg",        //本BANK数据保存的路径文件名
+	//BANK24 -------------- 扩展 ---------------
+	{"bank24",								//本BANK的名称
+	 NULL,							        //本BANK数据保存的路径文件名
 	 NULL,									//备份文件的路径文件名，为空表示不备份，备份文件不支持多测量点多文件的备份，只支持单文件(比如只支持交采测量点0），不支持时标的备份,
-	 g_Bank24Desc,					        		//本BANK数据项描述表
-	 sizeof(g_Bank24Desc)/sizeof(TItemDesc), 		//本BANK数据项描述表的数据项个数
-	 g_bBank24Default,							//本BANK数据库的默认值	
-	 sizeof(g_bBank24Default),					//本BANK数据库的默认值的大小
-	 0x03,									//本BANK数据库的当前版本,0表示没有版本管理
+	 NULL,							   		//本BANK数据项描述表
+	 0,										//本BANK数据项描述表的数据项个数
+	 NULL,									//本BANK数据库的默认值	
+	 0,										//本BANK数据库的默认值的大小
+	 0x00,									//本BANK数据库的当前版本,0表示没有版本管理
 	 1,										//本BANK数据的测量点个数
 	 1,										//本BANK数据的镜像个数
 	 false,									//本BANK数据是否需要更新时间
@@ -5363,10 +3701,5 @@ TBankCtrl g_BankCtrl[BANK_NUM] = {
 };
 
 
-TPnMapCtrl g_PnMapCtrl[PNMAP_NUM] = {	//测量点动态映射控制结构
-//名义上支持测量点号----实际支持测量点数
-	//{POINT_NUM,			MFM_NUM},		//集抄多功能表映射方案
-	{POINT_NUM,			20},		//集抄重点户映射方案,
-};
 
 

@@ -19,7 +19,8 @@ extern bool g_fDirRd[LOGIC_PORT_NUM];
 extern BYTE g_bDirRdStep;
 extern BYTE g_bMtrRdStep[LOGIC_PORT_NUM];
 extern BYTE g_bMtrRdStatus[PN_MASK_SIZE];
-extern TSem g_semMtrCtrl;	
+extern TSem g_semMtrCtrl;
+extern TSem g_semRdMtr[LOGIC_PORT_NUM];	
 extern bool g_f485SchMtr;
 
 void StopMtrRd(WORD wStopSec);

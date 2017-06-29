@@ -23,6 +23,7 @@
 #include "LibDbAPI.h"
 #include "bios.h"
 #include "FaAPI.h"
+#include "LoadCtrl.h"
 
 
 BYTE g_bLastState[2] = {0, 0};
@@ -581,7 +582,7 @@ void InitCtrlModule()
 #endif
 
 	SetAlrLedCtrlMode(false);
-	if(ReadItemEx(BN24, PN0, 0x5023, bBuf) > 0)
+	if(ReadItemEx(BN10, PN0, 0xa1be, bBuf) > 0)		//BN24, 0x5023
 	{
 		g_wPulseWide = BcdToDWORD(bBuf, 2);
 	}
@@ -632,12 +633,15 @@ void InitCtrlModule()
 
 BYTE GetCtrlCfg(BYTE bTurn)
 {
+	BYTE bBuf[10];
 	BYTE bCfgF45 = 0, bCfgF48 = 0, bCfg = 0;
 	int iGrp =0;
 	for (iGrp=1; iGrp<=GRP_NUM; iGrp++)
 	{
-		ReadItemEx(BN0, (WORD)iGrp, 0x02df, &bCfgF45); //F45功控轮次设定
-		ReadItemEx(BN0, (WORD)iGrp, 0x030f, &bCfgF48); //F48电控轮次设定
+		OoReadAttr(0x2300+iGrp,	0x0E, bBuf, NULL, NULL);	//总加组功控轮次配置
+		bCfgF45 = bBuf[2];
+		OoReadAttr(0x2300+iGrp,	0x0F, bBuf, NULL, NULL); //总加组电控轮次配置
+		bCfgF48 = bBuf[2];
 
 		bCfg |= bCfgF45|bCfgF48;
 
@@ -645,8 +649,7 @@ BYTE GetCtrlCfg(BYTE bTurn)
 		bCfgF48 = 0;
 	}
 		
-//	return bCfg & (1<<(bTurn-1));
-	return 1;
+	return bCfg & (1<<(bTurn-1));
 }
 
 void DoTurnLedCtrl()
@@ -704,24 +707,33 @@ void DoLoopLed(BYTE &bFrm)
 	BYTE bBuf[1+1+1+8*8];
 	memset(bBuf, 0, sizeof(bBuf));
 
-	if (ReadItemEx(BN0, PN0, 0x105f, bBuf) <=0)	//读"终端当前控制状态"ID
-	{
-		
-	}
-
 	BYTE bStatus = 0;
 	BYTE bGrpFlg = 0;
+	int iGrp;
+	TGrpCurCtrlSta tGrpCurCtrlSta;
 
-	bStatus |= bBuf[0];//遥控跳闸
-	bGrpFlg = bBuf[2];//总加组有效标志位
+	ReadItemEx(BN0, PN0, 0x8200, bBuf);
+	bStatus |= bBuf[2];//遥控跳闸
+	if ((iGrp=g_LoadCtrl.GetPwrCtrlGrp()) > 0)
+		bGrpFlg |= (1<<(iGrp-1));//总加组有效标志位
+	if ((iGrp=g_LoadCtrl.GetBuyCtrlGrp()) > 0)
+		bGrpFlg |= (1<<(iGrp-1));//总加组有效标志位
+	if ((iGrp=g_LoadCtrl.GetMonCtrlGrp()) > 0)
+		bGrpFlg |= (1<<(iGrp-1));//总加组有效标志位
 
 	for (int i=0; i<GRP_NUM; i++, bGrpFlg>>=1)
 	{
 		if ((bGrpFlg&0x01) != 0)
 		{
-			bStatus |= bBuf[3+2+1+8*i];//功控跳闸
-			bStatus |= bBuf[3+2+1+8*i+1];//月电控跳闸
-			bStatus |= bBuf[3+2+1+8*i+2];//购电控跳闸
+			memset(&tGrpCurCtrlSta, 0, sizeof(TGrpCurCtrlSta));
+			if(!GetGrpCurCtrlSta(i+1, &tGrpCurCtrlSta))
+			{
+				continue;
+			}
+
+			bStatus |= tGrpCurCtrlSta.bAllPwrCtrlOutPutSta;//功控跳闸
+			bStatus |= tGrpCurCtrlSta.bMonthCtrlOutPutSta;//月电控跳闸
+			bStatus |= tGrpCurCtrlSta.bBuyCtrlOutPutSta;//购电控跳闸
 		}
 
 	}
@@ -795,6 +807,8 @@ void DoLedByPulse()
 	BYTE bStatus = 0, bGrpFlg = 0;
 	BYTE bVal = 0;
 	DWORD dwSec = 0;
+	int iGrp;
+	TGrpCurCtrlSta tGrpCurCtrlSta;
 
 	static DWORD dwSecCloseN1 = 0;
 	static DWORD dwSecOpenN1 = 0;
@@ -821,23 +835,30 @@ void DoLedByPulse()
 		dwSecCloseN2 = dwSec;
 		fInit = true;
 	}
-	
-	if (ReadItemEx(BN0, PN0, 0x105f, bBuf) <=0)	//读"终端当前控制状态"ID
-	{
-		return;
-	}
 
-	bStatus |= bBuf[0];//遥控跳闸
-	bGrpFlg = bBuf[2];//总加组有效标志位
+	ReadItemEx(BN0, PN0, 0x8200, bBuf);
+	bStatus |= bBuf[2];//遥控跳闸
+	if ((iGrp=g_LoadCtrl.GetPwrCtrlGrp()) > 0)
+		bGrpFlg |= (1<<(iGrp-1));//总加组有效标志位
+	if ((iGrp=g_LoadCtrl.GetBuyCtrlGrp()) > 0)
+		bGrpFlg |= (1<<(iGrp-1));//总加组有效标志位
+	if ((iGrp=g_LoadCtrl.GetMonCtrlGrp()) > 0)
+		bGrpFlg |= (1<<(iGrp-1));//总加组有效标志位
+
 	for (int i=0; i<GRP_NUM; i++, bGrpFlg>>=1)
 	{
 		if ((bGrpFlg&0x01) != 0)
 		{
-			bStatus |= bBuf[3+2+1+8*i];//功控跳闸
-			bStatus |= bBuf[3+2+1+8*i+1];//月电控跳闸
-			bStatus |= bBuf[3+2+1+8*i+2];//购电控跳闸
+			memset(&tGrpCurCtrlSta, 0, sizeof(TGrpCurCtrlSta));
+			if(!GetGrpCurCtrlSta(i+1, &tGrpCurCtrlSta))
+			{
+				continue;
+			}
+
+			bStatus |= tGrpCurCtrlSta.bAllPwrCtrlOutPutSta;//功控跳闸
+			bStatus |= tGrpCurCtrlSta.bMonthCtrlOutPutSta;//月电控跳闸
+			bStatus |= tGrpCurCtrlSta.bBuyCtrlOutPutSta;//购电控跳闸
 		}
-		
 	}
 
 	if (bStatus == 0)

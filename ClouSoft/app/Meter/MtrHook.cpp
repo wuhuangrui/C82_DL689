@@ -238,3 +238,28 @@ WORD MtrAddrToPn(const BYTE* pbTsa, BYTE bAddrLen)
 
 	return 0;
 }
+
+//描述:查找是否脉冲测量点号
+//参数:@pbTsa 电表地址,
+//	   @bAddrLen 表地址长度
+//返回:如果找到匹配的测量点则返回测量点号,否则返回0
+WORD PulseAddrToPn(const BYTE* pbTsa, BYTE bAddrLen)
+{
+	BYTE bMtrAddr[TSA_LEN+1];
+	WORD wPn = 0;
+
+	while (1)
+	{
+		if (wPn >= PULSE_PN_NUM)
+			break;
+
+		ReadItemEx(BN0, wPn, 0x2401, bMtrAddr);
+		if (memcmp(pbTsa+2, bMtrAddr+2, bAddrLen-2) == 0)
+		{
+			return wPn+1;
+		}
+		wPn++;
+	}
+
+	return 0;
+}

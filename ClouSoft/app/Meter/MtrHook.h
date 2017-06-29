@@ -39,5 +39,6 @@ void SetPlcPnMask(WORD wPn);
 void ClrPlcPnMask(WORD wPn);
 
 WORD MtrAddrToPn(const BYTE* pbTsa, BYTE bAddrLen);
+WORD PulseAddrToPn(const BYTE* pbTsa, BYTE bAddrLen);
 
 #endif //MTRHOOK_H

@@ -130,15 +130,12 @@ public:
 	bool Init();
 	bool DoDataStat();
 	bool SaveTermStat();
-	void InitDataStat();
 	void AddFlux(DWORD dwLen);
 	void DoVoltStat(void);
 	void IntvStat();
 	bool IsCycleSwitch(TTime tmLastCycle, TTime tmNow, BYTE bUnit, WORD wValue, DWORD * dwIntVSec, BYTE * bMoreCycle);
 	DWORD OoOadToDWordLen(BYTE* pbBuf, BYTE bLen);
 	void AvreStat();
-	DWORD OoDoubleLongUnsignedToDWordLen(BYTE* pbBuf, BYTE bLen);
-	int OoDoubleLongToIntLen(BYTE* pbBuf, BYTE bLen);
 	void LoadStatRela();
 	void SavePhaseVoltStat(WORD wOI, BYTE bAttr, TPhaseVoltStat* pPhaseVoltStat);
 	void LoadPhaseVoltStat(WORD wOI, TPhaseVoltStat* pPhaseVoltStat);

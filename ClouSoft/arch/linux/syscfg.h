@@ -31,7 +31,7 @@
 #define  COMM_METER    2
 #define  COMM_GPRS     3
 #define  COMM_LINK     4
-#define  COMM_PLC	   5
+#define  COMM_PLC	   	 5
 #define  COMM_LOCAL    1
 #define  COMM_3GMODEM  7
 #define  COMM_DEBUG	   8

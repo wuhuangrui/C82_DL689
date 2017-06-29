@@ -380,6 +380,8 @@ typedef struct {
 
 extern TAdjTermTime g_AdjTermTime;
 extern TEpOver g_EpOver;
+extern TYKCtrl g_YKCtrl;
+extern TPurchParaChg g_PurchParaChg;
 
 void SetTermEvtOadDefCfg(struct TEvtCtrl* pEvtCtrl);
 
@@ -438,7 +440,8 @@ bool DoEvt(struct TEvtCtrl* pEvtCtrl);
 bool DoVLoss(struct TEvtCtrl* pEvtCtrl);
 bool DoDmd(struct TEvtCtrl* pEvtCtrl);
 bool DoAVLoss(struct TEvtCtrl* pEvtCtrl);
-void DoTermEvt();
+//void DoTermEvt();
+TThreadRet  DoTermEvt(void* pvPara);
 
 bool InitYXEvtCtrl(struct TEvtCtrl* pEvtCtrl);
 int DoYXChgJudge(struct TEvtCtrl* pEvtCtrl);

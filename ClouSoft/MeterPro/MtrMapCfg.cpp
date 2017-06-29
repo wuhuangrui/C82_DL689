@@ -22,15 +22,14 @@ extern BYTE g_b645ExtStaFmt[4];
 extern BYTE g_bVoltDataFmt[3];
 extern BYTE g_bCurDataFmt[3];
 extern BYTE g_bPowerDataFmt[3];
-extern BYTE g_bVarDmdFmt[1];
 extern BYTE g_bCosDataFmt[3];
 extern BYTE g_bMtrSubRunStateFmt[3];
-extern BYTE g_bMtrBlkRunStateFmt[5];
 extern BYTE g_bFrzRecTimeFmt[1];
 extern BYTE g_bServAddrFmt[3];
 extern BYTE g_bPurchaseRate[1];
 extern BYTE g_bEvtTimeFmt[1];
 extern BYTE g_bPwrPrice[1];
+extern BYTE g_bBitStringTypeFmt[2];
 
 BYTE g_bEngTatolFmt[1] = {DT_DB_LONG_U};
 BYTE g_bPowerTatolFmt[1] = {DT_DB_LONG};
@@ -174,6 +173,9 @@ Toad645Map g_OodTo645Map[] = {
 
 	{0x40000200,	0xc010,		g_bEvtTimeFmt,		sizeof(g_bEvtTimeFmt),			8,			3},			//日期
 	{0x40000209,	0xC011,		g_bEvtTimeFmt,		sizeof(g_bEvtTimeFmt),			22,			12},		//为645表的时间做一个特殊OAD，以便特殊处理
+
+	{0x41100200,	0xea63,		g_bBitStringTypeFmt, sizeof(g_bBitStringTypeFmt),	3,			1},			//电能表运行特征字
+
 	{0x50020200,	0x901f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//分钟曲线数据
 	{0x50030200,	0x901f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//小时曲线数据
 	{0x50040200,	0x901f,		g_bEngDataFmt,		sizeof(g_bEngDataFmt),			27,			20},		//日数据

@@ -92,7 +92,7 @@ BYTE g_bReadMtrStatus[POINT_NUM];//485表抄表状态:0正常,1抄表失败,2抄表恢复
 BYTE g_b485PortStatus;//485抄表口状态:0正常,1故障发生,2故障恢复
 bool g_fMtrFailHapFlg[POINT_NUM];
 bool g_f485FailHapFlg;
-bool g_fTestMode = false;
+//bool g_fTestMode = false;
 bool g_fInAdjSysClock = false;	//是否处于对时状态
 
 WORD   g_wAdjUn = 2200;
@@ -151,8 +151,6 @@ TTime g_tmDayTask;       //1天任务时标
 TPowerOffTmp g_PowerOffTmp;     //掉电暂存变量
 TPowerOffTmp g_DefaultPowerOffTmp = {PWROFF_VER, //版本 
 									 true,  //掉电暂存变量有效标志
-									 false,   //GPRS已连接
-									 {0, 0, 0, 0},  //远程下载软件的服务器IP地址
 									 false,			//bool fAlrPowerOff	掉电前上报了停电告警
 									 0,				//WORD wRstNum;	复位次数
 									 0,				//线程监控复位次数
@@ -160,10 +158,8 @@ TPowerOffTmp g_DefaultPowerOffTmp = {PWROFF_VER, //版本
 									  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 									  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	
 									  0, 0},		//线程监控复位最后一次复位的线程名称
-									 0,				//iRemoteDownPort
 									 {0, 0, 0, 0, 0, 0, 0},//tPoweroff 上次停电时间
 									 {0, 0, 0, 0, 0, 0, 0},//tPoweroff 上次上电时间
-									 0,				//记录参数初始化事件的有效无效
 									}; 
 BYTE g_bTermChanelInfo[5] = {	2,	//脉冲输入路数 8
 								4, //开关量输入路数 4
@@ -175,57 +171,9 @@ TTime g_tPowerOn;
 BYTE g_bRemoteDownIP[8];
 //unsigned long TickMs;
 
-TSoftVerChg g_SoftVerChg;	 //缓存的版本变更事件
-TParaChg g_ParaChg;	//缓存的参数变更事件,一次应用服务最多同时处理50个OBIS对象
 bool g_fFrzInit = false;	//冻结初始化是否完成
 
-//写入参数变更事件缓存数据
-void SetParaChg(WORD wClass, BYTE* pbObis)
-{
-	bool fFind = false;
-	for(WORD i=0; i<g_ParaChg.wNum; i++)
-	{
-		if (wClass==g_ParaChg.wClass[i] && memcmp(pbObis, &g_ParaChg.bObis[i][0], 6)==0)
-		{
-			fFind = true;
-			break;
-		}
-	}
-	if ( !fFind )
-	{
-		g_ParaChg.wClass[g_ParaChg.wNum] = wClass;
-		memcpy(&g_ParaChg.bObis[g_ParaChg.wNum][0], pbObis, 6);
-		g_ParaChg.wNum++;
-	}
-}
 
-//写入参数变更事件
-void SaveParaChgEvt()
-{
-	bool fFind = false;
-	BYTE bBuf[MAXNUM_ONEERC3*6+3];
-	TTime time;
-	WORD wAddr;
-
-	if (g_ParaChg.wNum>0 && g_ParaChg.wNum<MAXNUM_ONEERC3)
-	{
-		GetCurTime(&time);
-		//终端地址
-		 ReadItemEx( BN0, 0, 0x4037, (BYTE*)&wAddr);//倒序		
-	
-		bBuf[0] = (BYTE)wAddr;
-		bBuf[1] = g_ParaChg.wNum;
-		for(WORD i=0; i<g_ParaChg.wNum; i++)
-		{
-			memcpy(bBuf+2+i*6, &g_ParaChg.bObis[i][0], 6);
-
-		}
-//		if ( !SaveAlrData(ERC_PARACHG, time, bBuf, g_ParaChg.wNum*6+2) )
-		{
-			DTRACE(DB_METER_EXC, ("SaveParaChgEvt is failed"));
-		}
-	}
-}
 
 //CL818C7第3路485口和debug口共用，0xa200大于0关调试，
 void InitConsole()
@@ -278,7 +226,7 @@ WORD CRCCheck(BYTE* p, WORD wLen)
 
 BYTE NumToParity(BYTE n)
 {
-	static BYTE bParityTab[] = {NOPARITY, EVENPARITY, ODDPARITY}; 
+	const BYTE bParityTab[] = {NOPARITY, EVENPARITY, ODDPARITY}; 
 	if (n >= 3)
 	{
 		return NOPARITY;
@@ -291,7 +239,7 @@ BYTE NumToParity(BYTE n)
 
 BYTE NumToStopBits(BYTE n)
 {
-	static BYTE bStopBitsTab[] = {ONESTOPBIT, TWOSTOPBITS, TWOSTOPBITS};
+	const BYTE bStopBitsTab[] = {ONESTOPBIT, TWOSTOPBITS, TWOSTOPBITS};
 	if (n >= 3)
 	{
 		return ONESTOPBIT;
@@ -351,6 +299,7 @@ void DoFapCmd()
 		SetInfo(INFO_PLC_CLRRT);	 //集中器清除路由
 #endif
 		LockDB();
+		TdbLock();
 		system("rm -rf /mnt/data/para/*");
 		system("rm -rf /mnt/data/data/*");
 
@@ -370,7 +319,7 @@ void DoFapCmd()
 	else if (g_dwExtCmdFlg == FLG_DEFAULT_CFG)
 	{
 	}
-	else if (g_dwExtCmdFlg==FLG_HARD_RST || g_dwExtCmdFlg==FLG_REMOTE_DOWN)
+	else if (g_dwExtCmdFlg==FLG_HARD_RST)
 	{
 		SavePoweroffTmp();	//收到软件下载命令后不保存系统库文件,光保存掉电变量,避免命令响应时间过长
 		ResetApp();
@@ -475,40 +424,12 @@ void UdpMeterPara()
 	if (GetInfo(INFO_METER_PARA) == false)
 	 	return;	
 	
-	DTRACE(DB_METER, ("UdpMeterPara: para chg!\r\n"));
+	DTRACE(DB_METER, ("UdpGrpPara: para chg!\r\n"));
 
 //	SetCtrlGrpParaChg(true);//发给控制线程停止运算
 
-	UpdMeterPnMask();
-//	UpdPnMask();
-	SetInfo(INFO_AC_PARA);		//交采参数变更
-	SetInfo(INFO_COMTASK_PARA); //普通任务参数变更
-//	SetInfo(INFO_EXC_PARA);		//异常任务参数变更
-//	SetInfo(INFO_PULSE);		//脉冲参数变更
-	SetInfo(INFO_STAT_PARA);	//统计参数变更
-	SetInfo(INFO_DC_SAMPLE);	//直流模拟量
-	SetInfo(INFO_CTRL);			//控制参数
-	SetInfo(INFO_RJMTR_PARACHG);//RJ45抄表参数
-//	SetInfo(INFO_PRIMTR_PARACHG);//Prime抄表参数
-
 //	SetMtrParaChg(true);
 //	SetGrpParaChg(true);
-	
-	ClrPnChgMask();
-
-	//CCT
-#ifdef EN_CCT
-	CctUpdPnMask();
-	CctInitStat(); //初始化集抄抄读统计信息
-	
-	//UpdateVipMask(); //CctUpdPnMask里有处理
-	
-	SetInfo(INFO_PLC_PARA); //本函数放到CctUpdPnMask()后,
-							//载波模块更新参数时可能用到测量点屏蔽位
-	SetInfo(INFO_PLC_STATUPDATA);
-#endif
-
-	TrigerSaveBank(BN11, 0, -1); //即时统计的起点数据
 }
 
 bool g_fProgState = false;
@@ -562,6 +483,8 @@ void sigCtrC(int n)
 */
 void FaInitStep1()
 {
+	TCommPara tCommPara;
+	
 	DTRACE(DB_FA, ("\r\n\r\n/**********************************************/\r\n"));
 			DTRACE(DB_FA, ("/***           "FA_NAME" www.szclou.com     ***/\r\n")); 
     		DTRACE(DB_FA, ("/**********************************************/\r\n\r\n"));
@@ -589,9 +512,7 @@ void FaInitStep1()
 	TdbInit(USER_TASKDATA_PATH);
     
 	InitDB(); //版本变更事件用到任务库
-	
-	ApllyCfgAuto();//开机自动应用配置文件
-	
+	 
 	InitPoweroffTmp();	//初始化掉电变量
 	GetCurTime(&g_tPowerOn);
 	//初始化测试口
@@ -599,10 +520,38 @@ void FaInitStep1()
 	if (IsDownSoft())	//收到了下载命令,把测试口的波特率设置为115200,也用来下载
 		g_commTest.Open(COMM_TEST, CBR_115200, 8, ONESTOPBIT, NOPARITY);
 	else
+#if 0//RS232修改为参数可配置
 		g_commTest.Open(COMM_TEST, CBR_9600, 8, ONESTOPBIT, NOPARITY);
-
+#else
+	{
+		tCommPara.wPort = COMM_TEST;
+		OIRead_PortPara(0xF200, 0, &tCommPara, NULL);	
+		if (!g_commTest.Open(tCommPara))
+		{	
+			DTRACE(DB_CRITICAL, ("FaInitStep1: g_commTest open fail.\r\n"));
+		}
+		else
+		{
+			DTRACE(DB_CRITICAL, ("FaInitStep1: g_commTest open succ.\r\n"));
+		}
+	}
+#endif
+	
 	//初始化本地维护口
-	g_commLocal.Open(COMM_LOCAL, CBR_2400, 8, ONESTOPBIT, NOPARITY);
+#if 0//红外口修改为参数可配置
+	g_commLocal.Open(COMM_LOCAL, CBR_1200, 8, ONESTOPBIT, EVENPARITY);
+#else
+	tCommPara.wPort = COMM_LOCAL;
+	OIRead_PortPara(0xF202, 0, &tCommPara, NULL);	
+	if (!g_commLocal.Open(tCommPara))
+	{	
+		DTRACE(DB_CRITICAL, ("FaInitStep1: g_commLocal open fail.\r\n"));
+	}
+	else
+	{
+		DTRACE(DB_CRITICAL, ("FaInitStep1: g_commLocal open succ.\r\n"));
+	}
+#endif
 #else
 	g_commTest.Open(COMM_TEST, CBR_9600, 8, ONESTOPBIT, NOPARITY);
 #endif //SYS_LINUX
@@ -662,6 +611,26 @@ void FaInitDrivers()
 		DTRACE(DB_CRITICAL, ("FaIniDrivers: FM24CL Size = 2K.\r\n"));
 	else
 		DTRACE(DB_CRITICAL, ("FaIniDrivers: FM24CL Size = 8K.\r\n"));
+#endif
+}
+
+//描述:初始化液晶对比度
+void FaInitLcdAdjTemp()
+{
+#ifndef SYS_WIN	
+	BYTE bTmp[10];
+	int iTemp;
+
+	if (g_pLcd != NULL)
+	{
+		memset(bTmp, 0, sizeof(bTmp));
+		ReadItemEx(BN2, PN0, 0x1045, bTmp);
+		iTemp = BcdToInt(bTmp, 4); //温度实测1位小数 -200 发货去掉硬件基准所以不减了
+		if (iTemp <= -200)	//上电初始化
+			g_pLcd->AdjContrast(160);
+		else
+			g_pLcd->AdjContrast(150);	//140
+	}		
 #endif
 }
 
@@ -777,6 +746,11 @@ bool IsAcPowerOff(BYTE* pbIsValid)
 			WriteItemEx(BN2, PN0, 0x210e, (BYTE* )&fPowerOff);
 		}
 	}
+	
+	if (fPowerOff)
+	{
+		DTRACE(DB_METER_EXC, ("IsAcPowerOff: wU[0]=%d, wU[1]=%d, wU[2]=%d!\r\n", wU[0], wU[1], wU[2]));
+	}
 
     return fPowerOff;
 }
@@ -832,14 +806,6 @@ void PushEvt_ParaInit()
 	memcpy(bErcData+2, bSoftVer+16, 4 );
 	memcpy(bErcData+6, bSoftVer+16, 4 );
 
-	//先保存到掉电变量，上电后再写入任务库
-	g_PowerOffTmp.bParaEvtType = 0; //GetErcType(ERC_INIT_VER);
-	if (g_PowerOffTmp.bParaEvtType > 0)
-	{
-		g_PowerOffTmp.ParaInit.time = GetCurTime();	
-		memcpy(&g_PowerOffTmp.ParaInit.bVerInfo, bErcData, 10); 
-		//SaveAlrData(ERC_INIT_VER, t, bErcData);	
-	}
 }
 
 bool g_fYxInit = false;
@@ -1327,30 +1293,24 @@ TThreadRet TaskThread(void* pvPara)
 
 	return THREAD_RET_OK;
 }
+*/
 
 //数据处理线程
 TThreadRet DataProcThread(void* pvPara)
 {	
 	int iMonitorID = ReqThreadMonitorID("DataProc-thrd", 60*60);	//申请线程监控ID,更新间隔为120秒
 
-	UpdMtrDataProcess(); //测量点
 	UpdGrpDataProcess(true); //总加数据
 
 	while (1)
 	{		
-		if (IsMtrParaChg())
+		if ( GetInfo(INFO_GRP_PARA) )
 		{
-			UpdMtrDataProcess();
+			UpdGrpDataProcess(false);
 			SetMtrParaChg(false);
-		}
-
-		if (!IsMtrParaChg() )//&& IsGrpParaChg()) //一定要测量点更新过了再更新总加组
-		{
-			UpdGrpDataProcess(false);	
-			SetGrpParaChg(false);	
+			SetGrpParaChg(false);
 
 			//先运行计算一遍，再发给控制线程重新开始运算
-			RunMtrDataProcess();
 			if (IsFkTermn())	//负控终端才需要做总加组数据的处理
 			{
 				RunGrpDataProcess();
@@ -1360,12 +1320,10 @@ TThreadRet DataProcThread(void* pvPara)
 			SetCtrlGrpParaChg(false);	
 		}
 
-		RunMtrDataProcess();
 		if (IsFkTermn())	//负控终端才需要做总加组数据的处理
 		{
 			RunGrpDataProcess();
 		}
-		ClearWDG();
 
 		UpdThreadRunClick(iMonitorID);
 		Sleep(1000);
@@ -1376,7 +1334,6 @@ TThreadRet DataProcThread(void* pvPara)
 	return THREAD_RET_OK;
 }
 
-*/
 //数据处理线程
 TThreadRet DataStatThread(void* pvPara)
 {	
@@ -1405,17 +1362,14 @@ TThreadRet LoadCtrlThread(void* pvPara)
 	Sleep(5000);	//在启动时负控延迟5秒启动.
 	g_LoadCtrl.Init();
 	SetCtrlThreadStart(true);
-	
-	static DWORD dwClick = 0;
 	while (1)
 	{
-		if (dwClick==0 || (GetClick()-dwClick>20) || GetInfo(INFO_CTRL))//收到信息或者间隔50秒以上执行一次
-		{
-			g_LoadCtrl.DoCtrl();
-			UpdThreadRunClick(iMonitorID);
-			dwClick = GetClick();
-		}
-		Sleep(500);
+		g_LoadCtrl.DoCtrl();
+
+		UpdThreadRunClick(iMonitorID);
+
+		Sleep(1000);
+		
 	}
 
 	ReleaseThreadMonitorID(iMonitorID);
@@ -1497,7 +1451,7 @@ TThreadRet FastSecondThread(void* pvPara)
 
 	ReleaseThreadMonitorID(iMonitorID);
 }
-
+/*
 TThreadRet DownSoftSecondThread(void* pvPara)
 {
 	DTRACE(DB_CRITICAL, ("DownSoftSecondThread : started!\n"));
@@ -1518,7 +1472,7 @@ TThreadRet DownSoftSecondThread(void* pvPara)
 	}
 	
 	return 0;
-}
+}*/
 
 TThreadRet  Do485MeterSearch(void* pvPara)
 {
@@ -1880,9 +1834,12 @@ void FaInit(BYTE bMethod)
 		SetInfo(INFO_RST_TERM_STAT); 
 		SetInfo(INFO_HARDWARE_INIT);
 		UpdateTermPowerOffTime();	//需要放在DealSpecTrigerEvt(MTR_MTRCLEAR)前面
+
+		WaitSemaphore(g_semTermEvt);
 		DealSpecTrigerEvt(MTR_MTRCLEAR);
 		DealSpecTrigerEvt(TERM_INIT);//需要放在DealSpecTrigerEvt(MTR_MTRCLEAR)后面
-		
+		SetInfo(INFO_PULSEDATA_RESET);
+		SignalSemaphore(g_semTermEvt);
 		//Sleep(10*1000);
 		//ResetCPU();	//ESAM数据初始化时不应该重启终端
 		break;
@@ -1893,8 +1850,12 @@ void FaInit(BYTE bMethod)
 		FrzTaskOnRxFaResetCmd();	//冻结数据初始化
 		SetInfo(INFO_RST_TERM_STAT); 
 		UpdateTermPowerOffTime();
+		
+		WaitSemaphore(g_semTermEvt);		
 		DealSpecTrigerEvt(MTR_MTRCLEAR);
 		DealSpecTrigerEvt(TERM_INIT);
+		SetInfo(INFO_PULSEDATA_RESET);
+		SignalSemaphore(g_semTermEvt);
 		Sleep(10*1000);
 		ResetCPU();	
 		break;
@@ -1902,19 +1863,28 @@ void FaInit(BYTE bMethod)
 		FaResetEvent();
 		MtrExcOnRxFaResetCmd();		//抄表事件数据清零
 		UpdateTermPowerOffTime();
+
+		WaitSemaphore(g_semTermEvt);		
 		DealSpecTrigerEvt(MTR_EVTCLEAR);
 		DealSpecTrigerEvt(TERM_INIT);
+		SignalSemaphore(g_semTermEvt);
+
 		//ResetCPU();
 		Sleep(10*1000);
 		break;
 	case DEMAND_INIT:
 		FaResetDemand();
+
+		WaitSemaphore(g_semTermEvt);		
 		DealSpecTrigerEvt(MTR_DMDCLEAR);
 		DealSpecTrigerEvt(TERM_INIT);
+		SignalSemaphore(g_semTermEvt);
+
 		Sleep(10*1000);
 		break;
 	default:
 		DTRACE(DB_TASK, ("FaDataInit(): Method=%d unspport\n", bMethod));
+        break;
 	}
 }
 
@@ -1972,12 +1942,94 @@ void CheckSignStrength()
 	}
 }
 
+/* 打包的升级脚本，开始执行打包时，会向/tmp/update.log写0， 打包完成、拷贝就绪，向/tmp/update.log写1，
+*  慢秒现场不停的读取/tmp/update.log文件，当内容为1时，复位集中器
+*/
+bool IsTermUptateEnd()
+{
+    BYTE bBuf[8] = {0};
+    if(!PartReadFile("/tmp/update.log", 0, bBuf, 1))
+    {
+        return false;
+    }
+
+    if(bBuf[0] == '1')
+    {        
+        return true;
+    }
+    else
+    {   
+        return false;
+    }
+}
+
+/*
+温度<=-20度               对比度值为160
+温度>-20度                对比度值为150
+*/
+void DoAdjTemp()
+{
+	BYTE bBuf[8];
+	bool fAdjContrast = false;
+	static BYTE bContrast=0;
+	static int iCnt=0;	//去抖计数
+
+	if (iCnt==0 && bContrast==0)
+		DTRACE(DB_GLOBAL, ("DoAdjTemp : start at click=%ld.\n", GetClick()));	
+
+	ReadItemEx(BN2, PN0, 0x1045, bBuf);
+	int iTemp = BcdToInt(bBuf, 4); //温度实测1位小数 -200 发货去掉硬件基准所以不减了
+	if (iTemp <= -200)	//-20度为分界点  根据试验数据，<=-20度时，对比度设置160， >-20时，对比度设置为150 160225
+	{
+		iCnt++;
+		if (iCnt > 60)
+		{
+			iCnt = 60;
+
+			if(bContrast != 160)
+			{
+				DTRACE(DB_GLOBAL, ("DoAdjTemp : iTemp=%d, adj contrast to 160 at click=%ld.\n", iTemp, GetClick()));
+	#ifndef SYS_WIN
+				g_pLcd->AdjContrast(160);
+	#endif
+				bContrast = 160;
+				fAdjContrast = true;
+				Sleep(50);
+			}
+		}
+	}
+	else
+	{
+		iCnt--;
+		if (iCnt < -60)
+		{
+			iCnt = -60;
+
+			if(bContrast != 150)
+			{
+				DTRACE(DB_GLOBAL, ("DoAdjTemp : iTemp=%d, adj contrast to 150 at click=%ld.\n", iTemp, GetClick()));
+	#ifndef SYS_WIN
+				g_pLcd->AdjContrast(150);
+	#endif
+				bContrast = 150;
+				fAdjContrast = true;
+				Sleep(50);
+			}
+		}
+	}
+
+	if (fAdjContrast)
+	{		
+		WriteItemEx(BN10, PN0, 0xa1be, &bContrast);
+		//TrigerSaveBank(BN10, 0, -1);	//注释此行
+	}
+}
 
 
 //描述:慢线程
 TThreadRet SlowSecondThread(void* pvPara)
 {
-	int iMonitorID = ReqThreadMonitorID("SlowSecond-thrd", 4*60*60);	//申请线程监控ID,更新间隔为5分钟
+	int iMonitorID = ReqThreadMonitorID("SlowSecond-thrd", 60*60);	//申请线程监控ID,更新间隔为5分钟
 
 	DTRACE(DB_CRITICAL, ("SlowSecondThread : started!\n"));
 	//SaveSoftVerChg();
@@ -2022,9 +2074,10 @@ TThreadRet SlowSecondThread(void* pvPara)
 			InitSchMap();
 			InitSchTable();
 			ClearBankData(BN16, 0, -1);
+			SetThreadExeFlg();
 		}
 
-		if (GetInfo(INFO_CLASS19_METHOD_RST))	
+		if (GetInfo(INFO_CLASS19_METHOD_RST) || GetInfo(INFO_APP_RST))	//硬件初始化
 		{
 			DTRACE(DB_FA, ("Dev interface class=19 method=1. Reset system...\n"));
 			FaInit(RESTART_SYSTEM);
@@ -2070,11 +2123,18 @@ TThreadRet SlowSecondThread(void* pvPara)
 			g_pGprsFaProtoIf->SetDisConnect(); //在收到外部的断开连接命令时,调用本函数通知接口
 			g_pEthFaProtoIf->SetDisConnect();
 		}
+        
+        if (IsTermUptateEnd())  
+        {// 为区分 class=19 method=1引起的集中器复位， 故在这里复位，加调试信息予以区分
+            DTRACE(DB_FA, ("term update success, Reset system...\n"));
+            FaInit(RESTART_SYSTEM);
+        }
 
 		DoMangerMtrCacheCtrl();
 		
 		DoFaSave();
 		DoFapCmd();
+		DoAdjTemp();
 		DoPowerManagement();
 		CheckSignStrength();
 
@@ -2091,7 +2151,7 @@ TThreadRet SlowSecondThread(void* pvPara)
 //只针对“单片机类型”的控制模块 有效
 TThreadRet CtrlMoudleThread(void* pvPara)
 {
-	int iMonitorID = ReqThreadMonitorID("CtrlMoudleThread-thrd", 60*60*60);	//申请线程监控ID,更新间隔为60分钟
+	int iMonitorID = ReqThreadMonitorID("CtrlMoudleThread-thrd", 60*60);	//申请线程监控ID,更新间隔为60分钟
 
 	DTRACE(DB_CRITICAL, ("CtrlMoudleThread : started.......\n"));
 	BYTE bCnt = 0;
@@ -2121,6 +2181,7 @@ TThreadRet CtrlMoudleThread(void* pvPara)
 		UpdThreadRunClick(iMonitorID);
 	}
 
+	ReleaseThreadMonitorID(iMonitorID);
 	return THREAD_RET_OK;
 }
 //目前端口号的转换都要经过下面的两个步骤:
@@ -2511,6 +2572,7 @@ void FaClearEnergy()
 void InitApp()
 {
 	g_StatMgr.Init();	 //统计
+	ApllyCfgAuto();//开机自动应用配置文件
 	ReSetParamKeepReadFile();
 }
 #ifdef EN_INMTR
@@ -2521,14 +2583,9 @@ extern TThreadRet RJ45ReadMtrThread(void* pvPara);
 //是否使用基于窄频带的宽带PLC抄表模式
 bool IsBBPlcMode()
 {
-	BYTE bPlcMode;
-	ReadItemEx(BN15, PN0, 0x5006, &bPlcMode);	//载波模块类型
-	//if (bPlcMode == AR_LNK_PRIME || bPlcMode == AR_LNK_G3)
-	{
-		return true;
-	}
-
-	return false;
+	//BYTE bPlcMode;
+	//ReadItemEx(BN15, PN0, 0x5006, &bPlcMode);	//载波模块类型
+	return true;
 }
 
 //初始化交采数据
@@ -2598,6 +2655,7 @@ TThreadRet MainThread(void* pvPara)
 	FaInitStep1();
 	FaInitDrivers(); //这部分驱动相关的初始化,用到数据库,所以必须放到FaInitStep1()后
 	InitDrvPara();
+	FaInitLcdAdjTemp();
 	InitApp();
 
 	InitMtrMask();
@@ -2631,38 +2689,7 @@ TThreadRet MainThread(void* pvPara)
 #ifdef EN_ETHTOGPRS //允许以太网和GPRS相互切换,先检查下网络吧，因为下面的通信线程要用到结果
 	NewThread(CheckNetThread,  NULL, 8192, THREAD_PRIORITY_NORMAL);
 #endif
-
-	if (IsDownSoft())
-	{
-		NewFaUpdateThread();
-		NewThread(DownSoftSecondThread, NULL, 8192, THREAD_PRIORITY_NORMAL);
-		NewThread(DriverThread, NULL, 8192, THREAD_PRIORITY_NORMAL);
-
-	#ifndef SYS_WIN
-		EnableTrace(false);
-		if (g_pLcd != NULL)
-		{
-			g_pLcd->Clear();			
-			if( g_bRemoteDownIP[0] == 0xff )
-				g_pLcd->Print("\r本地sftp下载", 0, 3,false,true);
-			else
-				g_pLcd->Print("\r远程sftp下载", 0, 3,false,true);
-			g_pLcd->Print("\r正在下载程序,请稍候...", 0, 4,false,true);
-			g_pLcd->Refresh();
-		}
-	#endif
-
-		DWORD dwUpdateTime = 0;
-		while(1)
-		{
-			UpdThreadRunClick(iMonitorID);
-
-			Sleep(1000);
-			dwUpdateTime++;
-			if(dwUpdateTime > 3*60*60) //最长下载3个小时
-				ResetCPU();
-		}	
-	}
+	
 #ifndef SYS_WIN
 
 #ifdef  EN_AC
@@ -2676,7 +2703,7 @@ TThreadRet MainThread(void* pvPara)
 	NewThread(FastSecondThread, NULL, 8192, THREAD_PRIORITY_NORMAL);
 	NewThread(SlowSecondThread, NULL, 8192, THREAD_PRIORITY_NORMAL);
 //	NewThread(TaskThread, NULL, 8192*2, THREAD_PRIORITY_NORMAL);
-//	NewThread(DataProcThread, NULL, 8192, THREAD_PRIORITY_NORMAL);
+	NewThread(DataProcThread, NULL, 8192, THREAD_PRIORITY_NORMAL);
 	NewThread(DataStatThread, NULL, 8192, THREAD_PRIORITY_NORMAL);
 
 #ifdef EN_CTRL	//是否允许控制功能
@@ -2725,11 +2752,13 @@ TThreadRet MainThread(void* pvPara)
 #endif
 
 	NewThread(Do485MeterSearch, NULL, 8192, THREAD_PRIORITY_NORMAL);
-	int cnt=0;
+
+	NewThread(DoTermEvt, NULL, 8192, THREAD_PRIORITY_NORMAL);
+
 	while (1)
 	{
 		UpdThreadRunClick(iMonitorID);
-		DoTermEvt();
+		//DoTermEvt();
 		
 		DoFrzTasks();
 
@@ -2743,6 +2772,8 @@ TThreadRet MainThread(void* pvPara)
 
 	return THREAD_RET_OK;
 }
+
+#if 0
 void InitTestMode()
 {
   	BYTE bVal;
@@ -2754,6 +2785,7 @@ void InitTestMode()
 	}
 	return;
 }
+#endif
 
 bool IsFkTermn()
 {
@@ -3253,6 +3285,33 @@ void SetUsbProcessState(BYTE bState)
 {
 	WriteItemEx(BN2, PN0, 0x2112, &bState);
 }
+
+//描述：申请线程的信号量
+void RequestThreadsSem()
+{
+	//485-1,485-2,485-3
+	for (BYTE i=LOGIC_PORT_MIN; i<LOGIC_PORT_MAX; i++)
+		WaitSemaphore(g_semRdMtr[i-LOGIC_PORT_MIN]);
+
+	//PLC
+#if (FA_TYPE == FA_TYPE_C82) 
+		g_CStdReader->LockReader();	
+#endif
+}
+
+//描述：释放线程的信号量
+void ReleaseThreadsSem()
+{
+	//485-1,485-2,485-3
+	for (BYTE i=LOGIC_PORT_MIN; i<LOGIC_PORT_MAX; i++)
+		SignalSemaphore(g_semRdMtr[i-LOGIC_PORT_MIN]);
+
+	//PLC
+#if (FA_TYPE == FA_TYPE_C82) 
+	g_CStdReader->UnLockReader();	
+#endif
+}
+
 
 
 #define THREAD_MASK_ID	(THRD_MNTR_NUM/8+1)

@@ -1024,7 +1024,10 @@ int OIFmtData(BYTE* pbSrc, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen)
 			pbDst += 4;
 			break;
 		case DT_TSA://TSA
-
+			*pbDst++ = bType;
+			*pbDst++ = 2;
+			*pbDst++ = 0;
+			*pbDst++ = 0;
 			break;
 		case DT_OVER_PARA:
 			pbSrc++;	
@@ -1206,6 +1209,12 @@ bool IsNeedWrSpec(const ToaMap* pOI)
 	switch (pOI->dwOA)
 	{
 	case 0x40000200:	//日期时间--属性2
+	case 0x81030200:
+	case 0x81040200:
+	case 0x81050200:
+	//case 0x81060200:
+	case 0x81070200:
+	case 0x81080200:
 	case 0xF2000200:	//RS232端口
 	case 0xF2010200:	//485端口
 	case 0xF2020200:	//红外端口
@@ -1230,10 +1239,9 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 	WORD wMaxNum, wTotNum=0, wSigFrmPnNum;
 	WORD wSn;
 	BYTE *pbTmp;
-	static WORD wSnLoc = 0;
 	BYTE bBuf[PNPARA_LEN+1];
 	BYTE *pbSch, bType;
-	WORD wPnNum=0, wLen;
+	WORD wPnNum=0, wLen, wNum = 0;
 	BYTE bTaskNum=0, bSchNum=0;
 	TTaskCfg tTaskCfg;
 
@@ -1255,9 +1263,8 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 			*piStart = -1;
 			return pbTmp - pbBuf;
 		case 0x6000://采集档案配置表，测量点参数
-			wMaxNum = POINT_NUM;
 			pbTmp = pbBuf;
-			wSigFrmPnNum = wBufSize/PNPARA_LEN;
+			wSigFrmPnNum = wBufSize / PNPARA_LEN;
 			if (*piStart == -1) //第一次来读
 			{
 				wTotNum = GetValidPnNum();
@@ -1268,34 +1275,24 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 				}
 				else
 				{
-					wSnLoc = 1;
-					*pbTmp++ = 0x01; //数组
-					if (wSigFrmPnNum >=  wTotNum)
-						*pbTmp++ = wTotNum; //总条数  //目前最多PN_NUM组，不需要对长度特殊编码
-					else
-						*pbTmp++ = wSigFrmPnNum;
+					*piStart = 0;
 				}
 			}
-			for (i=wSnLoc; i<wMaxNum; i++)
+			
+			pbTmp += 2;
+			for (i=*piStart; i<POINT_NUM; i++)
 			{
 				wSn = i;
 				if (!IsPnValid(wSn))//未设置过参数
 					continue;
-					
+
 				memset(bBuf, 0, sizeof(bBuf));
-				iLen = ReadItemEx(BN0, wSn, pOI->wID, bBuf);					
+				iLen = ReadItemEx(BN0, wSn, pOI->wID, bBuf);
 				if (iLen <= 0)
 				{
 					DTRACE(DB_FAPROTO, ("OIRead_Spec:wID = %d, wSn=%d, ReadItemEx failed !!\r\n", pOI->wID, wSn));
 					return -DA_OTHER_ERROR;	//返回其它错误
-				}
-				wPnNum++;
-				if (wPnNum>=wSigFrmPnNum)
-				{
-					wSnLoc = i;
-					(*piStart)++;	
-					break;
-				}
+				}				
 
 				iLen = bBuf[0];	//电表有效数据长度
 				iRet = OoScanData(bBuf+1, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType);	//调整字节顺序
@@ -1305,21 +1302,34 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 					DTRACE(DB_FAPROTO, ("OIRead_Spec:wID = %d, iLen=%d, bBuf[0]=0x%02x. zqzq!!\r\n", pOI->wID, iLen, bBuf[0]));
 					memcpy(pbTmp, bBuf+1, iLen);
 					pbTmp += iLen;
+
+					wPnNum++;
+					if (wPnNum >= wSigFrmPnNum)
+					{
+						*piStart = i+1;
+						break;
+					}
 				}
 				else
 				{
-					DTRACE(DB_FAPROTO, ("OIRead_Spec:wID = %d, iLen=%d, bBuf[0]=0x%02x. error!!!!!\r\n", pOI->wID, iLen, bBuf[0]));
-				}				
+					DTRACE(DB_FAPROTO, ("OIRead_Spec:wID = %d, iLen=%ld, bBuf[0]=0x%02x. error!!!!!\r\n", pOI->wID, iLen, bBuf[0]));
+					*piStart = i+1;
+					break;
+				}
 			}
-			if (i == wMaxNum) //参数全部发完
+
+			if (i == POINT_NUM) //参数全部发完
 				*piStart = -1;
 
-			return (pbTmp-pbBuf);	
+			pbBuf[0] = DT_ARRAY; //数组
+			pbBuf[1] = wPnNum;
 
-		case 0x6012:	//任务配置单元
-			wMaxNum = TASK_NUM;
+			return (pbTmp-pbBuf);
+
+		case 0x6012:	//任务配置单元			
 			pbTmp = pbBuf;
-			wSigFrmPnNum = wBufSize/PNPARA_LEN;
+			wSigFrmPnNum = wBufSize / TASK_CFG_LEN;
+
 			if (*piStart == -1) //第一次来读
 			{
 				wTotNum = GetTaskNum();
@@ -1330,56 +1340,54 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 				}
 				else
 				{
-					wSnLoc = 1;
-					*pbTmp++ = 0x01; //数组
-					if (wSigFrmPnNum >=  wTotNum)
-						*pbTmp++ = wTotNum; //总条数  //目前最多PN_NUM组，不需要对长度特殊编码
-					else
-						*pbTmp++ = wSigFrmPnNum;
+					*piStart = 0;
 				}
 			}
-			for (i=wSnLoc; i<wMaxNum; i++)
+
+			pbTmp += 2;
+			for (i=*piStart; i<TASK_NUM; i++)
 			{
 				memset(bBuf, 0, sizeof(bBuf));
 				if ((iLen=GetTaskConfigFromTaskDb(i, bBuf)) <= 0)
 					continue;
-
-				if (iLen <= 0)
-				{
-					DTRACE(DB_FAPROTO, ("OIRead_Spec:wID = %d, wSn=%d, GetTaskCfgFromTaskDb()  failed !!\r\n", pOI->wID, i));
-					return -DA_OTHER_ERROR;	//返回其它错误
-				}
-				bTaskNum++;
-				if (bTaskNum>=wSigFrmPnNum)
-				{
-					wSnLoc = i;
-					(*piStart)++;	
-					break;
-				}
-
+				
 				if (iLen <= sizeof(bBuf))
 				{
 					memcpy(pbTmp, bBuf, iLen);
 					pbTmp += iLen;
+
+					bTaskNum++;
+					if (bTaskNum >= wSigFrmPnNum)
+					{
+						*piStart = i+1;
+						break;
+					}
+				}
+				else
+				{
+					*piStart = i+1;
+					break;
 				}
 			}
-			if (i == wMaxNum) //参数全部发完
+
+			pbBuf[0] = DT_ARRAY; //数组
+			pbBuf[1] = bTaskNum;
+
+			if (i == TASK_NUM) //参数全部发完
 				*piStart = -1;
 
-			return (pbTmp-pbBuf);	
+			return (pbTmp-pbBuf);
+
 		case 0x6014:	//普通采集方案
 		case 0x6016:	//事件采集方案
 		case 0x6018:	//透明采集方案
 		case 0x601C:	//上报方案
 		case 0x6051:	//实时采集方案
 			if (*piStart == -1)
-				wSnLoc = 0;
-			wMaxNum = TASK_NUM;
+				*piStart = 0;
+
 			pbTmp = pbBuf+2;
-			if (pOI->wID == 0x6014)
-				wSigFrmPnNum = wBufSize/PNPARA_LEN;
-			else
-				wSigFrmPnNum = wBufSize/512;
+			wSigFrmPnNum = wBufSize / TASK_CFG_LEN;
 
 			BYTE bSchType;
 			if (pOI->wID == 0x6014)
@@ -1392,20 +1400,22 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 				bSchType = SCH_TYPE_REPORT;
 			else 
 				bSchType = SCH_TYPE_REAL;
-
-			for (i=wSnLoc; i<wMaxNum; i++)
+			
+			for (i=*piStart; i<TASK_NUM; i++)
 			{
 				iRet = GetSchFromTaskDb(i, bSchType, pbTmp);
 				if (iRet < 0)
 					continue;
-				bSchNum++;
+
 				pbTmp += iRet;
+				bSchNum++;
 				if (bSchNum >= wSigFrmPnNum)
 				{
-					pbBuf[0] = 0x01;	//array
+					pbBuf[0] = DT_ARRAY;	//array
 					pbBuf[1] = bSchNum;
-					wSnLoc = i;
-					return (pbTmp-pbBuf);	
+					*piStart = i+1;
+
+					return (pbTmp-pbBuf);
 				}
 			}
 
@@ -1414,12 +1424,15 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 				*pbBuf = EMPTY_DATA;
 				return 1;
 			}
-			pbBuf[0] = 0x01;	//array
+
+			pbBuf[0] = DT_ARRAY;	//array
 			pbBuf[1] = bSchNum;
-			if (i == wMaxNum) //参数全部发完
+
+			if (i == TASK_NUM)	//参数全部发完
 				*piStart = -1;
 
 			return (pbTmp-pbBuf);	
+
 		case 0x6002:
 			return GetSchMtrResult(piStart, pbBuf, wBufSize, 0, 0);
 			break;
@@ -1621,11 +1634,39 @@ int OIWrite_Spec(const ToaMap* pOI, BYTE* pbBuf)
 			#endif
 
 			//SetInfo(INFO_ADJ_TERM_TIME);
+			WaitSemaphore(g_semTermEvt);
 			DealSpecTrigerEvt(TERM_CLOCKPRG);	//hyl 直接存储终端对时事件
+			SignalSemaphore(g_semTermEvt);
+			
 			return pbBuf - pbBuf0;
 		}
 
 		break;
+
+	case 0x8103:
+	case 0x8104:
+	case 0x8105:
+		//case 0x8106:
+	case 0x8107:
+	case 0x8108:
+		if (DT_ARRAY == *pbBuf++)
+		{
+			BYTE bGrpNum = *pbBuf++;
+			if (bGrpNum > 8)
+				bGrpNum = 8;
+			for (BYTE i=0; i<bGrpNum; i++)
+			{
+				BYTE bGrpNo = pbBuf[4];
+				int iLen = WriteItemEx(BN0, bGrpNo, pOI->wID, pbBuf);					
+				if (iLen > 0)
+				{
+					pbBuf += iLen;
+				}
+			}
+			return pbBuf - pbBuf0;
+		}
+		break;
+
 	case 0xF200:	//232
 	case 0xF201:	//485
 	case 0xF202:	//infra
@@ -1909,6 +1950,8 @@ int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bo
 	int iLen0;
 	//int iDataLen = 0;
 	//BYTE bOADBuf[4];
+	TTime tm;
+	TTimeInterv Ti;
 
 	memset(bTmpBuf, 0, sizeof(bTmpBuf));//防止当变长数据个数为0时（如重点表计清单清除）设置下取随机值
 	if ((bAttr == 0) || ((bAttr == 1)))	//0属性,逻辑名属性是只读的
@@ -1937,6 +1980,23 @@ int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bo
 			int nRet = OoScanData(pbTmpBuf, pOI->pFmt, pOI->wFmtLen, false, -1, &wDataLen, &bType);
 			if (nRet > 0)
 			{
+				if((wLen - nRet >= 11) && (*(pbBuf + nRet) == 0x01))//带时间标签，需判断时效性
+				{
+					memset((BYTE*)&tm, 0, sizeof(tm));
+					tm.nYear = (*(pbBuf+nRet+1))*256 +*(pbBuf+nRet+2);
+					tm.nMonth = *(pbBuf+nRet+3);
+					tm.nDay = *(pbBuf+nRet+4);
+					tm.nHour = *(pbBuf+nRet+5);
+					tm.nMinute = *(pbBuf+nRet+6);
+					tm.nSecond = *(pbBuf+nRet+7);
+
+					Ti.bUnit = *(pbBuf+nRet+8);					
+					Ti.wVal = OoLongUnsignedToWord(pbBuf+nRet+9);
+
+					if(TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti)))//传输延时时间大于零,判断时效性
+						return -5;
+				}
+							
 				if (IsNeedWrSpec(pOI))
 				{
 					iLen = OIWrite_Spec(pOI, pbTmpBuf);
@@ -1969,7 +2029,7 @@ int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bo
 							UpdateTermPowerOffTime();
 						}
 					}
-					else if ((dwOIAtt&0xf0000000) == 0x21000300)	//统计参数变更，通知冻结更新
+					else if ((dwOIAtt&0xff00ff00)==0x21000300 || (dwOIAtt&0xff00ff00)==0x22000300)	//统计参数变更，通知冻结更新
 					{
 						OnStatParaChg();
 					}
@@ -2001,6 +2061,23 @@ int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bo
 			iSrcLen = OoReadAttr(wOI, bAttr, bSrc, &pbFmt, &wFmtLen);
 			if (iSrcLen > 0)
 			{
+				if((wLen - iSrcLen >= 11) && (*(pbBuf + iSrcLen) == 0x01))//带时间标签，需判断时效性
+				{
+					memset((BYTE*)&tm, 0, sizeof(tm));
+					tm.nYear = (*(pbBuf+iSrcLen+1))*256 +*(pbBuf+iSrcLen+2);
+					tm.nMonth = *(pbBuf+iSrcLen+3);
+					tm.nDay = *(pbBuf+iSrcLen+4);
+					tm.nHour = *(pbBuf+iSrcLen+5);
+					tm.nMinute = *(pbBuf+iSrcLen+6);
+					tm.nSecond = *(pbBuf+iSrcLen+7);
+				
+					Ti.bUnit = *(pbBuf+iSrcLen+8); 				
+					Ti.wVal = OoLongUnsignedToWord(pbBuf+iSrcLen+9);
+				
+					if(TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti)))//传输延时时间大于零,判断时效性
+						return -5;
+				}
+
 			//	OoDWordToOad(GetOAD(wOI, bAttr, bIndex), bOADBuf);
 			//	iDataLen = OoGetDataLen(DT_OAD, bOADBuf);	//+1:去除数据类型
 			//	if (!(iDataLen >= wLen))
@@ -2010,7 +2087,11 @@ int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bo
 				else
 					iSrcLen = OoWriteField(bSrc, iSrcLen, pbFmt, wFmtLen, bIndex-1, pbBuf, wLen);	//-5: 4字节OAD + 1字节时间标签	//此处应该在外面处理wLen参数传进来OAD和时间标签就已经去掉了
 				if (iSrcLen > 0)
-					return OoProWriteAttr(wOI, bAttr, 0, bSrc, iSrcLen, fIsSecurityLayer);
+				{
+					//return OoProWriteAttr(wOI, bAttr, 0, bSrc, iSrcLen, fIsSecurityLayer);
+					OoProWriteAttr(wOI, bAttr, 0, bSrc, iSrcLen, fIsSecurityLayer);
+					return wLen;
+				}
 			}
 		}
 
@@ -3156,6 +3237,14 @@ bool IsSpecOMD(const TOmMap* pOmMap)
 	case 0x21410100:
 	case 0x22000100:
 	case 0x22030100:
+	case 0x23010100:
+	case 0x23020100:
+	case 0x23030100:
+	case 0x23040100:
+	case 0x23050100:
+	case 0x23060100:
+	case 0x23070100:
+	case 0x23080100:
 	case 0x22040100:	//复位复位次数结果
 	case 0x43000100:	//设备接口类19--复位
 	case 0x43000200:	//设备接口类19--执行
@@ -3163,6 +3252,7 @@ bool IsSpecOMD(const TOmMap* pOmMap)
 	case 0x43000400:	//设备接口类19--恢复出厂参数
 	case 0x43000500:	//设备接口类19--事件初始化
 	case 0x43000600:	//设备接口类19--需量初始化
+	case 0x4300AB00:	//设备接口类19--红外控制命令
 	case 0x45000100:	//公网设备初始化
 	case 0x45010100:	//公网设备初始化
 	case 0x45100100:	//以太网设备初始化
@@ -3198,6 +3288,8 @@ bool IsSpecOMD(const TOmMap* pOmMap)
 	case 0x601E7f00:	//增加采集规则方案
 	case 0x601E8000:	//删除一组采集规则方案
 	case 0x601E8100:	//清空采集规则方案
+	case 0x80007F00:	//遥控告警投入
+	case 0x80008000:	//遥控告警解除
 	case 0x80017F00:	//投入保电
 	case 0x80018000:	//解除保电
 	case 0x80018100:	//解除自动保电
@@ -3226,6 +3318,9 @@ bool IsSpecOMD(const TOmMap* pOmMap)
 //返回：如果正确则返回pbRes中结果的长度,否则返回负数
 int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaLen, BYTE* pvAddon, BYTE* pbRes)
 {
+	TTime tm;
+	TTimeInterv Ti;
+	
 	//搜索对象方法对应的映射表
 	const TOmMap* pOmMap = GetOmMap((((DWORD )wOI)<<16)+(((DWORD )bMethod<<8)));
 	if (pOmMap == NULL)
@@ -3242,11 +3337,37 @@ int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaL
 			iParaLen = OoDataFieldScan(pbPara, pOmMap->pFmt, pOmMap->wFmtLen);
 			if (iParaLen< 0)
 				return -1;
+
+			if((strlen((const char *)pbPara) - iParaLen >= 11) && (*(pbPara + iParaLen) == 0x01))//带时间标签，需判断时效性
+			{
+				memset((BYTE*)&tm, 0, sizeof(tm));
+				tm.nYear = (*(pbPara+iParaLen+1))*256 +*(pbPara+iParaLen+2);
+				tm.nMonth = *(pbPara+iParaLen+3);
+				tm.nDay = *(pbPara+iParaLen+4);
+				tm.nHour = *(pbPara+iParaLen+5);
+				tm.nMinute = *(pbPara+iParaLen+6);
+				tm.nSecond = *(pbPara+iParaLen+7);
+
+				Ti.bUnit = *(pbPara+iParaLen+8);					
+				Ti.wVal = OoLongUnsignedToWord(pbPara+iParaLen+9);
+
+				if(TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti)))//传输延时时间大于零,判断时效性
+					return -7;
+			}
+			else if (wOI==0x8000 && *(pbPara+iParaLen)==0) //台体测试(V1.17.06.05版本)：下发遥控跳闸命令不带时间标签，不处理，返回时间标签无效.
+			{
+				return -7;
+			}
 		}
 	}
 
 	//执行对象方法
-	return pOmMap->pfnDoMethod(wOI, bMethod, bOpMode, pbPara, iParaLen, pOmMap->pvAddon, pOmMap->pFmt, pOmMap->wFmtLen, pbRes, piParaLen);
+	int iRet = pOmMap->pfnDoMethod(wOI, bMethod, bOpMode, pbPara, iParaLen, pOmMap->pvAddon, pOmMap->pFmt, pOmMap->wFmtLen, pbRes, piParaLen);
+	if (iRet >= 0)
+	{
+		TrigerSavePara();
+	}
+	return iRet;
 }
 
 //描述：把源数据解析成一个个字段的偏移和长度，方便访问
@@ -3663,8 +3784,7 @@ int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen
 					pbDst += bByteLen;
 				}
 
-				//pbSrc += (bLen + 7) / 8 + 1;			//长度+内容
-				pbSrc += (bLen + 7) / 8;			//长度+内容
+				pbSrc += (bLen + 7) / 8 + 1;			//长度+内容
 			}
 			break;
 
@@ -3728,7 +3848,7 @@ int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen
 			}
 			else
 			{
-				if (IsAllAByte(pbSrc, INVALID_DATA_MTR, 1) || bsLen==0)
+				if (IsAllAByte(pbSrc, INVALID_DATA, 1) || bsLen==0)
 				{
 					*pbDst++ = NULL;
 					pbDst += 1;
@@ -3757,7 +3877,7 @@ int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen
 				//pbSrc += 2;
 				if ((bsLen < 2) && (bsLen!=0))
 					return -1;
-				if (IsAllAByte(pbSrc, INVALID_DATA_MTR, 2) || bsLen==0)
+				if (IsAllAByte(pbSrc, INVALID_DATA, 2) || bsLen==0)
 				{
 					*pbDst++ = bType;
 					memset(pbDst, 0xFE, 2);//填充我们约定的无效值					
@@ -3799,7 +3919,7 @@ int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen
 					btLen = 3;//这些数据在07协议中是3字节
 				if ((bsLen < btLen) && (bsLen!=0))
 					return -1;
-				if (IsAllAByte(pbSrc, INVALID_DATA_MTR, bsLen) || bsLen==0)
+				if (IsAllAByte(pbSrc, INVALID_DATA, bsLen) || bsLen==0)
 				{
 					*pbDst++ = bType;
 					memset(pbDst, 0xFE, 4);//填充我们约定的无效值					
@@ -4005,4 +4125,134 @@ OIFmtData_err:
 	
 	return -wErr;
 }
+
+//描述：特殊OI的读取，主要包括测量点参数，数据等，涉及多个记录的数据等
+bool OIRead_PortPara(WORD wID, BYTE bPn, TCommPara *pCommPara, BYTE *bFunc)
+{
+	int iRet;
+	BYTE bBuf[PNPARA_LEN+1];
+
+	WORD wFmtLen, wLen;
+	WORD wFieldFmtLen;
+	BYTE bAttr, bIdx, bType;
+	BYTE *pbFmt;
+	BYTE *pFieldFmt;
+	BYTE bMaxPortNum;
+	DWORD dwOIAtt = ((DWORD )wID<<16) + 0x0200;
+	const ToaMap* pOI = GetOIMap(dwOIAtt);
+	if(pOI == NULL)
+	{
+		DTRACE(DB_CRITICAL, ("OIRead_PortPara :pOI IS NULL\n")); 
+		return false;
+	}
+	
+	if (wID == 0xF200)
+		bMaxPortNum = MAX_232_PORT_NUM;
+	else if (wID == 0xF201)
+			bMaxPortNum = MAX_485_PORT_NUM;
+	else
+		bMaxPortNum = 1;
+	DTRACE(DB_CRITICAL, ("OIRead_PortPara :bPn=%d\n",bPn)); 
+	
+	if(bPn>bMaxPortNum)
+	{
+		DTRACE(DB_CRITICAL, ("OIRead_PortPara :bPn=%d > bMaxPortNum=%d\n",bPn,bMaxPortNum)); 
+		return false;
+	}
+
+	memset(bBuf, 0, sizeof(bBuf));
+	wLen = ReadItemEx(BN0, bPn, wID, bBuf);
+   	DTRACE(DB_CRITICAL, ("OIRead_PortPara :wLen=%d\n",wLen)); 
+	if ( wLen <= 0)
+	{
+		DTRACE(DB_CRITICAL, ("OIRead_PortPara :OoReadAttr false \n")); 
+		return false;
+	}	
+	TraceBuf(DB_CRITICAL, ("\r\n OIRead_PortPara :bBuf->"), bBuf, wLen);
+//		TraceBuf(DB_CRITICAL, ("\r\n OIRead_PortPara :pbFmt->"), pOI->pFmt,  pOI->wFmtLen);
+	TraceBuf(DB_CRITICAL, ("\r\n OIRead_PortPara :pbFmt+2->"), pOI->pFmt+2,  pOI->wFmtLen-2);
+	
+	BYTE *p = OoGetField(bBuf, pOI->pFmt+2, pOI->wFmtLen-2, 1, &wLen, &bType, &pFieldFmt, &wFieldFmtLen);
+	if (p == NULL)
+	{
+		DTRACE(DB_CRITICAL, ("OIRead_PortPara :pCommPara false \n")); 
+		return false;
+	}
+//		TraceBuf(DB_CRITICAL, ("\r\n OIRead_PortPara :p->"), p, wLen);
+	/*		
+	波特率	  ENUMERATED
+	{
+	300bps（0），	600bps（1），	  1200bps（2），
+	2400bps（3），	4800bps（4），	  7200bps（5），
+	9600bps（6），	19200bps（7），   38400bps（8），
+	57600bps（9）， 115200bps（10）， 自适应（255）
+	}，
+	*/
+	if ((wID == 0xF201)||(wID == 0xF202))
+	{// 485 口 红外 口
+		if(p[1]>=6)
+		{
+			p[1] = 6;//485 最高波特率为 9600
+		}
+	}
+	
+	switch(p[1])
+	{
+		case 0:
+			pCommPara->dwBaudRate = CBR_300;
+			break;
+		case 1:
+			pCommPara->dwBaudRate = CBR_600;
+			break;
+		case 2:
+			pCommPara->dwBaudRate = CBR_1200;
+			break;
+		case 3:
+			pCommPara->dwBaudRate = CBR_2400;
+			break;
+		case 4:
+			pCommPara->dwBaudRate = CBR_4800;
+			break;
+		case 7:
+			pCommPara->dwBaudRate = CBR_19200;
+			break;
+		case 8:
+			pCommPara->dwBaudRate = CBR_38400;
+			break;
+		case 9:
+			pCommPara->dwBaudRate = CBR_57600;
+			break;
+		case 10:
+			pCommPara->dwBaudRate = CBR_115200;
+			break;
+		case 6:
+		default:
+			pCommPara->dwBaudRate = CBR_9600;
+			break;
+	}
+	pCommPara->bParity = p[2];
+	pCommPara->bByteSize = p[3];
+	pCommPara->bStopBits = p[4];
+	
+//	   	DTRACE(DB_CRITICAL, ("OIRead_PortPara :pCommPara->dwBaudRate=%d\n",pCommPara->dwBaudRate)); 
+//	   	DTRACE(DB_CRITICAL, ("OIRead_PortPara :pCommPara->bParity=%d\n",pCommPara->bParity)); 
+//	   	DTRACE(DB_CRITICAL, ("OIRead_PortPara :pCommPara->bByteSize=%d\n",pCommPara->bByteSize)); 
+//	   	DTRACE(DB_CRITICAL, ("OIRead_PortPara :pCommPara->bStopBits=%d\n",pCommPara->bStopBits)); 
+	if(bFunc!=NULL)
+	{
+		p = OoGetField(bBuf, pOI->pFmt+2, pOI->wFmtLen-2, 2, &wLen, &bType, &pFieldFmt, &wFieldFmtLen);
+		if (p == NULL)
+		{
+			DTRACE(DB_CRITICAL, ("OIRead_PortPara :bFunc false \n")); 
+			return false;
+		}
+		*bFunc = p[1];
+//			DTRACE(DB_CRITICAL, ("OIRead_PortPara :*bFunc=%d\n",*bFunc)); 
+	}	
+
+	return true;
+}
+
+
+
 

@@ -22,7 +22,7 @@
 #define USER_PARA_PATH  "d:\\fafiles-45\\para\\"
 #define USER_DATA_PATH  "d:\\fafiles-45\\data\\"
 #define USER_CFG_PATH   USER_PARA_PATH
-#define USER_BAK_PATH	"d:\\fafiles\\ext\\"
+#define USER_BAK_PATH	"d:\\fafiles-45\\ext\\"
 #define USER_TASKDATA_PATH	USER_DATA_PATH
 
 #define USER_FTP_PATH	USER_PATH

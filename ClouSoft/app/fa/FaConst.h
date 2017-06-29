@@ -3,17 +3,9 @@
 #include "FaCfg.h"
 #include "DbConst.h"
 
-#ifdef SYS_WIN32
-	#include "..\fa\const.h"
-#endif //SYS_WIN32
-
 #define  PWROFF_VER       0x0001
 
-#define READ_LENTH 512
-
 //系统的数量配置
-#define DIFF_NUM          10
-
 #define ERR_OK       0x0
 #define ERR_FORWARD  0x1
 #define ERR_INVALID  0x2    //设置内容非法
@@ -34,7 +26,6 @@
 
 #define EMPTY_DATA 	 0
 #define INVALID_DATA 0xff
-#define INVALID_DATA_MTR 0xff
 
 
 //应用通知:
@@ -70,7 +61,7 @@
 #define INFO_ADJTIME_PLC   		25	//对载波进行校时
 #define INFO_ADJTIME_485   		26	//对485进行校时
 #define INFO_VIPLIST	   		27 	//重点户更改
-//#define INFO_RESTART	   		28	//重启集中器工作
+#define INFO_GRP_PARA	   		28	//总加组参数变更
 #define INFO_READ_DONE	   		29	//抄表完成
 #define INFO_DC_SAMPLE			30
 #define INFO_LINK	   			31	//级联参数更改
@@ -215,9 +206,8 @@
 
 #define	CCT_MTRPRO_97	1	//97版645
 #define	CCT_MTRPRO_07	2	//07版645
-#define	CCT_MTRPRO_NJSL	3	//南京松林版645
-#define CCT_MTRPRO_T188   4   //T188协议
-#define CCT_MTRPRO_69845  5   //698.45
+#define CCT_MTRPRO_T188   3   //T188协议
+#define CCT_MTRPRO_69845  4   //698.45
 
 #define FLG_FORMAT_DISK   		0x34aebd24
 #define FLG_DEFAULT_CFG   		0x8a5bc4be
@@ -257,7 +247,7 @@
 #define LOG_DEMAND		1		//交采需量
 #define LOG_TERMSTAT	2		//终端统计信息
 #define LOG_PULSE_ENERGY1	3		//第一路脉冲电能
-#define LOG_PULSE_DEMAND1	5//11		//第一路脉冲需量
+//#define LOG_PULSE_DEMAND1	5//11		//第3路脉冲电能
 #define LOG_ENERGY_BAR		7		//交采电能不足最小计量单位的
 #define LOG_ENABLE	1 
 

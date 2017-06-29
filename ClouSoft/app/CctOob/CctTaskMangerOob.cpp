@@ -231,11 +231,13 @@ int GetTaskNum()
 	TTaskCfg tTaskCfg;
 	WORD wNum = 0;
 
+	WaitSemaphore(g_semSchCfg);
 	for (WORD i=0; i<TASK_ID_NUM; i++)
 	{
 		if (g_TaskMem[i].pbCfg)
 			wNum++;
 	}
+	SignalSemaphore(g_semSchCfg);
 
 	return wNum;
 }
@@ -360,6 +362,8 @@ bool GetCommonSchCfg(TTaskCfg* pTaskCfg, TCommAcqSchCfg* pTCommAcqSchCfg, BYTE *
 		pTCommAcqSchCfg->tTAcqType.bAcqData[1] = *pbPtr;	pbPtr++;	//间隔值
 		pTCommAcqSchCfg->tTAcqType.bAcqData[2] = *pbPtr;	pbPtr++;
 		break;
+    default:
+        break;
 	}
 
 	//提取array CSD
@@ -536,6 +540,7 @@ int ParserMsParam(BYTE *pbBuf, BYTE *pbMtrMask, WORD wMtrMaskLen)
 	BYTE bMtrMask[PN_MASK_SIZE];
 	BYTE *pbPtr = pbBuf;
 	BYTE bMsChoice;
+	BYTE bGroupMtrRegionCnt = 0;
 
 	if (*pbPtr == DT_MS)	//ms
 		pbPtr++;
@@ -838,7 +843,7 @@ int ParserMsParam(BYTE *pbBuf, BYTE *pbMtrMask, WORD wMtrMaskLen)
 
 	case 7:	//一组配置序号区间
 		TCfgMtrSnRegion tTCfgMtrSnRegion[4];
-		BYTE bGroupMtrRegionCnt = *pbPtr++;
+		bGroupMtrRegionCnt = *pbPtr++;
 
 		memset((BYTE*)&tTCfgMtrSnRegion, 0, sizeof(tTCfgMtrSnRegion));
 		if (bGroupMtrRegionCnt > 4)
@@ -920,6 +925,10 @@ int ParserMsParam(BYTE *pbBuf, BYTE *pbMtrMask, WORD wMtrMaskLen)
 				}
 			}
 		}
+        break;   //liyan
+
+    default:
+        break;
 	}
 
 	return pbPtr - pbBuf;
@@ -3878,7 +3887,7 @@ bool RecMatch (BYTE* pbRec, TFieldParser* pFixFields, BYTE* pbRSD)
 		break;
 	case 9:	//上第N次记录
 		return true;
-		break;
+		//break;
 	case 10:
 		pbRSD++;
 		dwOAD = 0x00020140;	//0x40010200;	

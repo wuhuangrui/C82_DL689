@@ -323,6 +323,7 @@ int MessageBox(const char msg[], char retKey, int retTime)
 {
 	int time = 0;
 	char buff[32];
+	BYTE time1=0, time2=0;
 
 	//char LcdDispBuff[LCD_SIM_HEIGHT * LCD_SIM_WIDTH / 8];
 	//bak_lcd_disp(LcdDispBuff);
@@ -427,13 +428,43 @@ int MessageBox(const char msg[], char retKey, int retTime)
 		Sleep(100);
 		time++;
 		BYTE key = GetKey().key;
-		if (key == retKey)
+
+		if(retKey != KEY_OK_ESC)
 		{
-			return 0;
+			if (key == retKey)
+			{
+				return 0;
+			}
+			else if (key == KEY_OK)
+			{
+				return 1;
+			}
 		}
-		else if (key == KEY_OK)
-		{
-			return 1;
+		else
+		{	
+			if((key&KEY_OK) == KEY_OK)
+			{
+				time2++;	//OK键计数
+			}
+			else
+			{
+				time2 = 0;
+				if (time1 && ((key&KEY_ESC) != KEY_ESC))	//返回键按下又弹起了
+					return 0;
+			}
+		
+			if((key&KEY_ESC) == KEY_ESC)
+			{
+				time1 ++;
+			}
+			else
+			{
+				time1 = 0;
+//				if (time2 && ((key&KEY_OK) != KEY_OK))	//OK键按下又弹起了
+//					return 1;
+			}
+			if((time1>1 && time2>1) || key == KEY_OK_ESC)
+				return -1;
 		}
 		
 		DWORD dwTick = GetTick();
@@ -3865,6 +3896,9 @@ CListBoxEx::~CListBoxEx()
 
 	
 
+#ifdef VER_698_JIBEI
+	extern BOOL g_fTermCommParaUI;
+#endif
 
 	int CListBoxEx::Show(int x, const char title[], struct ListBoxExItem menu[], int retKey, int retTime,bool fFocus)
 	{
@@ -3872,6 +3906,7 @@ start:	struct KeyState mkey;
 		BYTE recoverkey = 0;//修复弹起按键的移动
 		char usbBuf[5] = "USB";
 		int iMonitorID = GetDispMonitorID();
+		BYTE bBuf[2] = {0};
 	#if 0
 		char title[20];
 		if (title2 != NULL)

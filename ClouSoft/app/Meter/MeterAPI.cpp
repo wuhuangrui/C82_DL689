@@ -419,6 +419,7 @@ TMtrRdCtrl* GetMtrRdCtrl(WORD wPn, BYTE*pbTsa)
 			else
 			{
 				memset((BYTE *)&g_MtrCacheCtrl[i], 0, sizeof(TMtrCacheCtrl));
+				DTRACE(DB_METER, ("GetMtrRdCtrl: run here1.\n"));
 				g_MtrCacheCtrl[i].bStatus = CACHE_STATUS_INUSE;
 				g_MtrCacheCtrl[i].wPn = wPn;
 				g_MtrCacheCtrl[i].dwCacheTime = GetCurTime();
@@ -596,6 +597,7 @@ void DeleteMtrRdCtrl()
 		sprintf(szName, USER_DATA_PATH"MtrRdCtrl_Pn%d.dat", wPn);	
 		DeleteFile(szName);
 	}
+
 	memset(dwTaskLastUpdataTime, 0, sizeof(dwTaskLastUpdataTime));
 }
 
@@ -723,6 +725,27 @@ WORD* MtrGetFixedLen()
 WORD* MtrGetFixedInItems()
 {
 	return g_wFixRDInID;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+//描述:刷新内部测量点数据
+//参数:
+//	@wPn测量点号
+//	@dwOAD数据标识
+//	@pbData数据内容
+//返回:如果有保存则返回true，否则返回false
+bool SaveMtrInItemMem(WORD wPn, DWORD dwOAD, BYTE* pbData)
+{
+	for (int i=0; i<sizeof(g_dwFixRDOad)/sizeof(DWORD); i++)
+	{
+		if (g_dwFixRDOad[i] == dwOAD)
+		{
+			WriteItemEx(BN0, wPn, g_wFixRDInID[i], pbData, GetCurTime());
+			return true;
+		}	
+	}
+
+	return false;
 }
 
 //描述:在一个间隔切换后，重新初始化电表临时数据结构

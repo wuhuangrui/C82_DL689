@@ -53,6 +53,7 @@ int GetMtrItemMem(TMtrTmpData* pMtrTmpData, DWORD dwOAD, BYTE* pbData);
 DWORD* MtrGetFixedItems(WORD* pwItemNum);
 WORD* MtrGetFixedLen();
 WORD* MtrGetFixedInItems();
+bool SaveMtrInItemMem(WORD wPn, DWORD dwOAD, BYTE* pbData);
 void InitMtrTmpData(TMtrTmpData* pMtrTmpData, DWORD* pdwFixOAD, WORD* pwDataLen, WORD wNum);
 bool QueryMtrItemMem(TMtrTmpData* pMtrTmpData, DWORD* pdwOAD, WORD wNum);
 

@@ -51,8 +51,8 @@ static DWORD g_dwJudgeOADList[][MAX_JUDGE_OAD] =
 {
 	{ OI_MTR_CLOCK_ERR,		0x40000200,		0 },
 	{ OI_MTR_ENERGY_DEC,	0x00100201,		0x00200201,		0 },
-	{ OI_MTR_ENERGY_ERR,	0x00100201,		0x00200201,		0 },
-	{ OI_MTR_FLEW,			0x00100201,		0x00200201,		0 },
+	{ OI_MTR_ENERGY_ERR,	0x00100200,		0x00200200,		0 },
+	{ OI_MTR_FLEW,			0x00100200,		0x00200200,		0 },
 	{ OI_MTR_STOP,			0x00100201,		0x00200201,		0x20040201,		0 },
 	{ OI_MTR_RD_FAIL,		0 },	//抄表失败事件判断不依赖抄表ID
 	{ OI_MTR_DATA_CHG,		0 },	//电能表数据变更监控记录抄表ID依赖于配置的任务，需要单独处理，此处不进行配置
@@ -730,7 +730,7 @@ BYTE DoMtrExc(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModifi
 					{
 						OoDWordToOad(dwOAD, bOADBuf);
 						nOADLen = OoGetDataLen(DT_OAD, bOADBuf);
-						memset(bBuf, INVALID_DATA_MTR, sizeof(bBuf));
+						memset(bBuf, INVALID_DATA, sizeof(bBuf));
 						if (nOADLen > 0)
 						{
 #ifdef TERM_EVENT_DEBUG
@@ -1601,15 +1601,14 @@ bool DoMtrEnergyErr(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 {
 	DWORD dwFlewHold = 0;// 超差阀值；
 	BYTE i = 0;
-	BYTE bBuf[100], bAlrBuf[20], bAddr[6];
+	BYTE bBuf[100], bAddr[6];
 	
 	DWORD dwCurMin;
 	WORD wIdNum, wValidNum;
-	BYTE bMtrInterv = GetMeterInterv();		//抄表间隔函数GetMeterInterv()能用？？？？
+	BYTE bMtrInterv = 2;	//GetMeterInterv();		//抄表间隔函数GetMeterInterv()能用？？？？
 	int iLen = 0;
 	TTime time;
 	
-	bool fErc = false;
 	bool fInit[2];
 
 	WORD wUn = 0 ;//额定电压值
@@ -1637,7 +1636,7 @@ bool DoMtrEnergyErr(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 	DWORD dwJudgeOAD[MAX_JUDGE_OAD];
 	BYTE* pbBuf = bBuf;
 
-	memset(bAlrBuf, 0, sizeof(bAlrBuf));
+	//memset(bAlrBuf, 0, sizeof(bAlrBuf));
 	memset(bAddr, 0, sizeof(bAddr));
 	memset(&time, 0, sizeof(time));
 	memset(fInit, 0, sizeof(fInit));
@@ -1671,6 +1670,12 @@ bool DoMtrEnergyErr(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 			if (iLen <= 0)	//没抄到
 				return false;
 			
+			if (pbBuf[2] == DT_DB_LONG_U)
+				iLen = 5;	//取出总电能
+			else
+				iLen = 9;	//取出总电能
+
+			memmove(pbBuf, pbBuf+2, iLen);
 			pbBuf += iLen;
 		}		
 
@@ -1840,15 +1845,14 @@ bool DoMtrFlew(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 {
 	DWORD dwFlewHold = 0;// 超差阀值；
 	BYTE i = 0;
-	BYTE bBuf[100], bAlrBuf[20], bAddr[6];
+	BYTE bBuf[100], bAddr[6];
 	
 	DWORD dwCurMin;
 	WORD wIdNum, wValidNum;
-	BYTE bMtrInterv = GetMeterInterv();
+	BYTE bMtrInterv = 2;	//GetMeterInterv();
 	int iLen = 0;
 	TTime time;
-	
-	bool fErc = false;
+		
 	bool fInit[2];
 
 	WORD wUn = 0 ;//额定电压值
@@ -1880,7 +1884,7 @@ bool DoMtrFlew(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 	DWORD dwJudgeOAD[MAX_JUDGE_OAD];
 	BYTE* pbBuf = bBuf;
 
-	memset(bAlrBuf, 0, sizeof(bAlrBuf));
+	//memset(bAlrBuf, 0, sizeof(bAlrBuf));
 	memset(bAddr, 0, sizeof(bAddr));
 	memset(&time, 0, sizeof(time));
 	memset(fInit, 0, sizeof(fInit));
@@ -1914,6 +1918,13 @@ bool DoMtrFlew(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 			if (iLen <= 0)	//没抄到
 				return false;
 			
+			if (pbBuf[2] == DT_DB_LONG_U)
+				iLen = 5;	//取出总电能
+			else
+				iLen = 9;	//取出总电能
+
+			memmove(pbBuf, pbBuf+2, iLen);
+			//DTRACE(DB_METER_EXC, ("EnergyErr::stepDDD :pn=%d, iLen=%d, wIndex=%d bBuf[0]=0x%02x, bBuf[1]=0x%02x, bBuf[2]=0x%02x, bBuf[3]=0x%02x, bBuf[4]=0x%02x.\r\n", wPn, iLen, wIndex, pbBuf[0], pbBuf[1], pbBuf[2], pbBuf[3], pbBuf[4]));
 			pbBuf += iLen;
 		}
 
@@ -3224,7 +3235,7 @@ void SetMtrExcOadDefCfg(WORD wOI)
 		else if (wOI == OI_MTR_RD_FAIL)
 			memcpy(bBuf, g_bMRFCfg, sizeof(g_bMRFCfg));
 		else if (wOI == OI_MTR_DATA_CHG)
-			memcpy(bBuf, g_bDaCgCfg, sizeof(g_bDaCgCfg));	
+			memcpy(bBuf, g_bDaCgCfg, sizeof(g_bDaCgCfg));
 		else
 			return;
 		

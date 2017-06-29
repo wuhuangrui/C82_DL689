@@ -23,6 +23,8 @@ public:
 	CLcd();
 	virtual ~CLcd();
 	virtual bool Init() = 0;						//初始化液晶
+	virtual bool ReInit(bool fResetCtrl) = 0;
+	virtual bool ReInitLcdHandle() = 0;
 	virtual void InitHzk() = 0;
 	virtual void Reset(bool fReset = true) = 0;		//复位液晶
 	virtual void Clear(bool fRefresh=true) = 0;		//清除显示

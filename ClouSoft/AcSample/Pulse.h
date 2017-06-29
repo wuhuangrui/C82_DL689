@@ -11,6 +11,7 @@
 #define OI_YX					0xF203
 
 #define PULSE_HI_POSE_ID	0x2414	//脉冲正向有功高精度电能ID
+#define PULSE_LO_POSE_ID	0x2419	//脉冲正向有功低精度电能ID
 
 #define PULSE_PN_NUM		8		//脉冲计量点个数
 
@@ -122,6 +123,7 @@ private:
 
 	void   RunMeter();
 	void   CalPower();	
+	void   TransferHiToLo();
 };
 
 
@@ -144,6 +146,8 @@ class CPulseManager {	//脉冲管理类
 		bool IsPulsePnInvalid(TPulsePnDesc* pPnDesc);	//该测量点脉冲是否有效
 		void CalcStatEnergy();	//计算所有脉冲测量点统计数据
 		void CalcPnStatEnergy(WORD wPnIndex, bool fClrDayEnergy, bool fClrMonthEnergy);		//计算/清0某个测量点的统计数据
+		void CheckPulseCfg(WORD wOI);	//检查脉冲配置是否为空，为空时配类型和0个元素
+		void ClrPnStartVal(WORD wBank, WORD wPn, WORD wID);
 
 	private:
 		BYTE m_bYMFlag;			//脉冲占用遥信标志 1：占用， 0：不占用

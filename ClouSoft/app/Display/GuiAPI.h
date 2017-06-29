@@ -33,6 +33,7 @@
 #define    KEY_DOWN          			0x04
 #define    KEY_ESC          			0x05
 #define    KEY_OK            			0x06
+#define	   KEY_OK_ESC					0x07
 
 #define DATA_HEX	1
 #define DATA_DEC	2

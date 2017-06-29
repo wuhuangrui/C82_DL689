@@ -490,6 +490,8 @@ const TItemList DL645_to_DL645V07[]=
 			{0xea60, 0x0280000b, 4, 4},//当前阶梯电价
 			{0xea61, 0x02800020, 4, 4},//当前电价
 			{0xea62, 0x02800021, 4, 4},//当前费率电价
+
+			{0xea63, 0x04001101, 1, 1},//电能表运行特征字
 };
 
 extern BYTE g_bEngTatolFmt[1];
@@ -2181,10 +2183,9 @@ int DL645V07AskItemErc(struct TMtrPro* pMtrPro, DWORD dwOAD, BYTE* pbData, BYTE*
 
 WORD GetCurveData(Toad645Map tOad645Map, BYTE* pbSrcBuf, BYTE* pbDstBuf)
 {
-	int iRet = -1;
 	BYTE bBuf[64];
 
-	memset(bBuf, INVALID_DATA_MTR, sizeof(bBuf));
+	memset(bBuf, INVALID_DATA, sizeof(bBuf));
 	switch (tOad645Map.wID)
 	{
 	case 0x3701:
@@ -2192,7 +2193,6 @@ WORD GetCurveData(Toad645Map tOad645Map, BYTE* pbSrcBuf, BYTE* pbDstBuf)
 	case 0x3703:
 	case 0x3704:
 		memcpy(bBuf, pbSrcBuf+(tOad645Map.wID-0x3701)*4, 4);
-		iRet = 20;
 		break;
 
 	case 0x3745:
@@ -2200,32 +2200,26 @@ WORD GetCurveData(Toad645Map tOad645Map, BYTE* pbSrcBuf, BYTE* pbDstBuf)
 	case 0x3747:
 	case 0x3748:
 		memcpy(bBuf, pbSrcBuf+(tOad645Map.wID-0x3745)*4, 4);
-		iRet = 20;
 		break;
 
 	case 0x3705:
 		memcpy(bBuf, pbSrcBuf, 8);
-		iRet = 8;
 		break;
 
 	case 0x3681:
 		memcpy(bBuf, pbSrcBuf, 12);
-		iRet = 12;
 		break;
 
 	case 0x3685:
 		memcpy(bBuf, pbSrcBuf+12, 12);
-		iRet = 12;
 		break;
 
 	case 0x3689:
 		memcpy(bBuf, pbSrcBuf, 6);
-		iRet = 6;
 		break;
 
 	case 0x3692:
 		memcpy(bBuf, pbSrcBuf+6, 9);
-		iRet = 9;
 		break;
 
 	default:

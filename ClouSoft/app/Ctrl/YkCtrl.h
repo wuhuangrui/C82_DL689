@@ -94,6 +94,7 @@ protected:
 
 	DWORD		m_dwFrzDly;						//功控跳闸后功率冻结延时.
 	WORD		m_wOpenTimes;					//跳闸次数.
+	DWORD		m_dwOpenClk;
 	
 };
 

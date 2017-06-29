@@ -84,7 +84,7 @@ void CUrgeFee::DoCmdScan(void)
 	char cTime[20];
 	TUrgeFeeCmd NewCmd;
 
-	BYTE bCmd[210];
+	BYTE bCmd[256];
 	memset(bCmd, 0, sizeof(bCmd));
 	//先根据命令时标检查是否收到新的命令.
 	if (ReadItemEx(BN0, PN0, 0x8220, bCmd, &NewCmd.dwTime) < 0)	//读"终端催费告警投入命令"ID
@@ -157,7 +157,7 @@ void CUrgeFee::RstCtrl(void)
 //返回: 如果清除成功返回 true,否则返回 false.
 bool CUrgeFee::ClrSysCmd(void)
 {
-	BYTE bCmd[210] = {0};
+	BYTE bCmd[256] = {0};
 
 	WriteItemEx(BN0, PN0, 0x8220, bCmd);	//写"终端催费告警投入命令"ID
 

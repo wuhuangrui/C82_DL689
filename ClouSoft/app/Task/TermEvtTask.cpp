@@ -29,7 +29,7 @@
 
 //事件参数默认
 //终端类型---不同类型的终端需要支持的事件不同
-#if TERM_TYPE_EVT_DEFCFG == TERM_C82_EVT_DEFCFG
+#if FA_TYPE == FA_TYPE_C82
 const WORD g_wValidCfg[] = {
 	MTR_VLOSS,					//失压					1
 	MTR_VLESS,					//欠压					2
@@ -69,7 +69,7 @@ const WORD g_wValidCfg[] = {
 	TERM_TERMPRG,				//终端编程记录			12
 	TERM_MTRCLKPRG,				//终端对电表校时记录	14			TSA
 };
-#elif TERM_TYPE_EVT_DEFCFG == TERM_K32_EVT_DEFCFG
+#elif FA_TYPE == FA_TYPE_K32
 const WORD g_wValidCfg[] = {
 	MTR_MTRCLEAR,				//电表清零				17
 	MTR_EVTCLEAR,				//事件清零				19
@@ -87,7 +87,7 @@ const WORD g_wValidCfg[] = {
 	TERM_TERMPRG,				//终端编程记录			10
 	TERM_MTRCLKPRG,				//终端对电表校时记录	12			TSA
 };
-#elif TERM_TYPE_EVT_DEFCFG == TERM_D82_EVT_DEFCFG
+#elif FA_TYPE == FA_TYPE_D82
 const WORD g_wValidCfg[] = {
 	MTR_VLOSS,					//失压					1
 	MTR_VLESS,					//欠压					2
@@ -461,8 +461,8 @@ const BYTE g_bECtBCfg[] = {
 };
 //0x3202 购电参数设置记录
 const BYTE g_bPChCfg[] = {
-	0x01,0x01,
-	0x51,0x81,0x0C,0x22,0x01,
+	0x01,0x00,
+	//0x51,0x81,0x0C,0x22,0x01,
 };
 //0x3203 电控告警事件记录
 const BYTE g_bECtCfg[] = {
@@ -957,8 +957,9 @@ void SetTermEvtOadDefCfg(struct TEvtCtrl* pEvtCtrl)
 			OoWriteAttr(wOI, pEvtAttr->bValidFlg, bINValidBuf);
 			OoWriteAttr(wOI, pEvtAttr->bMaxRecNum, bINValidMaxNumBuf);
 		}
-#if TERM_TYPE_EVT_DEFCFG == TERM_D82_EVT_DEFCFG
-		if (wOI==TERM_POWOFF || wOI==TERM_DEVICEERR || wOI==TERM_CLOCKPRG || wOI==TERM_CURCIRC || wOI==TERM_MTRCLKPRG)
+#ifdef VER_698_JIBEI				
+#if FA_TYPE == FA_TYPE_D82
+		if (wOI==TERM_POWOFF || wOI==TERM_DEVICEERR ||wOI==TERM_CURCIRC || wOI==TERM_MTRCLKPRG || wOI==TERM_CLOCKPRG )
 		{
 			if (wOI == TERM_POWOFF)
 				OoWriteAttr(wOI, pEvtAttr->bRepFlg, bPwrOffRptBuf);
@@ -966,6 +967,7 @@ void SetTermEvtOadDefCfg(struct TEvtCtrl* pEvtCtrl)
 				OoWriteAttr(wOI, pEvtAttr->bRepFlg, bRptBuf);
 		}
 #endif	
+#endif
 		TrigerSaveBank(BN0, SECT3, -1);
 	}
 	
@@ -5758,12 +5760,40 @@ bool DoAVLoss(struct TEvtCtrl* pEvtCtrl)
 
 
 //描述：事件接口函数执行
-void DoTermEvt()
+/*void DoTermEvt()
 {
-	WaitSemaphore(g_semTermEvt);
- 	for(BYTE i=0; i<EVT_NUM; i++)
- 		g_EvtCtrl[i].pfnDoEvt(&g_EvtCtrl[i]);
-	SignalSemaphore(g_semTermEvt);
+	static DWORD dwLastClick = GetClick();
+
+	if (GetClick() - dwLastClick > 10)
+	{
+		dwLastClick = GetClick();
+
+		WaitSemaphore(g_semTermEvt);
+		for(BYTE i=0; i<EVT_NUM; i++)
+			g_EvtCtrl[i].pfnDoEvt(&g_EvtCtrl[i]);
+		SignalSemaphore(g_semTermEvt);
+	}	
+}*/
+
+TThreadRet  DoTermEvt(void* pvPara)
+{
+	int iMonitorID = ReqThreadMonitorID("DoTermEvt-thrd", 60*60);	//申请线程监控ID,更新间隔为60秒
+	DTRACE(DB_CRITICAL, ("DoTermEvt : started!\n"));
+
+	while(1)
+	{
+		WaitSemaphore(g_semTermEvt);
+		
+	 	for(BYTE i=0; i<EVT_NUM; i++)
+	 		g_EvtCtrl[i].pfnDoEvt(&g_EvtCtrl[i]);
+		
+		SignalSemaphore(g_semTermEvt);
+
+		Sleep(100);
+		UpdThreadRunClick(iMonitorID);
+	}
+
+	ReleaseThreadMonitorID(iMonitorID);
 }
 
 //**************************事件清零功能*********************************************
@@ -5976,7 +6006,7 @@ void DealSpecTrigerEvt(WORD wOI)
 	if (pEvtCtrl->bClass != IC7)	//仅IC7有触发类	
 		return;
 
-	WaitSemaphore(g_semTermEvt);
+	//WaitSemaphore(g_semTermEvt);
 	//电表清零/事件清零
 	if ((wOI==MTR_MTRCLEAR) ||(wOI==MTR_EVTCLEAR))
 	{
@@ -6003,7 +6033,7 @@ void DealSpecTrigerEvt(WORD wOI)
 		case MTR_EVTCLEAR:		//事件清零
 			SetInfo(INFO_EVT_EVTCLR);
 			GetEvtClearOMD(0x4300, 0x05, 0x00);
-			SignalSemaphore(g_semTermEvt);
+			//SignalSemaphore(g_semTermEvt);
 			return;
 		case TERM_INIT:		//终端初始化
 			SetInfo(INFO_TERM_INIT);
@@ -6015,12 +6045,12 @@ void DealSpecTrigerEvt(WORD wOI)
 			SetInfo(INFO_TERM_PROG);
 			break;	
 		default:
-			SignalSemaphore(g_semTermEvt);
+			//SignalSemaphore(g_semTermEvt);
 			return;
 	}
 
 	RecordSpecTrigerEvt(pEvtCtrl);
-	SignalSemaphore(g_semTermEvt);
+	//SignalSemaphore(g_semTermEvt);
 }
 
 
@@ -7175,7 +7205,6 @@ bool UpdateEvtRptState(DWORD dwCnOAD, TEvtMsg* pEvtMsg, BYTE bRptState)
 				bCnNum = *(pbRec+1);
 				if (bCnNum >= CN_RPT_NUM)
 					bCnNum = CN_RPT_NUM;
-
 				for(i=0; i<bCnNum; i++)
 				{	
 					dwRecCnOAD = OoDoubleLongUnsignedToDWord(pbRec+5+i*9);
@@ -7864,13 +7893,16 @@ int OnInfoTrigerEvtJudge(struct TEvtCtrl* pEvtCtrl, BYTE bInfoType)
 			pEvtPriv->bEvtSrcEnum = 5;	//载波通道故障
 		}
 
-		if ((pEvtCtrl->wOI==TERM_YXCHG) || (pEvtCtrl->wOI==TERM_POWCTRLBREAK)) 
-			pEvtCtrl->bDelaySec = 130;	//特殊处理，遥控和功控需要做控后2分钟数据，延时130秒再结束事件
-			
+		if ((pEvtCtrl->wOI==TERM_YKCTRLBREAK) || (pEvtCtrl->wOI==TERM_POWCTRLBREAK)) 
+			pEvtCtrl->bDelaySec = 0;	//特殊处理，遥控和功控需要做控后2分钟数据，延时130秒再结束事件
+
 		pEvtCtrl->pEvtBase[0].bJudgeState = 1;
 	}
 	else
 	{
+		if ((pEvtCtrl->wOI==TERM_YKCTRLBREAK) || (pEvtCtrl->wOI==TERM_POWCTRLBREAK)) 
+			pEvtCtrl->bDelaySec = 130;	//特殊处理，遥控和功控需要做控后2分钟数据，延时130秒再结束事件
+
 		pEvtCtrl->pEvtBase[0].bJudgeState = 2;
 	}
 
@@ -8593,7 +8625,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 #if TERM_VER == TERM_STD
 
 #elif TERM_VER == TERM_ZJ
-		if ((pCtrl->bAttr&0xc0) == 0x3)	//浙江正常且有效事件，才上报
+		if ((pCtrl->bAttr&0xc0) == 0xc0)	//浙江正常且有效事件，才上报
 #endif	
 		{
 			pCtrl->bEvtSrcEnum = 0x01;		//上电事件

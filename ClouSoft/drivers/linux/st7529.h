@@ -38,6 +38,7 @@ public:
 	CST7529();
 	~CST7529();
 	bool ReInit(bool fResetCtrl);		//≥ı ºªØ“∫æß
+	bool ReInitLcdHandle();
     bool Init();						//≥ı ºªØ“∫æß
 	void InitHzk();
 	void Reset(bool fReset = true);		//∏¥Œª“∫æß

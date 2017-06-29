@@ -21,6 +21,7 @@
 #include "TaskManager.h"
 #include "YkCtrl.h"
 #include "FaAPI.h"
+#include "TermEvtTask.h"
 
 //========================================= CYkCtrl =============================================
 CYkCtrl::CYkCtrl(BYTE bTurn)
@@ -37,6 +38,7 @@ CYkCtrl::CYkCtrl(BYTE bTurn)
 	m_fOpenStatus = false;
 	m_dwOpenClick = 0;
 	m_dwCloseClick = 0;
+	m_dwOpenClk = 0;
 }
 
 //描述: 设置'遥控'的当前轮次.
@@ -148,63 +150,16 @@ void CYkCtrl::DoCmdScan(void)
 //描述: 保存遥控跳闸记录.
 void CYkCtrl::DoSaveOpenRec(void)
 {
-	BYTE bRecBuf[12];
-
-	if (ReadItemEx(BN0, (WORD)m_iTurn, 0x0a00, bRecBuf) <= 0)
-	{
-		DTRACE(DB_LOADCTRL, ("CYkCtrl::DoSaveOpenRec: There is something wrong when call ReadItemEx() !\n"));
-		return;
-	}
-
-	DWORD dwTime;
-
-	memcpy(&dwTime, bRecBuf, 4);
-	if (dwTime > m_dwNow)	//变成未来的时间了,时间往前调回去了
-	{	
-		dwTime = m_dwNow;
-		memcpy(bRecBuf, &dwTime, 4);
-		WriteItemEx(BN0, (WORD)m_iTurn, 0x0a00, bRecBuf);	//把数据库的时间也改了
-	}
-
-	if (dwTime != 0)
+	if (m_dwOpenClk != 0)
 	{//如有跳闸情况发生,必须在跳闸后2分钟记录冻结功率.
-		if (m_dwNow >= dwTime+m_dwFrzDly)
+		if (GetClick() >= m_dwOpenClk+120)
 		{
-			BYTE bBuf[12];
-			int64 iCurPwr;
-
-			bBuf[0] = 0x08;		//bitstring
-			bBuf[1] = (BYTE)(0x01<<(m_iTurn-TURN_START_PN));//轮次
-			memcpy(bBuf+2, bRecBuf+4+1, 4);		//跳闸时功率
-
-			if (bRecBuf[4] == 1)
-			{//记录跳闸后功率.
-				iCurPwr = GetCurPwr(1);
-				Val32ToBin(iCurPwr, bBuf+6, 4);
-			}
-			else
-			{
-				memset(bBuf+6, INVALID_DATA, 4);
-			}
-			TTime tm;
-
-			SecondsToTime(dwTime, &tm);
-
-			memset(bRecBuf, 0, sizeof(bRecBuf));
-			WriteItemEx(BN0, (WORD)m_iTurn, 0x0a00, bRecBuf);	//清空跳闸中间数据.
-			//TrigerSave();
-
-			//记录当前跳闸记录到系统库中.
-			//SaveAlrData(ERC_YK, tm, bBuf, 10);
-
-			char cTime[20];
-			char cTime1[20];
-
-			DTRACE(DB_LOADCTRL, ("CYkCtrl::DoSaveOpenRec: In the %d seconds after open break of Turn[%d], recorded the power.\n"\
-								 "Time of open break is %s, power is %lld\n"\
-								 "at %s, power is %lld\n", m_dwFrzDly, bBuf[0],
-								 TimeToStr(tm, cTime1), Fmt2ToVal64(bBuf+1, 2),
-								 TimeToStr(m_tmNow, cTime), iCurPwr));
+			BYTE *pbPtr = g_YKCtrl.bArrayPow;
+			memset(g_YKCtrl.bArrayPow, 0, sizeof(g_YKCtrl.bArrayPow));
+			*pbPtr++ = DT_ARRAY;
+			*pbPtr++ = 1;
+			pbPtr += ReadItemEx(BN0, PN1, 0x2302, pbPtr);
+			m_dwOpenClk = 0;
 		}
 	}
 }
@@ -213,7 +168,7 @@ void CYkCtrl::DoSaveOpenRec(void)
 //返回: 正常则返回 true,否则返回 false.
 bool CYkCtrl::DoCtrl(void)
 {
-	//DoSaveOpenRec();	//保存遥控跳闸记录.
+	DoSaveOpenRec();	//保存遥控跳闸记录.
 	DoCmdScan();		//扫描系统库中的命令.
 
 	if (!IsValid())
@@ -300,6 +255,11 @@ bool CYkCtrl::DoCtrl(void)
 			SetSysTurnAlrStatus(m_iTurn, false);
 			m_wOpenTimes++;						//跳闸次数增加1.
 
+			g_YKCtrl.bEvtSrcOAD[0] = DT_OAD;
+			DWORD dwOad = 0xF2050200 + m_iTurn;
+			OoDWordToOad(dwOad, &g_YKCtrl.bEvtSrcOAD[1]);
+			SetInfo(INFO_YK_REC);
+			m_dwOpenClk = GetClick();
 			//BYTE bBuf[1+1+6*8];
 
 			/*if (ReadItemEx(BN0, PN0, 0x104f, bBuf) <= 0)//读"终端控制设置状态".
@@ -551,7 +511,8 @@ bool CYkCtrl::SetSysTurnStatus(int iTurn, bool fStatus)
 	if (iTurn<TURN_START_PN || iTurn>TURN_START_PN+TURN_NUM)
 		return false;
 
-	BYTE bBuf[2];	//最多8组数据
+	BYTE bRelayMode;
+	BYTE bBuf[32];	//最多8组数据
 
 	//!!!如果在别的线程中会写该ID,可能需要进行信号量保护
 	if (ReadItemEx(BN0, PN0, 0x8200, bBuf) <= 0)	//读"继电器输出状态".
@@ -560,11 +521,35 @@ bool CYkCtrl::SetSysTurnStatus(int iTurn, bool fStatus)
 		return false;
 	}
 	bBuf[0] = DT_BIT_STR;
+	bBuf[1] = 8;
 	if (fStatus)
-		bBuf[1] |= (0x01<<(iTurn-TURN_START_PN)) & CTL_TURN_MASK;		//保存当前轮次'遥控跳闸输出状态'.
+		bBuf[2] |= (0x01<<(iTurn-TURN_START_PN)) & CTL_TURN_MASK;		//保存当前轮次'遥控跳闸输出状态'.
 	else
-		bBuf[1] &= ~((0x01<<(iTurn-TURN_START_PN)) & CTL_TURN_MASK);	//保存当前轮次'遥控跳闸输出状态'.
+		bBuf[2] &= ~((0x01<<(iTurn-TURN_START_PN)) & CTL_TURN_MASK);	//保存当前轮次'遥控跳闸输出状态'.
 	WriteItemEx(BN0, PN0, 0x8200, bBuf);	//写"继电器输出状态".
+
+	if (ReadItemEx(BN0, iTurn-1, 0xF205, bBuf) <= 0)	//读"继电器输出状态".
+	{
+		DTRACE(DB_LOADCTRL, ("CYkCtrl::SetSysTurnStatus: There is something wrong !\n"));
+		return false;
+	}
+
+	BYTE *pbPtr = bBuf;
+	*pbPtr++ = DT_STRUCT;
+	*pbPtr++ = 4;
+	*pbPtr++ = DT_VIS_STR;
+	*pbPtr++ = 16;
+	memset(pbPtr, 0x30, 16);
+	pbPtr += 16;
+	*pbPtr++ = DT_ENUM;
+	*pbPtr++ = fStatus;
+	ReadItemEx(BN1, PN0, 0x2022, &bRelayMode);
+	*pbPtr++ = DT_ENUM;
+	*pbPtr++ = (bRelayMode==1) ? 0:1;
+	*pbPtr++ = DT_ENUM;
+	*pbPtr++ = 0;
+
+	WriteItemEx(BN0, iTurn-1, 0xF205, bBuf);	//写"继电器输出状态".
 
 	return true;
 }
@@ -577,7 +562,7 @@ bool CYkCtrl::SetSysTurnAlrStatus(int iTurn, bool fStatus)
 	if (iTurn<TURN_START_PN || iTurn>TURN_START_PN+TURN_NUM)
 		return false;
 
-	BYTE bBuf[2];
+	BYTE bBuf[4];
 
 	//!!!如果在别的线程中会写该ID,可能需要进行信号量保护
 	if (ReadItemEx(BN0, PN0, 0x8201, bBuf) <= 0)	//读"遥控告警状态".
@@ -586,10 +571,11 @@ bool CYkCtrl::SetSysTurnAlrStatus(int iTurn, bool fStatus)
 		return false;
 	}
 	bBuf[0] = DT_BIT_STR;
+	bBuf[1] = 8;
 	if (fStatus)
-		bBuf[1] |= (0x01<<(iTurn-TURN_START_PN)) & CTL_TURN_MASK;		//保存当前轮次'遥控告警输出状态'.
+		bBuf[2] |= (0x01<<(iTurn-TURN_START_PN)) & CTL_TURN_MASK;		//保存当前轮次'遥控告警输出状态'.
 	else
-		bBuf[1] &= ~((0x01<<(iTurn-TURN_START_PN)) & CTL_TURN_MASK);	//保存当前轮次'遥控告警输出状态'.
+		bBuf[2] &= ~((0x01<<(iTurn-TURN_START_PN)) & CTL_TURN_MASK);	//保存当前轮次'遥控告警输出状态'.
 	WriteItemEx(BN0, PN0, 0x8201, bBuf);	//写"遥控告警状态".
 
 	return true;
