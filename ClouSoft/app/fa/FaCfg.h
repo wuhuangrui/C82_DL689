@@ -13,6 +13,16 @@
 #include "syscfg.h"
 
 
+#define FA_TYPE_D82			1
+#define FA_TYPE_C82			2
+#define FA_TYPE_K32			3
+
+//终端类型选择
+//#define	FA_TYPE				FA_TYPE_K32
+#define	FA_TYPE			FA_TYPE_C82
+//#define	FA_TYPE			FA_TYPE_D82
+
+
 //面向对象测试，正式发布版本需去掉 20161027  CL
 //#define GW_OOB_DEBUG_MTR_RATE_CUR_VOL	1
 
@@ -39,19 +49,22 @@
 
 #define MTREXC_ADDR_TPYE_TSA	1	//抄表事件中电表地址类型为TSA,用来控制电表地址类型的宏定义
 
-#ifdef EN_SPECIAL_TRANSFORMER
+#if FA_TYPE == FA_TYPE_D82
 	#define FA_NAME		"CL790D82-45"
 	//#define EN_CCT		1	//是否允许集抄功能
 	//#define EN_CCT485		1	//是否允许集抄485口
     #define EN_CTRL		1	//是否允许控制功能
 	//#define EN_VARCPS		1	//是否允许无功补偿(VAR compensator)功能
-#else
+#elif FA_TYPE == FA_TYPE_C82
 	#define FA_NAME		"CL818C82"
 	//#define EN_CCT			1	//是否允许集抄功能
 	//#define EN_CCT485		1	//是否允许集抄485口
 	//#define EN_CTRL		1	//是否允许控制功能
 	//#define EN_VARCPS		1	//是否允许无功补偿(VAR compensator)功能
+#else
+	#define FA_NAME		"CL818K32"
 #endif
+
 
 #define PRO_698		1
 #define PRO_DLMS	1

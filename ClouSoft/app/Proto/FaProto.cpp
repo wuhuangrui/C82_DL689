@@ -2106,7 +2106,7 @@ int CFaProto::Set_Request_Normal_List()
 				*pApdu++ = DR_ERROK;
 			}
 
-			pbAskStart += iDataLen;//iRet;
+			pbAskStart += iRet;
 		}
 	}
 

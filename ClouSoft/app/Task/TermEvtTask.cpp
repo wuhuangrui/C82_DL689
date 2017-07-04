@@ -29,7 +29,7 @@
 
 //事件参数默认
 //终端类型---不同类型的终端需要支持的事件不同
-#if TERM_TYPE_EVT_DEFCFG == TERM_C82_EVT_DEFCFG
+#if FA_TYPE == FA_TYPE_C82
 const WORD g_wValidCfg[] = {
 	MTR_VLOSS,					//失压					1
 	MTR_VLESS,					//欠压					2
@@ -69,7 +69,7 @@ const WORD g_wValidCfg[] = {
 	TERM_TERMPRG,				//终端编程记录			12
 	TERM_MTRCLKPRG,				//终端对电表校时记录	14			TSA
 };
-#elif TERM_TYPE_EVT_DEFCFG == TERM_K32_EVT_DEFCFG
+#elif FA_TYPE == FA_TYPE_K32
 const WORD g_wValidCfg[] = {
 	MTR_MTRCLEAR,				//电表清零				17
 	MTR_EVTCLEAR,				//事件清零				19
@@ -87,7 +87,7 @@ const WORD g_wValidCfg[] = {
 	TERM_TERMPRG,				//终端编程记录			10
 	TERM_MTRCLKPRG,				//终端对电表校时记录	12			TSA
 };
-#elif TERM_TYPE_EVT_DEFCFG == TERM_D82_EVT_DEFCFG
+#elif FA_TYPE == FA_TYPE_D82
 const WORD g_wValidCfg[] = {
 	MTR_VLOSS,					//失压					1
 	MTR_VLESS,					//欠压					2

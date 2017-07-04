@@ -18,11 +18,7 @@
 #define TERM_ZJ						1								//浙江版本
 #define TERM_VER					TERM_ZJ//TERM_ZJ							//版本选择,浙江
 
-//终端类型---不同类型的终端需要支持的事件不同
-#define TERM_C82_EVT_DEFCFG			0								//集中器1型支持的有效事件
-#define TERM_K32_EVT_DEFCFG			1								//集中器2型支持的有效事件
-#define TERM_D82_EVT_DEFCFG			2								//负控支持的有效事件
-#define TERM_TYPE_EVT_DEFCFG		TERM_C82_EVT_DEFCFG				//k32集中器2型
+
 
 //事件相关宏定义
 #define DEFAULT_DELAY_SEC			60								//默认判定延时60秒
