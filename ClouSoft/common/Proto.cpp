@@ -16,6 +16,7 @@
 #include "Trace.h"
 #include "FaCfg.h"
 #include "sysapi.h"
+#include "ComAPI.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //CProto
@@ -163,7 +164,21 @@ bool CProto::Send(BYTE* pbTxBuf, WORD wLen)
 {
 	if (m_pIf && m_pIf->CanTrans())   //接口是否还处于传输状态
 	{	
-		return m_pIf->Send(pbTxBuf, wLen);
+		 if(m_pIf->GetIfType()==IF_SMS)
+        {  
+            BYTE bSendBuf[5000];
+            if(wLen>=5000/2)
+            {
+                return false;
+            }
+			DTRACE(DB_CRITICAL, ("GPRS is outline, terminal send data to station by SMS mode\r\n"));
+            HexToASCII(pbTxBuf, bSendBuf, wLen );              
+            return m_pIf->Send(bSendBuf, wLen*2);
+        }
+        else
+        {
+		    return m_pIf->Send(pbTxBuf, wLen);
+        }
 	}
 	else
 	{

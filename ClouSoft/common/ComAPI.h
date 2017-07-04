@@ -100,6 +100,8 @@ bool DeleteFile(char* pszPathName);
 int GetFileLen(char* pszPathName);
 void UpdateTxPwr(BYTE bTxPwr, int16 bSign);
 void UpdateDialIP();
+void UpdateTxPwr(BYTE bTxPwr, int16 bSign);
+
 
 inline void SetEmptyTime(TTime* pTime)
 {

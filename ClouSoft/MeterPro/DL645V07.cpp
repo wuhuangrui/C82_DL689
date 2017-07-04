@@ -2576,7 +2576,7 @@ int DL645V07DirAskItemEx(struct TMtrPro* pMtrPro, BYTE bRespType, BYTE bChoice, 
 				pbTxTmp += iRCSDLen;
 
 				*pbDataTmp++ = 0x01;
-				iRet = DL645V07AskItemEx(pMtrPro, 1, dwOAD, pbDataTmp+1, pRSD, iRSDLen, pRCSD, iRCSDLen);
+				iRet = DL645V07AskItemEx(pMtrPro, 2, dwOAD, pbDataTmp+1, pRSD, iRSDLen, pRCSD, iRCSDLen);
 			}
 
 			if (iRet > 2)
@@ -2588,6 +2588,7 @@ int DL645V07DirAskItemEx(struct TMtrPro* pMtrPro, BYTE bRespType, BYTE bChoice, 
 			else
 			{
 				pbDataTmp[0] = DAR;
+				pbDataTmp++;
 			}
 		}
 	}
