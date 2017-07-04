@@ -2950,6 +2950,8 @@ ToaMap g_OIConvertClass[] =
 	{0x41090200,	8,		MAP_SYSDB,		0x4109, 	PN0,   0,		gbPImpConst, 				sizeof(gbPImpConst), 			NULL},	//电能表有功常数 
 	{0x410a0200,	8,		MAP_SYSDB,		0x410a, 	PN0,   0,		gbQImpConst,				sizeof(gbQImpConst),			NULL},	//电能表无功常数 
 	{0x410b0200,	8,		MAP_SYSDB,		0x410b, 	PN0,   0,		gbMeterTypeString,			sizeof(gbMeterTypeString),		NULL},	//电能表型号
+
+	{0x41100200,	8,		MAP_SYSDB,		0x4110, 	PN0,   0,		g_bBitStringTypeFmt,		sizeof(g_bBitStringTypeFmt),	NULL},	//电能表运行特征字1
 	{0x41120200,	8,		MAP_SYSDB,		0x4112, 	PN0,   0,		g_bBitStringTypeFmt,		sizeof(g_bBitStringTypeFmt),	NULL},	//有功组合方式特征字
 	{0x41130200,	8,		MAP_SYSDB,		0x4113, 	PN0,   0,		g_bBitStringTypeFmt,		sizeof(g_bBitStringTypeFmt),	NULL},	//无功组合方式1特征字
 	{0x41140200,	8,		MAP_SYSDB,		0x4114, 	PN0,   0,		g_bBitStringTypeFmt,		sizeof(g_bBitStringTypeFmt),	NULL},	//无功组合方式2特征字
