@@ -1770,7 +1770,12 @@ void LoadSmsPara(TModemPara *pModemPara)
 	BYTE bBuf[48] ,Num  ;
 	char szPhone[32] , phoneInit[32];
 	
-	pModemPara->fEnSms = false;			//不支持短信
+#ifdef VER_ZJ
+		pModemPara->fEnSms = true;					//支持短信
+#else	
+		pModemPara->fEnSms = false;//true;			//不支持短信
+#endif
+
 	
 	pModemPara->fMstSmsAddrValid = false;   //主站短信地址有效标志
 	

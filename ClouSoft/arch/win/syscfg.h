@@ -16,7 +16,7 @@
 #define SYS_WIN
 #include "apptypedef.h"
 
-#define VER_STD     //标准版
+//#define VER_STD     //标准版
 
 #define USER_PATH  "d:\\fafiles-45\\"
 #define USER_PARA_PATH  "d:\\fafiles-45\\para\\"

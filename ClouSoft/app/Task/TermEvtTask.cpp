@@ -957,7 +957,7 @@ void SetTermEvtOadDefCfg(struct TEvtCtrl* pEvtCtrl)
 			OoWriteAttr(wOI, pEvtAttr->bValidFlg, bINValidBuf);
 			OoWriteAttr(wOI, pEvtAttr->bMaxRecNum, bINValidMaxNumBuf);
 		}
-#if TERM_TYPE_EVT_DEFCFG == TERM_D82_EVT_DEFCFG
+#if FA_TYPE == FA_TYPE_D82
 		if (wOI==TERM_POWOFF || wOI==TERM_DEVICEERR || wOI==TERM_CLOCKPRG || wOI==TERM_CURCIRC || wOI==TERM_MTRCLKPRG)
 		{
 			if (wOI == TERM_POWOFF)
@@ -6928,9 +6928,12 @@ bool SendEvtMsg(DWORD dwCnOAD, DWORD dwEvtOAD,WORD wRecIdx, BYTE bStage, BYTE bS
 	if (OoReadAttr(0x4300, 8, bBuf, NULL, NULL) > 0)	
 	{
 		if ((bBuf[0]==DT_BOOL) && (bBuf[1]==1))		//上报开启才发消息
-			{}
+		{
+		}		
 		else
-			return false;	
+		{
+			return false;
+		}	
 	}
 	else 
 		return false;

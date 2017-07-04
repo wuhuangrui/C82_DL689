@@ -254,6 +254,8 @@
 #define VER_CHENGDE      3   //承德版
 
 //以下集中器从4开始使用
-#define VER_HEBEI        4   //河北版
-#define VER_JIBEI        5   //冀北版
+//#define VER_HEBEI        4   //河北版
+//#define VER_JIBEI        5   //冀北版
+#define VER_ZJ			 6   //浙江
+
 #endif //FACFG_H

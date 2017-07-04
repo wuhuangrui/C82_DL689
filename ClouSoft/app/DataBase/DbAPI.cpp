@@ -240,37 +240,50 @@ void SetDefFnCfgOfMain(BYTE bMain)
 	//第1组	
 	bBuf[wOff++] = 1;        //小类号
 	bBuf[wOff++] = 31;       //信息类组数
-	
-	if(bVer == VER_HEBEI)
+
+#ifdef VER_HEBEI
 	{
 		SetFnFlg(&bBuf[wOff], g_bSingleFn_HeB, sizeof(g_bSingleFn_HeB));
 	}
-	else if (bVer == VER_JIBEI)
+#endif
+
+#ifdef VER_JIBEI
 	{
 		SetFnFlg(&bBuf[wOff], g_bSingleFn_JiBei, sizeof(g_bSingleFn_JiBei));
 	}
-	else
+#endif 
+
+#ifdef VER_ZJ
 	{
 		SetFnFlg(&bBuf[wOff], g_bSingleFn, sizeof(g_bSingleFn));
 	}
+#endif
+
 	wOff += 31;
 
 	//第2组
 	bBuf[wOff++] = 2;		 //小类号
 	bBuf[wOff++] = 31;       //信息类组数
 
-	if(bVer == VER_HEBEI)
+
+#ifdef VER_HEBEI
 	{
 		SetFnFlg(&bBuf[wOff], g_bMultiFn_HeB, sizeof(g_bMultiFn_HeB));
 	}
-	else if (bVer == VER_JIBEI)
+#endif
+
+#ifdef VER_JIBEI
 	{
 		SetFnFlg(&bBuf[wOff], g_bMultiFn_JiBei, sizeof(g_bMultiFn_JiBei));
 	}
-	else
+#endif
+
+#ifdef VER_ZJ
 	{
 		SetFnFlg(&bBuf[wOff], g_bMultiFn, sizeof(g_bMultiFn));
 	}
+#endif
+
 	WriteItemEx(BN0, bMain, 0x027f, bBuf);	
 }
 
@@ -363,7 +376,7 @@ bool IsFnSupport(WORD wPn, BYTE bFn, BYTE bClass)
 
 	if (pbCfg[0]==0xff && bMain==0)	//参数没有配置,用户大类号为0,则全部支持
 	{
-		if(bVer == VER_HEBEI)
+#ifdef VER_HEBEI
 		{
 			for (i=0; i<sizeof(g_bMultiFn_HeB); i++)
 			{
@@ -371,7 +384,8 @@ bool IsFnSupport(WORD wPn, BYTE bFn, BYTE bClass)
 				return true;
 			}
 		}
-		else if(bVer == VER_JIBEI)
+#endif
+#ifdef  VER_JIBEI
 		{
 			for (i=0; i<sizeof(g_bMultiFn_JiBei); i++)
 			{
@@ -379,7 +393,9 @@ bool IsFnSupport(WORD wPn, BYTE bFn, BYTE bClass)
 					return true;
 			}
 		}
-		else
+#endif
+
+#ifdef VER_ZJ
 		{
 			for (i=0; i<sizeof(g_bMultiFn); i++)
 			{
@@ -387,6 +403,7 @@ bool IsFnSupport(WORD wPn, BYTE bFn, BYTE bClass)
 				return true;
 			}
 		}
+#endif
 		return false;
 	}
 	else if (pbCfg[0] >= USR_MAIN_CLASS_NUM)
