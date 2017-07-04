@@ -4006,3 +4006,133 @@ OIFmtData_err:
 	return -wErr;
 }
 
+
+
+//描述：特殊OI的读取，主要包括测量点参数，数据等，涉及多个记录的数据等
+bool OIRead_PortPara(WORD wID, BYTE bPn, TCommPara *pCommPara, BYTE *bFunc)
+{
+	int iRet;
+	BYTE bBuf[PNPARA_LEN+1];
+
+	WORD wFmtLen, wLen;
+	WORD wFieldFmtLen;
+	BYTE bAttr, bIdx, bType;
+	BYTE *pbFmt;
+	BYTE *pFieldFmt;
+	BYTE bMaxPortNum;
+	DWORD dwOIAtt = ((DWORD )wID<<16) + 0x0200;
+	const ToaMap* pOI = GetOIMap(dwOIAtt);
+	if(pOI == NULL)
+	{
+		DTRACE(DB_CRITICAL, ("OIRead_PortPara :pOI IS NULL\n")); 
+		return false;
+	}
+	
+	if (wID == 0xF200)
+		bMaxPortNum = MAX_232_PORT_NUM;
+	else if (wID == 0xF201)
+			bMaxPortNum = MAX_485_PORT_NUM;
+	else
+		bMaxPortNum = 1;
+	DTRACE(DB_CRITICAL, ("OIRead_PortPara :bPn=%d\n",bPn)); 
+	
+	if(bPn>bMaxPortNum)
+	{
+		DTRACE(DB_CRITICAL, ("OIRead_PortPara :bPn=%d > bMaxPortNum=%d\n",bPn,bMaxPortNum)); 
+		return false;
+	}
+
+	memset(bBuf, 0, sizeof(bBuf));
+	wLen = ReadItemEx(BN0, bPn, wID, bBuf);
+   	DTRACE(DB_CRITICAL, ("OIRead_PortPara :wLen=%d\n",wLen)); 
+	if ( wLen <= 0)
+	{
+		DTRACE(DB_CRITICAL, ("OIRead_PortPara :OoReadAttr false \n")); 
+		return false;
+	}	
+	TraceBuf(DB_CRITICAL, ("\r\n OIRead_PortPara :bBuf->"), bBuf, wLen);
+//		TraceBuf(DB_CRITICAL, ("\r\n OIRead_PortPara :pbFmt->"), pOI->pFmt,  pOI->wFmtLen);
+	TraceBuf(DB_CRITICAL, ("\r\n OIRead_PortPara :pbFmt+2->"), pOI->pFmt+2,  pOI->wFmtLen-2);
+	
+	BYTE *p = OoGetField(bBuf, pOI->pFmt+2, pOI->wFmtLen-2, 1, &wLen, &bType, &pFieldFmt, &wFieldFmtLen);
+	if (p == NULL)
+	{
+		DTRACE(DB_CRITICAL, ("OIRead_PortPara :pCommPara false \n")); 
+		return false;
+	}
+//		TraceBuf(DB_CRITICAL, ("\r\n OIRead_PortPara :p->"), p, wLen);
+	/*		
+	波特率	  ENUMERATED
+	{
+	300bps（0），	600bps（1），	  1200bps（2），
+	2400bps（3），	4800bps（4），	  7200bps（5），
+	9600bps（6），	19200bps（7），   38400bps（8），
+	57600bps（9）， 115200bps（10）， 自适应（255）
+	}，
+	*/
+	if ((wID == 0xF201)||(wID == 0xF202))
+	{// 485 口 红外 口
+		if(p[1]>=6)
+		{
+			p[1] = 6;//485 最高波特率为 9600
+		}
+	}
+	
+	switch(p[1])
+	{
+		case 0:
+			pCommPara->dwBaudRate = CBR_300;
+			break;
+		case 1:
+			pCommPara->dwBaudRate = CBR_600;
+			break;
+		case 2:
+			pCommPara->dwBaudRate = CBR_1200;
+			break;
+		case 3:
+			pCommPara->dwBaudRate = CBR_2400;
+			break;
+		case 4:
+			pCommPara->dwBaudRate = CBR_4800;
+			break;
+		case 7:
+			pCommPara->dwBaudRate = CBR_19200;
+			break;
+		case 8:
+			pCommPara->dwBaudRate = CBR_38400;
+			break;
+		case 9:
+			pCommPara->dwBaudRate = CBR_57600;
+			break;
+		case 10:
+			pCommPara->dwBaudRate = CBR_115200;
+			break;
+		case 6:
+		default:
+			pCommPara->dwBaudRate = CBR_9600;
+			break;
+	}
+	pCommPara->bParity = p[2];
+	pCommPara->bByteSize = p[3];
+	pCommPara->bStopBits = p[4];
+	
+//	   	DTRACE(DB_CRITICAL, ("OIRead_PortPara :pCommPara->dwBaudRate=%d\n",pCommPara->dwBaudRate)); 
+//	   	DTRACE(DB_CRITICAL, ("OIRead_PortPara :pCommPara->bParity=%d\n",pCommPara->bParity)); 
+//	   	DTRACE(DB_CRITICAL, ("OIRead_PortPara :pCommPara->bByteSize=%d\n",pCommPara->bByteSize)); 
+//	   	DTRACE(DB_CRITICAL, ("OIRead_PortPara :pCommPara->bStopBits=%d\n",pCommPara->bStopBits)); 
+	if(bFunc!=NULL)
+	{
+		p = OoGetField(bBuf, pOI->pFmt+2, pOI->wFmtLen-2, 2, &wLen, &bType, &pFieldFmt, &wFieldFmtLen);
+		if (p == NULL)
+		{
+			DTRACE(DB_CRITICAL, ("OIRead_PortPara :bFunc false \n")); 
+			return false;
+		}
+		*bFunc = p[1];
+//			DTRACE(DB_CRITICAL, ("OIRead_PortPara :*bFunc=%d\n",*bFunc)); 
+	}	
+
+	return true;
+}
+
+

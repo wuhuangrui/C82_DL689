@@ -12,6 +12,8 @@
 #define DBOIAPI_H
 #include "DbStruct.h"
 #include "OIObjInfo.h"
+#include "Comm.h"
+
 
 BYTE OIGetStrLen(BYTE* pbStr, BYTE bLen, BYTE bFill);
 int OoReadAttr(WORD wOI, BYTE bAttr, BYTE* pbBuf, BYTE** ppFmt, WORD* pwFmtLen);
@@ -54,6 +56,7 @@ int OoReadOAD(DWORD dwOAD, BYTE* pbBuf, BYTE** ppFmt, WORD* pwFmtLen);
 bool IsNeedRdSpec(const ToaMap* pOI);
 int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart);
 int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen, DWORD dwOAD);
+bool OIRead_PortPara(WORD wID, BYTE bPn, TCommPara *pCommPara, BYTE *bFunc);
 
 #endif
 

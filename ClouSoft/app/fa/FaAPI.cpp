@@ -560,6 +560,64 @@ void sigCtrC(int n)
 }
 #endif
 */
+
+void FaInitPortFrom698(void)
+{
+	TCommPara tCommParaTmp, tCommPara;
+	BYTE bFunc[LOGIC_PORT_NUM], bFlag = 0, bFuncFlag = 0;
+	int i;
+	bool fRet;
+	g_commLocal.Open(COMM_DEBUG, CBR_9600, 8, ONESTOPBIT, EVENPARITY);	//调试输出口 波特率9600，偶
+	g_commLocal.GetCommPara(&tCommParaTmp);
+	for(i=LOGIC_PORT_NUM; i>0; i--)
+	{
+		tCommPara.wPort = g_iInSnToPhyPort[i-1];
+		fRet = OIRead_PortPara(0xF201, i-1, &tCommPara, &bFunc[i-1]);
+		TraceBuf(DB_CRITICAL, ("\r\n FaInitStep1 :tCommParaTmp->"), (BYTE*)&tCommParaTmp, sizeof(tCommParaTmp));
+		TraceBuf(DB_CRITICAL, ("\r\n FaInitStep1 :tCommPara->"), (BYTE*)&tCommPara, sizeof(tCommPara));
+		if (true == fRet)
+		{
+			bFuncFlag |= 1<<(i-1);//记录有效功能口
+			if(bFunc[i-1] == 0 && 
+				(tCommParaTmp.wPort != tCommPara.wPort 
+				|| tCommParaTmp.dwBaudRate != tCommPara.dwBaudRate
+				|| tCommParaTmp.bByteSize != tCommPara.bByteSize
+				|| tCommParaTmp.bParity != tCommPara.bParity
+				|| tCommParaTmp.bStopBits != tCommPara.bStopBits
+				))
+			{
+				DTRACE(DB_CRITICAL, ("FaInitStep1: g_commLocal need to config.i=%d\r\n",i-1));
+				if(g_commLocal.IsOpen())
+				{
+					DTRACE(DB_CRITICAL, ("FaInitStep1: g_commLocal IsOpen.i=%d\r\n",i-1));
+					g_commLocal.Close();
+					bFlag = 1;//关闭
+				}
+
+				if (!g_commLocal.Open(tCommPara))
+				{	
+					DTRACE(DB_CRITICAL, ("FaInitStep1: g_commLocal open fail.i=%d\r\n",i-1));
+				}
+				else
+				{
+					DTRACE(DB_CRITICAL, ("FaInitStep1: g_commLocal open succ.i=%d\r\n",i-1));
+					bFlag = 0;//成功打开
+					break;
+				}
+			}
+		
+		}
+	}
+	if(bFlag == 1)
+	{//被关闭
+		DTRACE(DB_CRITICAL, ("FaInitStep1: g_commLocal recover\r\n"));
+		g_commLocal.Open(tCommParaTmp);//恢复
+	}
+	DTRACE(DB_CRITICAL, ("FaInitStep1: g_commLocal init finish\r\n"));
+
+}
+
+
 void FaInitStep1()
 {
 	DTRACE(DB_FA, ("\r\n\r\n/**********************************************/\r\n"));
@@ -615,6 +673,12 @@ void FaInitStep1()
 	
 	InitDebug();   //调试信息输出在数据库初始化后才进行,因为用到了数据库
 //	InitConsole();
+
+#ifdef SYS_LINUX
+    //如果数据库中配置了698协议的端口信息，根据698协议初始化端口   whr 20170704
+	FaInitPortFrom698();
+#endif
+
 #ifdef EN_SBJC_V2_CVTEXTPRO
 	InitReadMeterFlg();
 #endif
@@ -1184,6 +1248,145 @@ void UpdateDeviceFaultStatus(void)
 	}	
 #endif
 }
+
+void DealInfoRS485ParaChg(void)
+{
+	TCommPara tCommPara[LOGIC_PORT_NUM],tCommParaTmp;
+	BYTE bFunc[LOGIC_PORT_NUM], bFlag = 0, bFuncFlag = 0, bUpPortFlag = 0;
+	int i;
+	bool fRet;
+	memset(bFunc, 0x00, LOGIC_PORT_NUM);
+	DTRACE(DB_CRITICAL, ("DriverThread : rx INFO_RS485_PARACHG......\r\n"));
+	g_commLocal.GetCommPara(&tCommParaTmp);
+	// 1.先读取参数及功能
+	for(i=LOGIC_PORT_NUM; i>0; i--)
+	{
+		tCommPara[i-1].wPort = g_iInSnToPhyPort[i-1];
+		fRet = OIRead_PortPara(0xF201, i-1, &tCommPara[i-1], &bFunc[i-1]);
+		TraceBuf(DB_CRITICAL, ("\r\n DriverThread :tCommParaTmp->"), (BYTE*)&tCommParaTmp, sizeof(tCommParaTmp));
+		TraceBuf(DB_CRITICAL, ("\r\n DriverThread :tCommPara->"), (BYTE*)&tCommPara[i-1], sizeof(tCommPara[i-1]));
+		if (true == fRet)
+		{
+			if(bFunc[i-1]==0)
+			{
+				bUpPortFlag = 1;//有上行口
+			}
+			bFuncFlag |= 1<<(i-1);//记录有效功能口				
+		}
+	}
+	// 2.容错维护口配置错误
+	if(bUpPortFlag == 0)
+	{//没有维护口了,恢复第3路为维护口
+		bFunc[2] = 0;
+		bFuncFlag |= 1<<2;
+		DTRACE(DB_CRITICAL, ("DriverThread: g_commLocal reset to 2\r\n"));
+	}
+	DTRACE(DB_CRITICAL, ("DriverThread: bFuncFlag=%x\r\n",bFuncFlag));
+	// 3.更新内部通信口配置
+	for(i=LOGIC_PORT_NUM; i>0; i--)
+	{
+		DTRACE(DB_CRITICAL, ("DriverThread: bFunc[%d]=%d\r\n",i-1,bFunc[i-1]));
+		if(bFuncFlag&(1<<(i-1)))
+		{//有效才设置
+			//上行通信（0），抄表（1），级联（2），停用（3）
+			switch(bFunc[i-1])
+			{
+				case 0:
+					DTRACE(DB_CRITICAL, ("DriverThread: %d not support setting to PORT_FUN_LOCAL485\r\n",i));
+					//一型集中器只有两路485口，不支持第三路485复用功能
+					//SetLogicPortFun(i,PORT_FUN_LOCAL485);
+					break;
+				case 1:
+					DTRACE(DB_CRITICAL, ("DriverThread: %d set to PORT_FUN_RDMTR\r\n",i));
+					SetLogicPortFun(i,PORT_FUN_RDMTR);
+					break;
+				case 2:
+					DTRACE(DB_CRITICAL, ("DriverThread: %d set to PORT_FUN_LINK\r\n",i));
+					SetLogicPortFun(i,PORT_FUN_LINK);
+					break;
+				default:
+					break;//其他不处理
+			}
+			WORD wID;
+			BYTE b;
+			if (i == 1) //485-1口
+				wID = 0xa131;
+			else if (i == 2)	//485-2口
+				wID = 0xa132;
+			//一型集中器只有两路485口，不支持第三路485复用功能
+			//else if (i == 3)	//485-3口
+				//wID = 0xa180;
+			ReadItemEx(BN10, PN0, wID, (BYTE*)&b);
+			DTRACE(DB_CRITICAL, ("DriverThread: %d wID=%x,b=%d\r\n",i,wID,b));
+		}
+	}			
+	// 4.切换端口
+	bFlag = 0;//成功打开
+	for(i=LOGIC_PORT_NUM; i>0; i--)
+	{
+		tCommPara[i-1].wPort = g_iInSnToPhyPort[i-1];
+		TraceBuf(DB_CRITICAL, ("\r\n DriverThread :tCommParaTmp->"), (BYTE*)&tCommParaTmp, sizeof(tCommParaTmp));
+		TraceBuf(DB_CRITICAL, ("\r\n DriverThread :tCommPara->"), (BYTE*)&tCommPara[i-1], sizeof(tCommPara[i-1]));
+		if((bFuncFlag&(1<<(i-1))) &&
+			 (bFunc[i-1] == 0) && 
+			(tCommParaTmp.wPort != tCommPara[i-1].wPort 
+			|| tCommParaTmp.dwBaudRate != tCommPara[i-1].dwBaudRate
+			|| tCommParaTmp.bByteSize != tCommPara[i-1].bByteSize
+			|| tCommParaTmp.bParity != tCommPara[i-1].bParity
+			|| tCommParaTmp.bStopBits != tCommPara[i-1].bStopBits
+			))
+		{
+			DTRACE(DB_CRITICAL, ("DriverThread: g_commLocal need to config.i=%d\r\n",i-1));
+			if(g_commLocal.IsOpen())
+			{
+				DTRACE(DB_CRITICAL, ("DriverThread: g_commLocal IsOpen.i=%d\r\n",i-1));
+				g_commLocal.Close();
+				bFlag = 1;//关闭
+			}
+	
+			if(g_commRs485[i-1].IsOpen())
+			{
+				g_commRs485[i-1].Close();
+			}
+			
+			if (!g_commLocal.Open(tCommPara[i-1]))
+			{	
+				DTRACE(DB_CRITICAL, ("DriverThread: g_commLocal open fail.i=%d\r\n",i-1));
+			}
+			else
+			{
+				DTRACE(DB_CRITICAL, ("DriverThread: g_commLocal open succ.i=%d\r\n",i-1));
+				bFlag = 0;//成功打开
+				break;
+			}
+		}
+	}
+	
+	if(bFlag == 1)
+	{//被关闭
+		DTRACE(DB_CRITICAL, ("DriverThread: g_commLocal recover\r\n"));
+		g_commLocal.Open(tCommParaTmp);//恢复当前口
+	}
+
+}
+
+void DealInfoINFRAParaChg(void)
+{
+	DTRACE(DB_CRITICAL, ("DriverThread : rx INFO_INFRA_PARACHG......\r\n"));
+	TCommPara tCommPara;
+	bool fRet;
+	g_commTest.GetCommPara(&tCommPara);
+	fRet = OIRead_PortPara(0xF202, 0, &tCommPara, NULL);
+	if(fRet == true)
+	{
+		if(g_commTest.IsOpen())
+		{
+			g_commTest.Close();
+		}
+		g_commTest.Open(tCommPara);	
+	}
+}
+
 //描述:本线程放驱动相关的函数
 TThreadRet DriverThread(void* pvPara)
 {
@@ -1199,7 +1402,7 @@ TThreadRet DriverThread(void* pvPara)
 	DCInit();
 	dcProc.Init();
 	if (!calcPulse.Init(4))
-		DTRACE(DB_CRITICAL, ("FastSecondThread : CCalcPulse init failed.\r\n"));
+		DTRACE(DB_CRITICAL, ("DriverThread : CCalcPulse init failed.\r\n"));
 
 	GprsBatOnOff(false); //打开两个电池
 	BackBatOnOff(true);
@@ -1277,6 +1480,18 @@ TThreadRet DriverThread(void* pvPara)
 #ifndef SYS_WIN
 //		g_CTcheck.Run();
 #endif
+		if (GetInfo(INFO_RS232_PARACHG))	//收到232参数修改消息
+		{
+			DTRACE(DB_CRITICAL, ("DriverThread : rx INFO_RS232_PARACHG......\r\n"));
+		}
+		if (GetInfo(INFO_RS485_PARACHG))	//收到485参数修改消息
+		{
+			DealInfoRS485ParaChg();
+		}
+		if (GetInfo(INFO_INFRA_PARACHG))	//收到红外参数修改消息
+		{
+			DealInfoINFRAParaChg();
+		}
 		TransferLidStatus();
 		UpdThreadRunClick(iMonitorID);
 		Sleep(100);
@@ -2207,9 +2422,11 @@ int GetInSnPortFun(WORD wInSn)
 		return -1;
 	
 	iPortFun = b;
-	//3口用于调试输出
-	if (iPortFun==PORT_FUN_DEBUG && wInSn==3)
-		return -1;
+		//liuzhixing20170526
+	//		//3口用于调试输出
+	//		if ((iPortFun==PORT_FUN_DEBUG||iPortFun==PORT_FUN_LOCAL485) && wInSn==3)	//485-3口用于调试口或维护口，不抄表
+	//			return -1;
+
 		
 	if (iPortFun<0 || iPortFun>PORT_FUN_JC485) //配置成非法数据都默认成抄表口
 		iPortFun = PORT_FUN_RDMTR;
