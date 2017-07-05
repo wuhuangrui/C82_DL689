@@ -231,11 +231,13 @@ int GetTaskNum()
 	TTaskCfg tTaskCfg;
 	WORD wNum = 0;
 
+	WaitSemaphore(g_semSchCfg);
 	for (WORD i=0; i<TASK_ID_NUM; i++)
 	{
 		if (g_TaskMem[i].pbCfg)
 			wNum++;
 	}
+	SignalSemaphore(g_semSchCfg);
 
 	return wNum;
 }

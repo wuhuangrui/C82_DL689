@@ -319,8 +319,10 @@ int MtrBroadcast_485(BYTE bThrId)
 	if (GetInfo(INFO_ONE_BRAODCAST_ARG_485))
 	{
 		DTRACE(DB_METER, ("INFO_ONE_BRAODCAST_ARG_485 \r\n")); 
-		memset((BYTE *)&tLastTime[bThrId], 0, sizeof(TTime));
-		SetInfo(INFO_ONE_BRAODCAST_ARG_CCT);
+		memset((BYTE *)&tLastTime[0], 0, sizeof(TTime));
+		memset((BYTE *)&tLastTime[1], 0, sizeof(TTime));
+		memset((BYTE *)&tLastTime[2], 0, sizeof(TTime));
+		//SetInfo(INFO_ONE_BRAODCAST_ARG_CCT);
 	}
 	bPort = LOGIC_PORT_MIN + bThrId;
 	if (OoProReadAttr(0x4204, 3, 0, bBuf1, sizeof(bBuf1), &iStep) > 0)

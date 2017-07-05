@@ -5843,6 +5843,8 @@ void ClearOneEvt(struct TEvtCtrl* pEvtCtrl)
 	//特殊事件的私有数据清零。
 	ClearVLossPriv(pEvtCtrl);
 	ClearVAllLossPriv(pEvtCtrl);
+	if (pEvtCtrl->wOI == TERM_POWOFF)
+		UpdateTermPowerOffTime();
 	
 	//清临时空间及清记录表
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
