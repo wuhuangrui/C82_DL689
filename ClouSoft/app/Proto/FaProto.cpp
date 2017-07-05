@@ -4038,25 +4038,7 @@ bool CFaProto::GetEventWritePtr(BYTE& bWrPtr)
 
 }
 
-bool CFaProto::IsNeedReport()
-{
-	if ( !GetEventWritePtr(m_AppComm.bEvtWPtr) )
-		return false;		
 
-	//重要事件上报
-	if( m_pFaProPara->ProPara.fLocal == false ) //CONNECTTYPE_GPRS 
-		ReadItemEx( BANK0, 0, 0x5502, &m_AppComm.bEvtRPtr );
- 	else
-		ReadItemEx( BANK0, 0, 0x5503, &m_AppComm.bEvtRPtr );
-	if (m_AppComm.bEvtWPtr!=m_AppComm.bEvtRPtr)
-	{
-		DTRACE(DB_FAPROTO, ("TaskThread : write write ptr=%d  read ptr=%d!\r\n",m_AppComm.bEvtWPtr,m_AppComm.bEvtRPtr));
-	}
-	if( m_AppComm.bEvtRPtr != m_AppComm.bEvtWPtr )
-		return true;
-	
-	return false;
-}
 
 //A 主动上报1条事件:用事件对象
 //B 主动上报10条事件:用事件曲线
@@ -4803,6 +4785,7 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 					}
 					if (n >= pbTaskCSD[1])
 					{
+						DTRACE(DB_FAPROTO, ("###TaskRpt dwCn ERR, wTaskId=%d.\n", m_wCurTaskId));
 						m_iStart = -1;
 						continue;
 					}

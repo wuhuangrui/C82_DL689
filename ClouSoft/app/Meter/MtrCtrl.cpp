@@ -677,6 +677,7 @@ TThreadRet MtrRdThread(void* pvPara)
 			if (pMtrRdCtrl == NULL)
 			{
 				DTRACE(DB_METER, ("MtrRdThread: pMtrRdCtrl is NULL, wPn=%d!!!\n", wPn));
+				SignalSemaphore(g_semRdMtr[bThrId]);
 				continue;
 			}
 

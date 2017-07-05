@@ -879,7 +879,6 @@ private:
 	TDataPool	m_RxDPool;
 	TDataPool	m_TxDPool;  
 	void ClsDataPool(TDataPool *p){ memset(p,0,sizeof(TDataPool)); };//清应用层的数据缓存池
-	bool IsNeedReport();//判断是否有主动上报的新事件
 	int GetEvent(BYTE *pb);//完成上报事件的应用层信息组帧
 	int AutoReport();//完成上报事件的一帧编码和发送
 

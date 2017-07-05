@@ -1268,13 +1268,10 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 				else
 				{
 					*piStart = 0;
-					*pbTmp++ = DT_ARRAY; //数组
-					if (wSigFrmPnNum >=  wTotNum)
-						*pbTmp++ = wTotNum; //总条数  //目前最多PN_NUM组，不需要对长度特殊编码
-					else
-						*pbTmp++ = wSigFrmPnNum;
+				
 				}
 			}
+			pbTmp += 2;
 			for (i=*piStart; i<POINT_NUM; i++)
 			{
 				wSn = i;
@@ -1316,6 +1313,9 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 			if (i == POINT_NUM) //参数全部发完
 				*piStart = -1;
 
+			pbBuf[0] = DT_ARRAY; //数组
+			pbBuf[1] = wPnNum;
+
 			return (pbTmp-pbBuf);	
 
 		case 0x6012:	//任务配置单元
@@ -1332,13 +1332,9 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 				else
 				{
 					*piStart = 0;
-					*pbTmp++ = DT_ARRAY; //数组
-					if (wSigFrmPnNum >=  wTotNum)
-						*pbTmp++ = wTotNum; //总条数  //目前最多PN_NUM组，不需要对长度特殊编码
-					else
-						*pbTmp++ = wSigFrmPnNum;
 				}
 			}
+			pbTmp += 2;
 			for (i=*piStart; i<TASK_NUM; i++)
 			{
 				memset(bBuf, 0, sizeof(bBuf));
@@ -1363,6 +1359,10 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 					break;
 				}
 			}
+
+			pbBuf[0] = DT_ARRAY; //数组
+			pbBuf[1] = bTaskNum;
+			
 			if (i == wMaxNum) //参数全部发完
 				*piStart = -1;
 

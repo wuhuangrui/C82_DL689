@@ -144,6 +144,9 @@ static bool   g_fFaShutDown = true;  //终端是否正在进行停电后的电池关断操作
 bool g_fPowerOffAcked = false;	//停电确认标志
 
 bool g_fDownSoft = false;	//是否在下载软件
+DWORD g_dwFileTransCurSec = 0;
+
+
 TDataItem g_diTimeRule;  //对时规则
 TTime g_tmMinuteTask;	 //1分钟任务的时标
 TTime g_tmDayTask;       //1天任务时标
@@ -178,6 +181,9 @@ BYTE g_bRemoteDownIP[8];
 TSoftVerChg g_SoftVerChg;	 //缓存的版本变更事件
 TParaChg g_ParaChg;	//缓存的参数变更事件,一次应用服务最多同时处理50个OBIS对象
 bool g_fFrzInit = false;	//冻结初始化是否完成
+
+void CheckDownSoft(void);
+
 
 //写入参数变更事件缓存数据
 void SetParaChg(WORD wClass, BYTE* pbObis)
@@ -2951,6 +2957,8 @@ TThreadRet MainThread(void* pvPara)
 		
 		DoFrzTasks();
 
+		CheckDownSoft();
+
 #ifdef SYS_WIN
 		//SimuAcData();
 #endif	
@@ -3591,6 +3599,19 @@ void DoMtrPortSch()
 			DoSearch(i);
 		else
 			InitSearch(i,0);
+	}
+}
+
+void CheckDownSoft(void)
+{
+	if (g_dwFileTransCurSec != 0)
+	{
+		if (g_fDownSoft)
+		{
+			DWORD dwCurSec = GetCurTime();;
+			if (g_dwFileTransCurSec > dwCurSec ||dwCurSec > g_dwFileTransCurSec+60*10)//10分钟都没有下发升级包就清掉这个升级标志
+				g_fDownSoft = false;
+		}
 	}
 }
 

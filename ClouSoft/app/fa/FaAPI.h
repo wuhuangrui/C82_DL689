@@ -101,7 +101,7 @@ extern bool IsMountUsb();
 extern bool IsInUsbProcess();
 extern void SetUsbProcessState(BYTE bState);
 
-
+extern DWORD g_dwFileTransCurSec;
 extern bool g_fDownSoft;	//是否在下载软件
 inline bool IsDownSoft()	//是否在下载软件
 {

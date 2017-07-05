@@ -537,15 +537,7 @@ bool CStatMgr::DoDataStat()
 	return true;
 }
 
-void CStatMgr::InitDataStat()
-{
-	BYTE	bPn		=	0;
-	BYTE	bProp	=	0;
 
-	BYTE bEnCctStat = 0;
-	if (ReadItemEx(BN23, PN0, 0x3010, &bEnCctStat) <= 0)	//0x3010 1 是否允许集抄测量点统计,1允许;0不允许
-		bEnCctStat = 0;	//禁止集抄测量点统计
-}
 
 //描述：把相电压统计数据（包括协议和中间数据）保存到系统库
 //参数：@wOI分相电压统计OI
@@ -1118,24 +1110,7 @@ bool CStatMgr::IsCycleSwitch(TTime tmLastCycle, TTime tmNow, BYTE bUnit, WORD wV
 }
 
 
-DWORD CStatMgr::OoDoubleLongUnsignedToDWordLen(BYTE* pbBuf, BYTE bLen)
-{	
-	if (bLen == 4)
-		return ((DWORD )pbBuf[0]<<24) | ((DWORD )pbBuf[1]<<16) | ((DWORD )pbBuf[2]<<8) | pbBuf[3];
-	else if (bLen == 2)
-		return ((DWORD )pbBuf[0]<<8) | pbBuf[1];
-	else
-		return ((DWORD )pbBuf[0]);
-}
-int CStatMgr::OoDoubleLongToIntLen(BYTE* pbBuf, BYTE bLen)
-{	
-	if (bLen == 4)
-		return ((int )pbBuf[0]<<24) | ((DWORD )pbBuf[1]<<16) | ((DWORD )pbBuf[2]<<8) | pbBuf[3];
-	else if (bLen == 2)
-		return ((int )pbBuf[0]<<8) | pbBuf[1];
-	else
-		return ((int )pbBuf[0]);
-}
+
 
 
 //描述：把区间统计结果进行格式转换并保存到系统库
