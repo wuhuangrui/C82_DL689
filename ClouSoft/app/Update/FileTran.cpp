@@ -441,6 +441,10 @@ int UpdFile()
 	if (g_FileBlkTrans.bFileType == 0)
 #endif		
 	{
+		char szTmp[128];
+		sprintf(szTmp, "cp %s /mnt/data/clmain.tar.xz", USER_DATA_PATH"FileTrans.tmp");
+		system(szTmp);
+#if 0
 		j = g_FileBlkTrans.dwTotalLen / sizeof(bFileHead);
 		for(i=0; i<j; i++)
 		{
@@ -461,6 +465,7 @@ int UpdFile()
 			if (g_FileBlkTrans.bChkType == 0)//默认为0,即CRC16校验
 				wCrc = get_crc_16( wCrc, bFileHead, j);
 		}
+#endif
 		if (g_FileBlkTrans.bChkVal[0] != 0)
 		{
 			WORD wCrcOld = OoOiToWord(&(g_FileBlkTrans.bChkVal[1]));
@@ -476,9 +481,14 @@ int UpdFile()
 #ifndef SYS_WIN		
 #if 1
 //升级文件改为升clmain和\或驱动文件，再加上update脚本一起压缩的包
-		char szTmp[128];
 
-		sprintf(szTmp, "tar zxvf /mnt/data/clmain.tgz -C /mnt/data/");
+		sprintf(szTmp, "rm -fr /mnt/data/clmain/*");
+		system(szTmp);
+
+		//sprintf(szTmp, "tar zxvf /mnt/data/clmain.tgz -C /mnt/data/");//K32改用下边的新压缩方式
+		sprintf(szTmp, "xz -d /mnt/data/clmain.tar.xz");
+		system(szTmp);
+		sprintf(szTmp, "tar xvf /mnt/data/clmain.tar -C /mnt/data/");
 		system(szTmp);
 		sprintf(szTmp, "source /mnt/data/clmain/update&");
 		system(szTmp);
@@ -518,8 +528,7 @@ int UpdFile()
 					DTRACE(DB_FAPROTO,  ("Linux Updated : started!Updated Parameter\n"));
 					DTRACE(DB_FAPROTO,  ("Linux Updated : End!Updated Parameter\n"));
 					char szTmp[128];
-					//sprintf(szTmp, "cp %s /mnt/app/clou.tgz", USER_DATA_PATH"clou.tgz");
-					sprintf(szTmp, "cp %s /mnt/app/oob/clou.tgz", USER_DATA_PATH"clou.tgz");//湖南的
+					sprintf(szTmp, "cp %s /mnt/app/clou.tgz", USER_DATA_PATH"clou.tgz");
 					system(szTmp);
 					DeleteFile(USER_DATA_PATH"clou.tgz");
 					//DeleteFile(USER_DATA_PATH"downinfo.dat");//这个文件先不删，可能主站还会有读取
@@ -724,4 +733,6 @@ bool OoFileTranBlockRead(WORD wBlockSN)
     }    
 }
 #endif
+
+
 

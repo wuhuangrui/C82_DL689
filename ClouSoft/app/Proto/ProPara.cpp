@@ -287,15 +287,13 @@ BYTE GetEthTryCnt()
 		pbPtr = OoGetField(bBuf, pbFmt, wFmtLen, 6, &wLen, &bType);	//重试次数
 		if (pbPtr != NULL)
 		{
-			if(*pbPtr++ == DT_BIT_STR)
-			{
-				if (*pbPtr++ == 8)
-				{
-					bTryCnt = (*pbPtr++)&0x03;
-				}
-			}
+			if(*pbPtr++ == DT_UNSIGN)
+				bTryCnt = (*pbPtr++)&0x03;
 		}
 	}
+
+	if (bTryCnt == 0)
+		bTryCnt = 1;
 
 	return bTryCnt;
 }
@@ -322,12 +320,12 @@ DWORD GetEthBeat()
 		{
 			if(*pbPtr++ == DT_LONG_U)
 			{
-				wBeat = OoOiToWord(pbPtr);
-				if (wBeat == 0)
-					wBeat = 300;	
+				wBeat = OoOiToWord(pbPtr);	
 			}
 		}
 	}
+	if (wBeat == 0)
+		wBeat = 300;
 
 	return wBeat;
 }
@@ -854,13 +852,12 @@ BYTE GetGprsTimeOut()
 		pbPtr = OoGetField(bBuf, pbFmt, wFmtLen, 10, &wLen, &bType);	//超时时间及重发次数
 		if (pbPtr != NULL)
 		{
-			if(*pbPtr++ == DT_BIT_STR)
-			{
-				if (*pbPtr++ == 8)
-					bTimeOut = (*pbPtr>>2)&0x3f;
-			}
+			if(*pbPtr++ == DT_UNSIGN)
+				bTimeOut = (*pbPtr++>>2)&0x3f;
 		}
 	}
+	if (bTimeOut == 0)
+		bTimeOut = 30;
 
 	return bTimeOut;
 }
@@ -884,13 +881,13 @@ BYTE GetGprsTryCnt()
 		pbPtr = OoGetField(bBuf, pbFmt, wFmtLen, 10, &wLen, &bType);	//超时时间及重发次数
 		if (pbPtr != NULL)
 		{
-			if(*pbPtr++ == DT_BIT_STR)
-			{
-				if (*pbPtr++ == 8)
-					bTryCnt = *pbPtr&0x03;
-			}
+			if (*pbPtr++ == DT_UNSIGN)
+				bTryCnt = *pbPtr&0x03;
 		}
 	}
+	if (bTryCnt == 0)
+		bTryCnt = 1;
+
 
 	return bTryCnt;
 }
@@ -920,6 +917,8 @@ DWORD GetGprsBeat()
 			}
 		}
 	}
+	if (wBeat == 0)
+		wBeat = 300; //默认5分钟
 
 	return wBeat;
 }
@@ -1058,10 +1057,10 @@ void LoadEthCommPara(TSocketPara* pPara)
 		pPara->fSvr = true;
 	BYTE bLnkType;
 	bLnkType = GetEthLnkType();
-	if (bLnkType == LK_TCP)
-		pPara->fUdp = false;
-	else
+	if (bLnkType == LK_UDP)
 		pPara->fUdp = true;
+	else
+		pPara->fUdp = false;
 	//pPara->IfPara.wReSendNum = GetEthTryCnt();
 	pPara->wBeatTestTimes = GetEthTryCnt();
 	pPara->dwBeatTimeouts = GetEthTimeOut();
@@ -1099,77 +1098,26 @@ void LoadGPRSCommPara(TSocketPara* pPara)
 	bchn = 0;
 	ReadItemEx(BANK17, PN0, 0x6010, &bchn);	//获取GPRS相应的模块
 	DTRACE(DB_FAPROTO, ("Get gprs channel=%d.\n", bchn));
-	dwOAD = 0x45000200 + bchn*0x00010000;	//通信配置参数	
-	memset(bBuf, 0, sizeof(bBuf));
-	if (OoReadAttr(dwOAD>>16, (dwOAD>>8)&0xff, bBuf, &pbFmt, &wFmtLen) > 0)
-	{
-		pbPtr = OoGetField(bBuf, pbFmt, wFmtLen, 0, &wLen, &bType);	//工作模式
-		if (pbPtr != NULL)
-		{
-			if (*pbPtr++ == DT_ENUM)
-			{
-				switch(*pbPtr)
-				{
-				case 0:	//混合模式
-					pPara->fSvr = true;
-					break;
-				case 1:	//客户机模式
-					pPara->fSvr = false;
-					break;
-				case 2:	//服务器模式
-					pPara->fSvr = true;
-					break;
-				}
-			}
-			else
-				pPara->fUdp = false;
-		}
 
-		pbPtr = OoGetField(bBuf, pbFmt, wFmtLen, 2, &wLen, &bType);	//连接方式
-		if (pbPtr != NULL)
-		{
-			if (*pbPtr++ == DT_ENUM)
-			{
-				if (*pbPtr == 0)
-					pPara->fUdp = false;
-				else
-					pPara->fUdp = true;
-			}
-			else
-				pPara->fUdp = false;
-		}
+	BYTE bWorkMode;
+	bWorkMode = GetGprsWorkMode();
+	if (bWorkMode == GPRS_CLI_MODE)	//客户机模式
+		pPara->fSvr = false;
+	else	//混合模式 || 服务器模式
+		pPara->fSvr = true;
+	BYTE bLnkType;
+	bLnkType = GetGprsLnkType();
+	if (bLnkType == LK_UDP)
+		pPara->fUdp = true;
+	else
+		pPara->fUdp = false;
+	//pPara->IfPara.wReSendNum = GetEthTryCnt();
+	pPara->wBeatTestTimes = GetGprsTryCnt();
+	pPara->dwBeatTimeouts = GetGprsTimeOut();
+	pPara->dwBeatSeconds = GetGprsBeat();
 
-		pbPtr = OoGetField(bBuf, pbFmt, wFmtLen, 10, &wLen, &bType);	//重发次数
-		if (pbPtr != NULL)
-		{
-			if(*pbPtr++ == DT_BIT_STR)
-			{
-				pbPtr++;	//跳过长度
-				//pPara->IfPara.wReSendNum = *pbPtr&0x03;	//重发次数
-				pPara->wBeatTestTimes = *pbPtr&0x03;	//重发次数
-				pPara->dwBeatTimeouts = (*pbPtr>>2)&0x3f;	//超时时间（秒）
-			}
-			else
-			{
-				//pPara->IfPara.wReSendNum = 1;	//默认参数，重发次数
-				pPara->wBeatTestTimes = 1;	//默认参数，重发次数
-				pPara->dwBeatTimeouts = 60;	//默认参数，超时时间（秒）
-			}
-		}
-
-		pbPtr = OoGetField(bBuf, pbFmt, wFmtLen, 11, &wLen, &bType);	//心跳
-		if (pbPtr != NULL)
-		{
-			if(*pbPtr++ == DT_LONG_U)
-			{
-				pPara->dwBeatSeconds = OoOiToWord(pbPtr);
-				if (pPara->dwBeatSeconds == 0)
-					pPara->dwBeatSeconds = 300;	//默认5分钟
-			}
-			else
-				pPara->dwBeatSeconds = 300;	//默认5分钟
-		}
-	}
+	DTRACE(DB_FAPROTO, ("LoadGPRSCommPara: pPara->wBeatTestTimes=%d, pPara->dwBeatTimeouts=%d, pPara->dwBeatSeconds=%d.\n", \
+		pPara->wBeatTestTimes, pPara->dwBeatTimeouts, pPara->dwBeatSeconds));
 
 	//pPara->IfPara.dwDormanInterv = 300;//休眠时间间隔, 单位秒, ,0表示禁止休眠模式
 	pPara->IfPara.dwDormanInterv = 10;//休眠时间间隔, 单位秒, ,0表示禁止休眠模式
