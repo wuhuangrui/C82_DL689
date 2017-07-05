@@ -592,7 +592,7 @@ TThreadRet MtrRdThread(void* pvPara)
 	char pszThrName[32] = {0};
 	sprintf(pszThrName, "MtrRdThread-thrd-%d", bThrId);
 	int iMonitorID = ReqThreadMonitorID(pszThrName, 4*60*60);	//申请线程监控ID
-	InitThreadMaskId(iMonitorID);
+	
 
 	DTRACE(DB_METER, ("MtrRdThread: bThrId=%d start with bPort=%d\r\n", bThrId, bPort));
 	while (1)
@@ -623,26 +623,26 @@ TThreadRet MtrRdThread(void* pvPara)
 		{
 			UpdThreadRunClick(iMonitorID);
 
-			if (!IsThreadExe(iMonitorID))
-			{
-				SetRecvThreadMaskId(iMonitorID);	
-				Sleep(500);
-				break;
-			}
+			WaitSemaphore(g_semRdMtr[bThrId]);
 
 			wPn = SearchPnFromMask(pbPnMask, wPn);	//这里搜出的测量点都是485的
 			if (wPn >= POINT_NUM)
 			{
 				Sleep(500);
+				SignalSemaphore(g_semRdMtr[bThrId]);
 				break;
 			}
 
 			if (g_fDirRd[bThrId] || g_fStopMtrRd || g_bMtrRdStep[bThrId]==1 || g_f485SchMtr)	//直抄标志 或 立即抄表命令 或 搜表
+			{
+				SignalSemaphore(g_semRdMtr[bThrId]);
 				break;
+			}
 
 			if (GetPnPort(wPn) != bPort) //不是本端口的电能表
 			{
 				wPn++;
+				SignalSemaphore(g_semRdMtr[bThrId]);
 				continue;
 			}
 
@@ -660,11 +660,11 @@ TThreadRet MtrRdThread(void* pvPara)
 
 			if ((g_bMtrRdStatus[bPos] & bMask) && !g_bMtrRdStep[bThrId])	//已经抄完
 			{
+				SignalSemaphore(g_semRdMtr[bThrId]);
 				continue;
 			}
 
 			//DTRACE(DB_METER, ("MtrRdThread: start read wPn=%d!!!\n", wPn));
-			WaitSemaphore(g_semRdMtr[bThrId]);
 			GetMeterPara(wPn, &g_MtrPara[bThrId]);
 			pMtrPro = CreateMtrPro(wPn, &g_MtrPara[bThrId], bThrId);
 			if (pMtrPro == NULL)

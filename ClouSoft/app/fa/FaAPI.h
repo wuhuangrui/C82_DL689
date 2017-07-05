@@ -214,33 +214,16 @@ extern void FaClearEnergy();
 extern bool IsInProgState();
 extern bool IsFkTermn();
 
-//描述：初始化线程ID
-void InitThreadMaskId(BYTE bId);
 
-void InitThreadExeFlg();
-
-void ClearThreadExeFlg();
-
-void SetThreadExeFlg();
-
-void ClearRecvThreadMaskId();
-
-//描述：设置有效线程ID
-void SetThreadMaskId(BYTE bID);
-
-//描述：接收有效线程ID
-void SetRecvThreadMaskId(BYTE bID);
-
-//描述：线程是否可以工作
-bool IsThreadExe(BYTE bID);
-
-//描述：所有线程是否都已经接收到信号
-bool IsAllThreadRecv();
 
 BYTE BaudrateToGbNum(DWORD dwBaudRate);
 int DoMtrFwdFunc(WORD wPort, WORD wTestId, BYTE bMtrPro, BYTE* pbMtrAddr, BYTE* pbRxFrm);
 void InitMtrPortSch(BYTE bStartState);
 void DoMtrPortSch();
+
+void RequestThreadsSem();
+void ReleaseThreadsSem();
+
 
 #endif  //FAAPI_H
 

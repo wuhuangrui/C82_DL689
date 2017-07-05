@@ -2201,42 +2201,43 @@ TThreadRet SlowSecondThread(void* pvPara)
 	{
 		if (GetInfo(INFO_MTR_UPDATE))
 		{
-			InitThreadExeFlg();
+			RequestThreadsSem();
 			InitMtrMask();
 			InitMtrCacheCtrl();
 			DeleteMtrRdCtrl();
 			SetInfo(INFO_SYNC_MTR);
-			SetThreadExeFlg();
+			ReleaseThreadsSem();
 		}
 
 		if (GetInfo(INFO_TASK_CFG_UPDATE))
 		{
-			InitThreadExeFlg();
+			RequestThreadsSem();
 			InitTaskMap();
 			InitSchMap();
 			InitSchTable();
 			DeleteMtrRdCtrl();
 			SetInfo(INFO_SYNC_MTR);
 			InitMtrCacheCtrl();
-			SetThreadExeFlg();
+			ReleaseThreadsSem();
 		}
 
 		if (GetInfo(INFO_ACQ_SCH_UPDATE))
 		{
-			InitThreadExeFlg();
+			RequestThreadsSem();
 			InitSchMap();
 			InitSchTable();
 			DeleteMtrRdCtrl();
 			SetInfo(INFO_SYNC_MTR);
 			InitMtrCacheCtrl();
-			SetThreadExeFlg();
+			ReleaseThreadsSem();
 		}
 		if (GetInfo(INFO_RP_SCH_UPDATE))
 		{
-			InitThreadExeFlg();
+			RequestThreadsSem();
 			InitSchMap();
 			InitSchTable();
 			ClearBankData(BN16, 0, -1);
+			ReleaseThreadsSem();
 		}
 
 		if (GetInfo(INFO_CLASS19_METHOD_RST))	
@@ -2254,17 +2255,17 @@ TThreadRet SlowSecondThread(void* pvPara)
 		if (GetInfo(INFO_CLASS19_METHOD_DATA_INIT))	
 		{
 			DTRACE(DB_FA, ("Dev interface class=19 method=3. Data init...\n"));
-			InitThreadExeFlg();
+			RequestThreadsSem();
 			FaInit(DATA_INIT);
-			SetThreadExeFlg();
+			ReleaseThreadsSem();
 		}
 
 		if (GetInfo(INFO_CLASS19_METHOD_RST_FACT_PARA))	
 		{
 			DTRACE(DB_FA, ("Dev interface class=19 method=4. Restore factory para...\n"));
-			InitThreadExeFlg();
+			RequestThreadsSem();
 			FaInit(PARAM_INIT);
-			SetThreadExeFlg();
+			ReleaseThreadsSem();
 		}
 
 		if (GetInfo(INFO_CLASS19_METHOD_EVT_INIT))	
@@ -3472,94 +3473,32 @@ void SetUsbProcessState(BYTE bState)
 }
 
 
-#define THREAD_MASK_ID	(THRD_MNTR_NUM/8+1)
-
-BYTE g_bValidThreadID[THREAD_MASK_ID] = {0};
-BYTE g_bRecvThreadID[THREAD_MASK_ID] = {0};
-bool g_fIsExeFlg = true;
-
-//描述：初始化线程ID
-void InitThreadMaskId(BYTE bId)
+//描述：申请线程的信号量
+void RequestThreadsSem()
 {
-	BYTE bMask;
-	BYTE bBit;
+	//485-1,485-2,485-3
+	for (BYTE i=LOGIC_PORT_MIN; i<LOGIC_PORT_MAX; i++)
+		WaitSemaphore(g_semRdMtr[i-LOGIC_PORT_MIN]);
 
-	bMask = bId/8;
-	bBit = bId%8;
-
-	g_bValidThreadID[bMask] |= 1<<bBit;
-	g_bRecvThreadID[bMask] |= 1<<bBit;
+	//PLC
+#if (FA_TYPE == FA_TYPE_C82) 
+		g_CStdReader->LockReader();	
+#endif
 }
 
-void InitThreadExeFlg()
+//描述：释放线程的信号量
+void ReleaseThreadsSem()
 {
-	ClearThreadExeFlg();
-	ClearRecvThreadMaskId();
-	while (!IsAllThreadRecv())	//函数返回，表明数据初始化已完成
-		Sleep(500);	
+	//485-1,485-2,485-3
+	for (BYTE i=LOGIC_PORT_MIN; i<LOGIC_PORT_MAX; i++)
+		SignalSemaphore(g_semRdMtr[i-LOGIC_PORT_MIN]);
+
+	//PLC
+#if (FA_TYPE == FA_TYPE_C82) 
+	g_CStdReader->UnLockReader();	
+#endif
 }
 
-void ClearRecvThreadMaskId()
-{
-	memset(g_bRecvThreadID, 0, sizeof(g_bRecvThreadID));
-}
-
-void ClearThreadExeFlg()
-{
-	g_fIsExeFlg = false;
-}
-
-void SetThreadExeFlg()
-{
-	g_fIsExeFlg = true;
-}
-
-//描述：设置接收有效线程ID
-void SetRecvThreadMaskId(BYTE bID)
-{
-	g_bRecvThreadID[bID/8] |= 1<<(bID%8);
-}
-
-//描述：线程是否可以工作
-bool IsThreadExe(BYTE bID)
-{
-	bool fIsExeFlg = true;
-
-	if (!(g_bValidThreadID[bID/8] & (1<<(bID%8))))	//不在数据初始化处理的线程内就直接返回
-		return fIsExeFlg;
-
-	for (BYTE i=0; i<THREAD_MASK_ID; i++)
-	{
-		if (g_bValidThreadID[i]^g_bRecvThreadID[i])
-		{
-			fIsExeFlg = false;
-			break;
-		}
-	}
-
-	if (!g_fIsExeFlg)
-		fIsExeFlg = false;
-
-	return fIsExeFlg;
-}
-
-
-//描述：所有线程是否都已经接收到信号
-bool IsAllThreadRecv()
-{
-	bool fIsExeFlg = true;
-
-	for (BYTE i=0; i<THREAD_MASK_ID; i++)
-	{
-		if (g_bValidThreadID[i]^g_bRecvThreadID[i])
-		{
-			fIsExeFlg = false;
-			break;
-		}
-	}
-
-	return fIsExeFlg;
-}
 
 BYTE BaudrateToGbNum(DWORD dwBaudRate)
 {
