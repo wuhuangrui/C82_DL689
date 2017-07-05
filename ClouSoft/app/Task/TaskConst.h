@@ -18,6 +18,10 @@
 #define SCH_NO_NUM		256
 #define TASK_ID_MASK	(TASK_ID_NUM/8+1)
 
+#define TASK_CFG_LEN			512		//任务配置长度
+#define TASK_CFG_REC_LEN		(TASK_CFG_LEN+10)		//记录长度包括多个字段, 这里预留了几个字节(预留长度小于10)
+
+
 #define TASK_MONIINDEX_ID		0
 #define TASK_MONIINDEX_STAT		1
 #define TASK_MONIINDEX_STARTIME	2

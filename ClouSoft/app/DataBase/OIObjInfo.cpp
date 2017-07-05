@@ -4816,7 +4816,7 @@ int AddCommonMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 	char pszTabName[32];
 	BYTE bArryNum;
 	BYTE bId;
-	BYTE bBuf[512];
+	BYTE bBuf[TASK_CFG_REC_LEN];
 	BYTE bType;
 	BYTE *pbPara0 = pbPara;
 
@@ -4842,7 +4842,7 @@ int AddCommonMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 			TabCtrl.wField[0][1] = 1;
 			//数据类容
 			TabCtrl.wField[1][0] = TDB_BYTE;
-			TabCtrl.wField[1][1] = 512;
+			TabCtrl.wField[1][1] = TASK_CFG_LEN;
 
 			TabCtrl.bPublicNum = 0;	//公用字段的个数
 			TabCtrl.bPrivateNum = 2;	//子字段个数
@@ -5038,7 +5038,7 @@ int AddAcqRuleMethod129(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 				TabCtrl.wField[0][1] = 4;
 				//数据类容
 				TabCtrl.wField[1][0] = TDB_BYTE;
-				TabCtrl.wField[1][1] = 512;
+				TabCtrl.wField[1][1] = TASK_CFG_LEN;
 
 				TabCtrl.bPublicNum = 0;	//公用字段的个数
 				TabCtrl.bPrivateNum = 2;	//子字段个数
@@ -5174,7 +5174,7 @@ int UdpTaskState130(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPar
 {
 	int iRet;
 	WORD wTaskFmtLen = sizeof(g_bTskUnitFmtDesc);
-	BYTE bDbBuf[512] = {0};
+	BYTE bDbBuf[TASK_CFG_REC_LEN] = {0};
 	BYTE *pDb = bDbBuf+2;
 	BYTE bSetBuf[16] = {0};
 	BYTE *pbSet = bSetBuf;
@@ -5576,7 +5576,7 @@ int ResetSchRecordCSD(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iP
 	TTdbSchCtrl	SchCtrl; 
 	char pszTabName[32];
 	int fd, iRet, schID, iSchRecs;
-	BYTE bSchNo, bRdDbBuf[512] = {0};
+	BYTE bSchNo, bRdDbBuf[TASK_CFG_REC_LEN] = {0};
 	WORD wLen;
 	BYTE *pbPara0 = pbPara;
 
@@ -5659,7 +5659,7 @@ int UpdateRptFlgMethod130(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, in
 	TTdbSchCtrl	SchCtrl; 
 	char pszTabName[32];
 	int fd, iRet, schID, iSchRecs;
-	BYTE bSchNo, bRdDbBuf[512] = {0};
+	BYTE bSchNo, bRdDbBuf[TASK_CFG_REC_LEN] = {0};
 	WORD wLen;
 	BYTE *pbPara0 = pbPara;
 
@@ -5779,7 +5779,7 @@ int GetTaskConfigFromTaskDb(BYTE bTaskId, BYTE *pbRespBuf)
 		}
 		else
 		{
-			BYTE bBuf[512] = {0};
+			BYTE bBuf[TASK_CFG_REC_LEN] = {0};
 			memset(&TdbReadCtrl, 0, sizeof(TdbReadCtrl));
 			//TdbReadCtrl.dwFiledNeed	= TDB_ALL_FIELD;
 			TdbReadCtrl.dwFiledNeed	= 0x02;
@@ -5841,7 +5841,7 @@ int GetSchFromTaskDb(BYTE bSchNo, BYTE bSchType, BYTE *pbRespBuf)
 		}
 		else
 		{
-			BYTE bBuf[512] = {0};
+			BYTE bBuf[TASK_CFG_REC_LEN] = {0};
 			memset(&TdbReadCtrl, 0, sizeof(TdbReadCtrl));
 			//TdbReadCtrl.dwFiledNeed	= TDB_ALL_FIELD;
 			TdbReadCtrl.dwFiledNeed	= 0x02;

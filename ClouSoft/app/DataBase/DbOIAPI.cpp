@@ -1230,7 +1230,6 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 	WORD wMaxNum, wTotNum=0, wSigFrmPnNum;
 	WORD wSn;
 	BYTE *pbTmp;
-	static WORD wSnLoc = 0;
 	BYTE bBuf[PNPARA_LEN+1];
 	BYTE *pbSch, bType;
 	WORD wPnNum=0, wLen;
@@ -1268,15 +1267,15 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 				}
 				else
 				{
-					wSnLoc = 1;
-					*pbTmp++ = 0x01; //数组
+					*piStart = 0;
+					*pbTmp++ = DT_ARRAY; //数组
 					if (wSigFrmPnNum >=  wTotNum)
 						*pbTmp++ = wTotNum; //总条数  //目前最多PN_NUM组，不需要对长度特殊编码
 					else
 						*pbTmp++ = wSigFrmPnNum;
 				}
 			}
-			for (i=wSnLoc; i<wMaxNum; i++)
+			for (i=*piStart; i<POINT_NUM; i++)
 			{
 				wSn = i;
 				if (!IsPnValid(wSn))//未设置过参数
@@ -1289,13 +1288,7 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 					DTRACE(DB_FAPROTO, ("OIRead_Spec:wID = %d, wSn=%d, ReadItemEx failed !!\r\n", pOI->wID, wSn));
 					return -DA_OTHER_ERROR;	//返回其它错误
 				}
-				wPnNum++;
-				if (wPnNum>=wSigFrmPnNum)
-				{
-					wSnLoc = i;
-					(*piStart)++;	
-					break;
-				}
+			
 
 				iLen = bBuf[0];	//电表有效数据长度
 				iRet = OoScanData(bBuf+1, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType);	//调整字节顺序
@@ -1305,21 +1298,29 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 					DTRACE(DB_FAPROTO, ("OIRead_Spec:wID = %d, iLen=%d, bBuf[0]=0x%02x. zqzq!!\r\n", pOI->wID, iLen, bBuf[0]));
 					memcpy(pbTmp, bBuf+1, iLen);
 					pbTmp += iLen;
+
+					wPnNum++;
+					if (wPnNum >= wSigFrmPnNum)
+					{
+						*piStart = i+1;
+						break;
+					}
 				}
 				else
 				{
-					DTRACE(DB_FAPROTO, ("OIRead_Spec:wID = %d, iLen=%d, bBuf[0]=0x%02x. error!!!!!\r\n", pOI->wID, iLen, bBuf[0]));
+					DTRACE(DB_FAPROTO, ("OIRead_Spec:wID = %d, iLen=%ld, bBuf[0]=0x%02x. error!!!!!\r\n", pOI->wID, iLen, bBuf[0]));
+					*piStart = i+1;
+					break;
 				}				
 			}
-			if (i == wMaxNum) //参数全部发完
+			if (i == POINT_NUM) //参数全部发完
 				*piStart = -1;
 
 			return (pbTmp-pbBuf);	
 
 		case 0x6012:	//任务配置单元
-			wMaxNum = TASK_NUM;
 			pbTmp = pbBuf;
-			wSigFrmPnNum = wBufSize/PNPARA_LEN;
+			wSigFrmPnNum = wBufSize/TASK_CFG_LEN;
 			if (*piStart == -1) //第一次来读
 			{
 				wTotNum = GetTaskNum();
@@ -1330,37 +1331,36 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 				}
 				else
 				{
-					wSnLoc = 1;
-					*pbTmp++ = 0x01; //数组
+					*piStart = 0;
+					*pbTmp++ = DT_ARRAY; //数组
 					if (wSigFrmPnNum >=  wTotNum)
 						*pbTmp++ = wTotNum; //总条数  //目前最多PN_NUM组，不需要对长度特殊编码
 					else
 						*pbTmp++ = wSigFrmPnNum;
 				}
 			}
-			for (i=wSnLoc; i<wMaxNum; i++)
+			for (i=*piStart; i<TASK_NUM; i++)
 			{
 				memset(bBuf, 0, sizeof(bBuf));
 				if ((iLen=GetTaskConfigFromTaskDb(i, bBuf)) <= 0)
 					continue;
 
-				if (iLen <= 0)
-				{
-					DTRACE(DB_FAPROTO, ("OIRead_Spec:wID = %d, wSn=%d, GetTaskCfgFromTaskDb()  failed !!\r\n", pOI->wID, i));
-					return -DA_OTHER_ERROR;	//返回其它错误
-				}
-				bTaskNum++;
-				if (bTaskNum>=wSigFrmPnNum)
-				{
-					wSnLoc = i;
-					(*piStart)++;	
-					break;
-				}
-
 				if (iLen <= sizeof(bBuf))
 				{
 					memcpy(pbTmp, bBuf, iLen);
 					pbTmp += iLen;
+
+					bTaskNum++;
+					if (bTaskNum >= wSigFrmPnNum)
+					{
+						*piStart = i+1;
+						break;
+					}
+				}
+				else
+				{
+					*piStart = i+1;
+					break;
 				}
 			}
 			if (i == wMaxNum) //参数全部发完
@@ -1373,13 +1373,10 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 		case 0x601C:	//上报方案
 		case 0x6051:	//实时采集方案
 			if (*piStart == -1)
-				wSnLoc = 0;
-			wMaxNum = TASK_NUM;
+				*piStart = 0;
+
 			pbTmp = pbBuf+2;
-			if (pOI->wID == 0x6014)
-				wSigFrmPnNum = wBufSize/PNPARA_LEN;
-			else
-				wSigFrmPnNum = wBufSize/512;
+			wSigFrmPnNum = wBufSize / TASK_CFG_LEN;
 
 			BYTE bSchType;
 			if (pOI->wID == 0x6014)
@@ -1393,19 +1390,21 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 			else 
 				bSchType = SCH_TYPE_REAL;
 
-			for (i=wSnLoc; i<wMaxNum; i++)
+			for (i=*piStart; i<TASK_NUM; i++)
 			{
-				iRet = GetSchFromTaskDb(i, bSchType, pbTmp);
+					iRet = GetSchFromTaskDb(i, bSchType, pbTmp);
 				if (iRet < 0)
 					continue;
-				bSchNum++;
+
 				pbTmp += iRet;
+				bSchNum++;
 				if (bSchNum >= wSigFrmPnNum)
 				{
-					pbBuf[0] = 0x01;	//array
+					pbBuf[0] = DT_ARRAY;	//array
 					pbBuf[1] = bSchNum;
-					wSnLoc = i;
-					return (pbTmp-pbBuf);	
+					*piStart = i+1;
+
+					return (pbTmp-pbBuf);
 				}
 			}
 
@@ -1414,9 +1413,10 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 				*pbBuf = EMPTY_DATA;
 				return 1;
 			}
-			pbBuf[0] = 0x01;	//array
+			pbBuf[0] = DT_ARRAY;	//array
 			pbBuf[1] = bSchNum;
-			if (i == wMaxNum) //参数全部发完
+
+			if (i == TASK_NUM)	//参数全部发完
 				*piStart = -1;
 
 			return (pbTmp-pbBuf);	

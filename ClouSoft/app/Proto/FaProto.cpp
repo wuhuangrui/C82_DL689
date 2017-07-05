@@ -3776,7 +3776,7 @@ void CFaProto::NewAppServer()
 	m_AppComm.bServer = m_AppComm.bCmd;//记录一次服务aarq/get/set/action,即第一个命令的服务值
 	m_AppComm.bServerMod = m_AppComm.bCmdMod;//记录一次服务aarq/get/set/action的模式,即第一个命令模式的值
 	m_AppComm.fMoreBlk = false;//根据bServer+bServerMod判别是否有多块
-	m_AppComm.wBlkNo = 1;//当前块号  备注：组态是从1开始
+	m_AppComm.wBlkNo = 0;//当前块号  备注：从0开始
 	m_AppComm.iStep = -1;//操作库函数需要的参数,用来分布获取回复数据的
 	m_AppComm.iTabIdx = 0;
 	memset(m_AppComm.bAskBuf, 0, sizeof(m_AppComm.bAskBuf));
