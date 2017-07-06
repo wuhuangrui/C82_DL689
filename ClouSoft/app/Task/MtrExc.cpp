@@ -730,7 +730,7 @@ BYTE DoMtrExc(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModifi
 					{
 						OoDWordToOad(dwOAD, bOADBuf);
 						nOADLen = OoGetDataLen(DT_OAD, bOADBuf);
-						memset(bBuf, INVALID_DATA_MTR, sizeof(bBuf));
+						memset(bBuf, INVALID_DATA, sizeof(bBuf));
 						if (nOADLen > 0)
 						{
 #ifdef TERM_EVENT_DEBUG

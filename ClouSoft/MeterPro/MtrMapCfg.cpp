@@ -33,6 +33,12 @@ extern BYTE g_bEvtTimeFmt[1];
 extern BYTE g_bPwrPrice[1];
 extern BYTE g_bBitStringTypeFmt[2];
 
+extern BYTE g_bPhaseVoltDataFmt[1];
+extern BYTE g_bPhaseCurDataFmt[1];
+extern BYTE g_bPhasePowerDataFmt[1];
+extern BYTE g_bPhaseCosDataFmt[1];
+
+
 
 BYTE g_bEngTatolFmt[1] = {DT_DB_LONG_U};
 BYTE g_bPowerTatolFmt[1] = {DT_DB_LONG};
@@ -137,13 +143,31 @@ Toad645Map g_OodTo645Map[] = {
 	{0x10800205,	0xa54f,		g_bMaxDemFmt,		sizeof(g_bMaxDemFmt),			77,			40},		//（上1结算日）月冻结IV象限（容性）无功需量
 
 	{0x20000200,	0xb61f,		g_bVoltDataFmt,		sizeof(g_bVoltDataFmt),			11,			6},			//（当前）电压					
-	{0x20000202,	0x3689,		g_bVoltDataFmt,		sizeof(g_bVoltDataFmt),			11,			6},			//电压曲线
+	{0x20000201,	0xb611,		g_bPhaseVoltDataFmt,sizeof(g_bPhaseVoltDataFmt),	3,			2},			//（当前）A相电压
+	{0x20000202,	0xb612,		g_bPhaseVoltDataFmt,sizeof(g_bPhaseVoltDataFmt),	3,			2},			//（当前）B相电压					
+	{0x20000203,	0xb613,		g_bPhaseVoltDataFmt,sizeof(g_bPhaseVoltDataFmt),	3,			2},			//（当前）C相电压					
+	{0x20000212,	0x3689,		g_bVoltDataFmt,		sizeof(g_bVoltDataFmt),			11,			6},			//电压曲线
+
 	{0x20010200,	0xb62f,		g_bCurDataFmt,		sizeof(g_bCurDataFmt),			17,			9},			//（当前）电流 	//对象里包括零序电流，怎么办？	    
-	{0x20010202,	0x3692,		g_bCurDataFmt,		sizeof(g_bCurDataFmt),			17,			9},			//电流曲线
+	{0x20010201,	0xb621,		g_bPhaseCurDataFmt,	sizeof(g_bPhaseCurDataFmt),		5,			3},			//（当前）A相电流
+	{0x20010202,	0xb622,		g_bPhaseCurDataFmt,	sizeof(g_bPhaseCurDataFmt),		5,			3},			//（当前）B相电流
+	{0x20010203,	0xb623,		g_bPhaseCurDataFmt,	sizeof(g_bPhaseCurDataFmt),		5,			3},			//（当前）C相电流
+	{0x20010204,	0xb6a0,		g_bPhaseCurDataFmt,	sizeof(g_bPhaseCurDataFmt),		5,			3},			//（当前）零序电流
+	{0x20010212,	0x3692,		g_bCurDataFmt,		sizeof(g_bCurDataFmt),			17,			9},			//电流曲线
+
 	{0x20040200,	0xB63f,		g_bPowerDataFmt,	sizeof(g_bPowerDataFmt),		22,			12},		//（当前）有功功率 
-	{0x20040202,	0x3681,		g_bPowerDataFmt,	sizeof(g_bPowerDataFmt),		22,			12},		//有功功率曲线
+	{0x20040201,	0xB630,		g_bPhasePowerDataFmt,sizeof(g_bPhasePowerDataFmt),	5,			3},			//（当前）总有功功率 
+	{0x20040202,	0xB631,		g_bPhasePowerDataFmt,sizeof(g_bPhasePowerDataFmt),	5,			3},			//（当前）A相有功功率 
+	{0x20040203,	0xB632,		g_bPhasePowerDataFmt,sizeof(g_bPhasePowerDataFmt),	5,			3},			//（当前）B相有功功率 
+	{0x20040204,	0xB633,		g_bPhasePowerDataFmt,sizeof(g_bPhasePowerDataFmt),	5,			3},			//（当前）C相有功功率 
+	{0x20040212,	0x3681,		g_bPowerDataFmt,	sizeof(g_bPowerDataFmt),		22,			12},		//有功功率曲线
+
 	{0x20050200,	0xB64f,		g_bPowerDataFmt,	sizeof(g_bPowerDataFmt),		22,			12},		//（当前）无功功率
-	{0x20050202,	0x3685,		g_bPowerDataFmt,	sizeof(g_bPowerDataFmt),		22,			12},		//无功功率曲线
+	{0x20050201,	0xB640,		g_bPhasePowerDataFmt,sizeof(g_bPhasePowerDataFmt),	5,			3},			//（当前）总无功功率
+	{0x20050202,	0xB641,		g_bPhasePowerDataFmt,sizeof(g_bPhasePowerDataFmt),	5,			3},			//（当前）A相无功功率
+	{0x20050203,	0xB642,		g_bPhasePowerDataFmt,sizeof(g_bPhasePowerDataFmt),	5,			3},			//（当前）B相无功功率
+	{0x20050204,	0xB643,		g_bPhasePowerDataFmt,sizeof(g_bPhasePowerDataFmt),	5,			3},			//（当前）C相无功功率
+	{0x20050212,	0x3685,		g_bPowerDataFmt,	sizeof(g_bPowerDataFmt),		22,			12},		//无功功率曲线
 
 	{0x20060200,	0xB67f,		g_bPowerDataFmt,	sizeof(g_bPowerDataFmt),		22,			12},	//瞬时视在功率数据块
 	{0x20060201,	0xB670,		g_bVarDmdFmt,		sizeof(g_bVarDmdFmt),			5,			4},		//瞬时总视在功率
@@ -151,8 +175,13 @@ Toad645Map g_OodTo645Map[] = {
 	{0x20060203,	0xB672,		g_bVarDmdFmt,		sizeof(g_bVarDmdFmt),			5,			4},		//瞬时B视在功率
 	{0x20060204,	0xB673,		g_bVarDmdFmt,		sizeof(g_bVarDmdFmt),			5,			4},		//瞬时C视在功率
 
-	{0x200A0200,	0xB65f,		g_bCosDataFmt,		sizeof(g_bCosDataFmt),			14,			8},			//功率因素
-	{0x200A0202,	0x3705,		g_bCosDataFmt,		sizeof(g_bCosDataFmt),			14,			8},			//功率因素曲线
+	
+	{0x200A0200,	0xB65f, 	g_bCosDataFmt,		sizeof(g_bCosDataFmt),			14, 		8}, 		//功率因素
+	{0x200A0201,	0xB650, 	g_bPhaseCosDataFmt, sizeof(g_bPhaseCosDataFmt), 	3,			2}, 		//总功率因素
+	{0x200A0202,	0xB651, 	g_bPhaseCosDataFmt, sizeof(g_bPhaseCosDataFmt), 	3,			2}, 		//A相功率因素
+	{0x200A0203,	0xB652, 	g_bPhaseCosDataFmt, sizeof(g_bPhaseCosDataFmt), 	3,			2}, 		//B相功率因素
+	{0x200A0204,	0xB653, 	g_bPhaseCosDataFmt, sizeof(g_bPhaseCosDataFmt), 	3,			2}, 		//C相功率因素
+	{0x200A0212,	0x3705, 	g_bCosDataFmt,		sizeof(g_bCosDataFmt),			14, 		8}, 		//功率因素曲线
 
 	{0x20140200,	0xc86f,		g_bMtrBlkRunStateFmt,	sizeof(g_bMtrBlkRunStateFmt),		30,		   14},			//电表运行状态字数据块
 	{0x20140201,	0xc860,		g_bMtrSubRunStateFmt,	sizeof(g_bMtrSubRunStateFmt),		4,			2},			//电表运行状态字1

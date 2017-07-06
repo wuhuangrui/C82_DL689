@@ -7,7 +7,6 @@
 #include "DataManager.h"
 #include "FaProto.h"
 #include "TaskManager.h"
-#include "FapLink.h"
 #include "sysapi.h"
 #include "sysdebug.h"
 #include "ComAPI.h"
@@ -88,14 +87,12 @@ extern CQueue g_Queue;     //协议线程的报文消息队列
 extern int g_iRstCnt[3]; //8010,8011,8012三个通道登录连续失败的次数
 extern int g_iCurChannel; //当前使用的主站地址 0-主通讯通道, 1-备用通道1, 2-备用通道2
 
-extern TSoftVerChg g_SoftVerChg; 
+
 extern bool g_fMasterTerm;
 extern WORD g_wLinkInterv;
 
 extern BYTE g_bTermChanelInfo[5];
-extern TParaChg g_ParaChg;	
-extern void SetParaChg(WORD wClass, BYTE* pbObis);
-extern void SaveParaChgEvt();
+
 
 extern bool IsMountUsb();
 extern bool IsInUsbProcess();
@@ -162,7 +159,7 @@ int GetInMtrPhyPort();
 int GetAcqPhyPort();
 bool IsAcqLogicPort(BYTE bPort);
 bool IsMtr485Port(BYTE bPort);
-void InitTestMode();
+
 bool IsBBPlcMode();
 void SetYxInitFlag(bool fInit);
 void UpdateTermPowerOffTime();
@@ -213,6 +210,7 @@ extern void FaResetCctPara();
 extern void FaClearEnergy();
 extern bool IsInProgState();
 extern bool IsFkTermn();
+extern void DoFaSave();
 
 
 

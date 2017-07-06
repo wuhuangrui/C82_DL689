@@ -198,10 +198,14 @@ TThreadRet StdProtoThread(void* pvArg)
 #endif
 					{
 #ifdef SYS_LINUX
+
+#ifdef EN_ETHTOGPRS     	//支持双网程序需屏蔽此代码 17-06-15
 						system("ifconfig eth0 down");
 						Sleep(3000);
 						system("ifconfig eth0 up");
 						LoadSocketLocalPara();
+#endif
+
 #endif
 					}
 				}

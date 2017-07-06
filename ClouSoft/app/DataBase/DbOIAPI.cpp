@@ -1254,7 +1254,6 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 			*piStart = -1;
 			return pbTmp - pbBuf;
 		case 0x6000://采集档案配置表，测量点参数
-			wMaxNum = POINT_NUM;
 			pbTmp = pbBuf;
 			wSigFrmPnNum = wBufSize/PNPARA_LEN;
 			if (*piStart == -1) //第一次来读
@@ -1263,6 +1262,7 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 				if (wTotNum == 0) //无相应参数
 				{
 					*pbBuf = EMPTY_DATA;
+					*piStart = -1;		//单帧结束
 					return 1;
 				}
 				else
@@ -1327,6 +1327,7 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 				if (wTotNum == 0) //无相应参数
 				{
 					*pbBuf = EMPTY_DATA;
+					*piStart = -1;		//单帧结束
 					return 1;
 				}
 				else
@@ -1411,6 +1412,7 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 			if (bSchNum == 0)
 			{
 				*pbBuf = EMPTY_DATA;
+				*piStart = -1;		//单帧结束
 				return 1;
 			}
 			pbBuf[0] = DT_ARRAY;	//array
@@ -1454,6 +1456,7 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 			if (bSchNum == 0)
 			{
 				*pbBuf = EMPTY_DATA;
+				*piStart = -1;		//单帧结束
 				return 1;
 			}
 
@@ -1508,6 +1511,7 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 			if (bSchNum == 0)
 			{
 				*pbBuf = EMPTY_DATA;
+				*piStart = -1;		//单帧结束
 				return 1;
 			}
 
@@ -1736,6 +1740,7 @@ int OoProReadAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wBufSize,
 				DTRACE(DB_OIIF, ("OIReadObj: Read wOI:%x,Attribute %d failed \r\n", wOI, i));
 				*pbBuf = EMPTY_DATA;	//null-data;
 				iLen = 1;
+				*piStart = -1;		//单帧结束
 			}
 			pbBuf += iLen;
 			wMaxBufLen -= iLen;
@@ -1969,7 +1974,7 @@ int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bo
 							UpdateTermPowerOffTime();
 						}
 					}
-					else if ((dwOIAtt&0xf0000000) == 0x21000300)	//统计参数变更，通知冻结更新
+					else if ((dwOIAtt&0xff00ff00)==0x21000300 || (dwOIAtt&0xff00ff00)==0x22000300)	//统计参数变更，通知冻结更新
 					{
 						OnStatParaChg();
 					}
@@ -3246,7 +3251,12 @@ int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaL
 	}
 
 	//执行对象方法
-	return pOmMap->pfnDoMethod(wOI, bMethod, bOpMode, pbPara, iParaLen, pOmMap->pvAddon, pOmMap->pFmt, pOmMap->wFmtLen, pbRes, piParaLen);
+	int iRet = pOmMap->pfnDoMethod(wOI, bMethod, bOpMode, pbPara, iParaLen, pOmMap->pvAddon, pOmMap->pFmt, pOmMap->wFmtLen, pbRes, piParaLen);
+	if (iRet >= 0)
+	{
+		TrigerSavePara();
+	}
+	return iRet;
 }
 
 //描述：把源数据解析成一个个字段的偏移和长度，方便访问
@@ -3728,7 +3738,7 @@ int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen
 			}
 			else
 			{
-				if (IsAllAByte(pbSrc, INVALID_DATA_MTR, 1) || bsLen==0)
+				if (IsAllAByte(pbSrc, INVALID_DATA, 1) || bsLen==0)
 				{
 					*pbDst++ = NULL;
 					pbDst += 1;
@@ -3757,7 +3767,7 @@ int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen
 				//pbSrc += 2;
 				if ((bsLen < 2) && (bsLen!=0))
 					return -1;
-				if (IsAllAByte(pbSrc, INVALID_DATA_MTR, 2) || bsLen==0)
+				if (IsAllAByte(pbSrc, INVALID_DATA, 2) || bsLen==0)
 				{
 					*pbDst++ = bType;
 					memset(pbDst, 0xFE, 2);//填充我们约定的无效值					
@@ -3799,7 +3809,7 @@ int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen
 					btLen = 3;//这些数据在07协议中是3字节
 				if ((bsLen < btLen) && (bsLen!=0))
 					return -1;
-				if (IsAllAByte(pbSrc, INVALID_DATA_MTR, bsLen) || bsLen==0)
+				if (IsAllAByte(pbSrc, INVALID_DATA, bsLen) || bsLen==0)
 				{
 					*pbDst++ = bType;
 					memset(pbDst, 0xFE, 4);//填充我们约定的无效值					

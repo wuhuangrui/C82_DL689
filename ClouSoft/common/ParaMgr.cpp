@@ -8,7 +8,6 @@
 #include "ComAPI.h"
 #include "LibDbAPI.h"
 #include "ParaMgr.h"
-#include "ParaMgrHook.h"
 #include "OoFmt.h"
 #include "CctTaskMangerOob.h"
 #include "CctAPI.h"
@@ -541,7 +540,7 @@ int CParaMgr::OoProWriteAttr_dft(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf,
 			}
 		}
 
-		//		SetParaChg(wClass, pbObis);
+	
 RET_ATTR:
 		//OutBeepMs(50);
 		TrigerSave();

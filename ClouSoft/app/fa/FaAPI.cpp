@@ -92,7 +92,7 @@ BYTE g_bReadMtrStatus[POINT_NUM];//485表抄表状态:0正常,1抄表失败,2抄表恢复
 BYTE g_b485PortStatus;//485抄表口状态:0正常,1故障发生,2故障恢复
 bool g_fMtrFailHapFlg[POINT_NUM];
 bool g_f485FailHapFlg;
-bool g_fTestMode = false;
+
 bool g_fInAdjSysClock = false;	//是否处于对时状态
 
 WORD   g_wAdjUn = 2200;
@@ -154,19 +154,17 @@ TTime g_tmDayTask;       //1天任务时标
 TPowerOffTmp g_PowerOffTmp;     //掉电暂存变量
 TPowerOffTmp g_DefaultPowerOffTmp = {PWROFF_VER, //版本 
 									 true,  //掉电暂存变量有效标志
-									 false,   //GPRS已连接
-									 {0, 0, 0, 0},  //远程下载软件的服务器IP地址
-									 false,			//bool fAlrPowerOff	掉电前上报了停电告警
+									 false,   //bool fAlrPowerOff	掉电前上报了停电告警
 									 0,				//WORD wRstNum;	复位次数
 									 0,				//线程监控复位次数
 									 {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 									  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 									  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,	
 									  0, 0},		//线程监控复位最后一次复位的线程名称
-									 0,				//iRemoteDownPort
+
 									 {0, 0, 0, 0, 0, 0, 0},//tPoweroff 上次停电时间
 									 {0, 0, 0, 0, 0, 0, 0},//tPoweroff 上次上电时间
-									 0,				//记录参数初始化事件的有效无效
+
 									}; 
 BYTE g_bTermChanelInfo[5] = {	2,	//脉冲输入路数 8
 								4, //开关量输入路数 4
@@ -178,60 +176,11 @@ TTime g_tPowerOn;
 BYTE g_bRemoteDownIP[8];
 //unsigned long TickMs;
 
-TSoftVerChg g_SoftVerChg;	 //缓存的版本变更事件
-TParaChg g_ParaChg;	//缓存的参数变更事件,一次应用服务最多同时处理50个OBIS对象
+
 bool g_fFrzInit = false;	//冻结初始化是否完成
 
 void CheckDownSoft(void);
 
-
-//写入参数变更事件缓存数据
-void SetParaChg(WORD wClass, BYTE* pbObis)
-{
-	bool fFind = false;
-	for(WORD i=0; i<g_ParaChg.wNum; i++)
-	{
-		if (wClass==g_ParaChg.wClass[i] && memcmp(pbObis, &g_ParaChg.bObis[i][0], 6)==0)
-		{
-			fFind = true;
-			break;
-		}
-	}
-	if ( !fFind )
-	{
-		g_ParaChg.wClass[g_ParaChg.wNum] = wClass;
-		memcpy(&g_ParaChg.bObis[g_ParaChg.wNum][0], pbObis, 6);
-		g_ParaChg.wNum++;
-	}
-}
-
-//写入参数变更事件
-void SaveParaChgEvt()
-{
-	bool fFind = false;
-	BYTE bBuf[MAXNUM_ONEERC3*6+3];
-	TTime time;
-	WORD wAddr;
-
-	if (g_ParaChg.wNum>0 && g_ParaChg.wNum<MAXNUM_ONEERC3)
-	{
-		GetCurTime(&time);
-		//终端地址
-		 ReadItemEx( BN0, 0, 0x4037, (BYTE*)&wAddr);//倒序		
-	
-		bBuf[0] = (BYTE)wAddr;
-		bBuf[1] = g_ParaChg.wNum;
-		for(WORD i=0; i<g_ParaChg.wNum; i++)
-		{
-			memcpy(bBuf+2+i*6, &g_ParaChg.bObis[i][0], 6);
-
-		}
-//		if ( !SaveAlrData(ERC_PARACHG, time, bBuf, g_ParaChg.wNum*6+2) )
-		{
-			DTRACE(DB_METER_EXC, ("SaveParaChgEvt is failed"));
-		}
-	}
-}
 
 //CL818C7第3路485口和debug口共用，0xa200大于0关调试，
 void InitConsole()
@@ -284,7 +233,7 @@ WORD CRCCheck(BYTE* p, WORD wLen)
 
 BYTE NumToParity(BYTE n)
 {
-	static BYTE bParityTab[] = {NOPARITY, EVENPARITY, ODDPARITY}; 
+	const BYTE bParityTab[] = {NOPARITY, EVENPARITY, ODDPARITY}; 
 	if (n >= 3)
 	{
 		return NOPARITY;
@@ -297,7 +246,7 @@ BYTE NumToParity(BYTE n)
 
 BYTE NumToStopBits(BYTE n)
 {
-	static BYTE bStopBitsTab[] = {ONESTOPBIT, TWOSTOPBITS, TWOSTOPBITS};
+	const BYTE bStopBitsTab[] = {ONESTOPBIT, TWOSTOPBITS, TWOSTOPBITS};
 	if (n >= 3)
 	{
 		return ONESTOPBIT;
@@ -357,6 +306,7 @@ void DoFapCmd()
 		SetInfo(INFO_PLC_CLRRT);	 //集中器清除路由
 #endif
 		LockDB();
+		TdbLock();
 		system("rm -rf /mnt/data/para/*");
 		system("rm -rf /mnt/data/data/*");
 
@@ -376,7 +326,7 @@ void DoFapCmd()
 	else if (g_dwExtCmdFlg == FLG_DEFAULT_CFG)
 	{
 	}
-	else if (g_dwExtCmdFlg==FLG_HARD_RST || g_dwExtCmdFlg==FLG_REMOTE_DOWN)
+	else if (g_dwExtCmdFlg == FLG_HARD_RST)
 	{
 		SavePoweroffTmp();	//收到软件下载命令后不保存系统库文件,光保存掉电变量,避免命令响应时间过长
 		ResetApp();
@@ -439,13 +389,7 @@ void InitPoweroffTmp()
 		memcpy(&g_PowerOffTmp, &g_DefaultPowerOffTmp, sizeof(g_PowerOffTmp));
 	}
 
-	if(g_PowerOffTmp.bRemoteDownIP[0] != 0 || g_PowerOffTmp.bRemoteDownIP[1] != 0 || 
-	   g_PowerOffTmp.bRemoteDownIP[2] != 0 || g_PowerOffTmp.bRemoteDownIP[3] != 0)
-	{
-		memcpy(g_bRemoteDownIP,  &(g_PowerOffTmp.bRemoteDownIP[0]), sizeof(g_bRemoteDownIP));
-		memset(&(g_PowerOffTmp.bRemoteDownIP[0]), 0x00, 8);
-		g_fDownSoft = true;
-	}
+
 
 	//复位次数
 	g_PowerOffTmp.wRstNum++;	
@@ -654,7 +598,7 @@ void FaInitStep1()
     
 	InitDB(); //版本变更事件用到任务库
 	
-	ApllyCfgAuto();//开机自动应用配置文件
+	//ApllyCfgAuto();//开机自动应用配置文件
 	
 	InitPoweroffTmp();	//初始化掉电变量
 	GetCurTime(&g_tPowerOn);
@@ -675,7 +619,7 @@ void FaInitStep1()
 // 		DTRACE(DB_CTRL, ("*****FaInit: open COMM_PLC success!!!\r\n"));
 // 	else
 // 		DTRACE(DB_CTRL, ("*****FaInit: open COMM_PLC failed!!!\r\n"));
-	InitTestMode();
+	//InitTestMode();
 	
 	InitDebug();   //调试信息输出在数据库初始化后才进行,因为用到了数据库
 //	InitConsole();
@@ -902,14 +846,6 @@ void PushEvt_ParaInit()
 	memcpy(bErcData+2, bSoftVer+16, 4 );
 	memcpy(bErcData+6, bSoftVer+16, 4 );
 
-	//先保存到掉电变量，上电后再写入任务库
-	g_PowerOffTmp.bParaEvtType = 0; //GetErcType(ERC_INIT_VER);
-	if (g_PowerOffTmp.bParaEvtType > 0)
-	{
-		g_PowerOffTmp.ParaInit.time = GetCurTime();	
-		memcpy(&g_PowerOffTmp.ParaInit.bVerInfo, bErcData, 10); 
-		//SaveAlrData(ERC_INIT_VER, t, bErcData);	
-	}
 }
 
 bool g_fYxInit = false;
@@ -1719,6 +1655,7 @@ TThreadRet FastSecondThread(void* pvPara)
 	ReleaseThreadMonitorID(iMonitorID);
 }
 
+/*
 TThreadRet DownSoftSecondThread(void* pvPara)
 {
 	DTRACE(DB_CRITICAL, ("DownSoftSecondThread : started!\n"));
@@ -1740,6 +1677,7 @@ TThreadRet DownSoftSecondThread(void* pvPara)
 	
 	return 0;
 }
+*/
 
 TThreadRet  Do485MeterSearch(void* pvPara)
 {
@@ -2136,6 +2074,7 @@ void FaInit(BYTE bMethod)
 		break;
 	default:
 		DTRACE(DB_TASK, ("FaDataInit(): Method=%d unspport\n", bMethod));
+		break;
 	}
 }
 
@@ -2246,7 +2185,7 @@ TThreadRet SlowSecondThread(void* pvPara)
 			ReleaseThreadsSem();
 		}
 
-		if (GetInfo(INFO_CLASS19_METHOD_RST))	
+		if (GetInfo(INFO_CLASS19_METHOD_RST) || GetInfo(INFO_APP_RST))	
 		{
 			DTRACE(DB_FA, ("Dev interface class=19 method=1. Reset system...\n"));
 			FaInit(RESTART_SYSTEM);
@@ -2735,6 +2674,7 @@ void FaClearEnergy()
 void InitApp()
 {
 	g_StatMgr.Init();	 //统计
+	ApllyCfgAuto();//开机自动应用配置文件
 	ReSetParamKeepReadFile();
 }
 #ifdef EN_INMTR
@@ -2742,18 +2682,7 @@ void DoAmpHour();
 #endif
 //主线程
 extern TThreadRet RJ45ReadMtrThread(void* pvPara);
-//是否使用基于窄频带的宽带PLC抄表模式
-bool IsBBPlcMode()
-{
-	BYTE bPlcMode;
-	ReadItemEx(BN15, PN0, 0x5006, &bPlcMode);	//载波模块类型
-	//if (bPlcMode == AR_LNK_PRIME || bPlcMode == AR_LNK_G3)
-	{
-		return true;
-	}
 
-	return false;
-}
 
 //初始化交采数据
 void InitAcData()
@@ -2806,7 +2735,7 @@ void InitAcData()
 }
 
 extern TThreadRet DisplayThread(void* pvArg);
-extern void SimuAcData();
+
 TThreadRet MainThread(void* pvPara)
 {
 	SysInitDebug();	//初始化不同系统下调试最低层的部分
@@ -2859,7 +2788,7 @@ TThreadRet MainThread(void* pvPara)
 	if (IsDownSoft())
 	{
 		NewFaUpdateThread();
-		NewThread(DownSoftSecondThread, NULL, 8192, THREAD_PRIORITY_NORMAL);
+
 		NewThread(DriverThread, NULL, 8192, THREAD_PRIORITY_NORMAL);
 
 	#ifndef SYS_WIN
@@ -2969,17 +2898,7 @@ TThreadRet MainThread(void* pvPara)
 
 	return THREAD_RET_OK;
 }
-void InitTestMode()
-{
-  	BYTE bVal;
-	g_fTestMode = false;
-	ReadItemEx(BN10, PN0, 0xa1a8, &bVal);
-	if (bVal == 1 )
-	{//测试模式
-		g_fTestMode = true;
-	}
-	return;
-}
+
 
 bool IsFkTermn()
 {
@@ -2990,465 +2909,8 @@ bool IsFkTermn()
 	else
 		return false;
 }
-#ifdef SYS_WIN
-#define ENERGY_TYPE_MAX		64
-#define AC_ENERGY_NUM   	39//8  //交采的电能类型数量
-#define DEMAND_TYPE_MAX   64
-#define AC_DEMAND_NUM   	34	//交采的需量类型数量	
-bool IsAcEngSign(WORD wOI)
-{
-	if ((wOI>=0x0030 && wOI<=0x0043) || (wOI>=0x0630 && wOI<=0x0643) || (wOI==0x0001))
-		return true;
-	else
-		return false;
-}
-
-WORD AcEpToFmt(int64 val, BYTE* pbBuf, bool fHigPre, bool fSign)
-{
-	val = ABS(val);
-	if (fHigPre)
-	{
-		if (fSign)	//带符号的
-			pbBuf[0] = DT_LONG64;
-		else
-			pbBuf[0] = DT_LONG64_U;
-			
-//			memcpy(&pbBuf[1], (BYTE*)&val, 8);
-		OoInt64ToLong64(val,&pbBuf[1]);
-		return 9;//4;				
-	}
-	else
-	{
-		val /= 100;	//降低精度，保留两位小数即可
-		if (fSign)
-			pbBuf[0] = DT_DB_LONG;
-		else
-			pbBuf[0] = DT_DB_LONG_U;
-			
-//			memcpy(&pbBuf[1], (BYTE*)&val, 4);
-		OoDWordToDoubleLongUnsigned(val,&pbBuf[1]);
-		return 5;//4;		
-	}
-}
 
 
-
-bool IsDemFmt5(WORD wOI)
-{
-	if ((wOI>=0x1030 && wOI<=0x1043) || (wOI>=0x1130 && wOI<=0x1143))
-		return true;
-	else
-		return false;		
-}
-
-WORD AcDemandToFmt(DWORD dwDemand, BYTE* pbTime, BYTE* pbBuf, bool fFmt5)
-{
-	*pbBuf++ = 0x02;
-	*pbBuf++ = 0x02;
-	
-	if (fFmt5)
-		*pbBuf++ = DT_DB_LONG;
-	else
-		*pbBuf++ = DT_DB_LONG_U;
-		
-//		memcpy(pbBuf, (BYTE *)&dwDemand, 4);
-	OoIntToDoubleLong(dwDemand,pbBuf);
-	pbBuf += 4;
-	
-	*pbBuf++ = DT_DATE_TIME_S;//发生时间DateTimeBCD_S
-	memcpy(pbBuf, pbTime, 7);//数据入库前已经转换过，所以直接入库	
-//		OoIntToDoubleLong(dwDemand,pbBuf);
-	
-	return 15;
-}
-
-
-
-void SimuAcData()
-{
-	int i, j;
-	static DWORD dwClick = 0;
-	BYTE bPhase;
-	BYTE bBuf[300];
-
-	BYTE bVoltBuf[] = {01,03,18,0x98,0x08,18,0x98,0x08,18,0x98,0x08};//电压220.0
-	WriteItemEx(BN0, PN0, 0x2000, bVoltBuf);
-
-	BYTE bCurrBuf[] = {01,04,
-			5,0x88,0x13,0x00,0x00,
-			5,0x88,0x13,0x00,0x00,
-			5,0x88,0x13,0x00,0x00,
-			5,0x00,0x00,0x00,0x00};//电流:5.000A
-	WriteItemEx(BN0, PN0, 0x2001, bCurrBuf);
-
-	BYTE bVoltAng[] = {01,03,18,0x00,0x00,18,0xb0,0x04,18,0x60,0x09};//电压相角：0.0，120.0，240.0
-	WriteItemEx(BN0, PN0, 0x2002, bVoltAng);
-
-	BYTE bCurAng[] = {01,03,18,0x58,0x02,18,0x58,0x02,18,0x58,0x02};//电流相角：60.0，60.0，60.0
-	WriteItemEx(BN0, PN0, 0x2003, bCurAng);
-
-	BYTE bPDataBuf[] = {01,04,5,0xe8,0x80,0x00,0x00,5,0xf8,0x2a,0x00,0x00,5,0xf8,0x2a,0x00,0x00,5,0xf8,0x2a,0x00,0x00};	//功率3.3000，1.1000，1.1000，1.1000，单位-1W
-	WriteItemEx(BN0, PN0, 0x2004, bPDataBuf);
-	WriteItemEx(BN0, PN0, 0x2007, bPDataBuf);
-
-	BYTE bQDataBuf[] = {01,04,5,0x28,0x23,0x00,0x00,5,0xb8,0x0b,0x00,0x00,5,0xb8,0x0b,0x00,0x00,5,0xb8,0x0b,0x00,0x00};	//功率0.9000，0.3000，0.3000，0.3000，单位-1Var
-	WriteItemEx(BN0, PN0, 0x2005, bQDataBuf);
-	WriteItemEx(BN0, PN0, 0x2008, bQDataBuf);
-
-	BYTE bSDataBuf[] = {01,04,5,0xa0,0x8c,0x00,0x00,5,0xe0,0x2e,0x00,0x00,5,0xe0,0x2e,0x00,0x00,5,0xe0,0x2e,0x00,0x00};	//功率3.6000，1.2000，1.2000，1.2000，单位-1VA
-	WriteItemEx(BN0, PN0, 0x2006, bSDataBuf);
-	WriteItemEx(BN0, PN0, 0x2009, bQDataBuf);
-
-	BYTE bCosDataBuf[] = {01,04,16,0xe7,0x03,16,0xe7,0x03,16,0xe7,0x03,16,0xe7,0x03};	//功率因数，单位-3 0.999
-	WriteItemEx(BN0, PN0, 0x200a, bCosDataBuf);
-	
-	BYTE bFreqDataBuf[] = {01,01,18,0x88,0x13};	//电网频率，单位-2 50.00
-	WriteItemEx(BN0, PN0, 0x200f, bFreqDataBuf);
-
-
-	BYTE bPDemandDataBuf[] = {0x01,0x01,0x5,0xa0,0x8c,0x00,0x00,};	//功率3.6000，单位-4kWh
-	WriteItemEx(BN0, PN0, 0x2017, bPDemandDataBuf);
-	BYTE bQDemandDataBuf[] = {0x01,0x01,0x5,0xa0,0x8c,0x00,0x00,};	//功率3.6000，单位-4kvar
-	WriteItemEx(BN0, PN0, 0x2018, bQDemandDataBuf);
-
-	
-
-	int64 m_i64E[ENERGY_TYPE_MAX][RATE_NUM+1]; //与数据库对应的电能
-	static WORD g_wAcCurEnergyID[3][AC_ENERGY_NUM] = 
-	{
-		//入库的数据项ID
-		{
-			0x0610, 0x0620, 						//正、反向有功
-			0x0630, 0x0640, 						//组合无功1、2
-			0x0650, 0x0660, 0x0670, 0x0680, 		//一二三四象限无功
-			
-			0x0611, 0x0612, 0x0613, 				//A/B/C分相正向有功电能
-			0x0621, 0x0622, 0x0623, 				//A/B/C分相反向有功电能
-			0x0631, 0x0632, 0x0633, 				//A/B/C组合无功1电能
-			0x0641, 0x0642, 0x0643, 				//A/B/C组合无功2电能
-			
-			0x0601, 								//组合有功	
-	
-			0x0631, 0x0632, 0x0633, 				//A/B/C分相组合无功1
-			0x0641, 0x0642, 0x0643, 				//A/B/C分相组合无功2
-	
-			0x0651, 0x0652, 0x0653, 				//A/B/C分相一象限无功
-			0x0661, 0x0662, 0x0663, 				//A/B/C分相二象限无功
-			0x0671, 0x0672, 0x0673, 				//A/B/C分相三象限无功
-			0x0681, 0x0682, 0x0683, 				//A/B/C分相四象限无功
-	//暂时不做视在
-	//			0x0690, 0x06a0, 						//正/反向视在电能
-	//			0x0691, 0x0692, 0x0693, 				//A/B/C分相正向视在电能
-	//			0x06a1, 0x06a2, 0x06a3, 				//A/B/C分相反向视在电能
-			
-		}, 
-		
-		//对应的内部计算ID
-		{
-			EP_POS_ABC, EP_NEG_ABC, 				//正、方向有功
-			EQ_COM_ABC1, EQ_COM_ABC2,				//总组合无功1、2
-			EQ_Q1, EQ_Q2, EQ_Q3, EQ_Q4, 			//一二三四象限无功
-	
-			EP_POS_A,EP_POS_B,EP_POS_C, 			//A/B/C分相正向有功电能
-			EP_NEG_A,EP_NEG_B,EP_NEG_C, 			//A/B/C分相反向有功电能
-	
-			EQ_POS_A,EQ_POS_B,EQ_POS_C, 			//A/B/C分相感性无功电能
-			EQ_NEG_A,EQ_NEG_B,EQ_NEG_C, 			//A/B/C分相容性无功电能 	
-			EP_COM_ABC, 							//组合有功总
-			EQ_COM_A1,EQ_COM_B1,EQ_COM_C1,			//A/B/C分相组合无功1
-			EQ_COM_A2,EQ_COM_B2,EQ_COM_C2,			//A/B/C分相组合无功2
-	
-			EQ_Q1_A, EQ_Q1_B, EQ_Q1_C,				//A/B/C分相一象限无功
-			EQ_Q2_A, EQ_Q2_B, EQ_Q2_C,				//A/B/C分相二象限无功
-			EQ_Q3_A, EQ_Q3_B, EQ_Q3_C,				//A/B/C分相三象限无功
-			EQ_Q4_A, EQ_Q4_B, EQ_Q4_C,				//A/B/C分相四象限无功
-	
-	//			ES_POS_ABC, ES_NEG_ABC, 				//正、方向视在
-	//			ES_POS_A,ES_POS_B,ES_POS_C, 			//A/B/C分相正向视在电能
-	//			ES_NEG_A,ES_NEG_B,ES_NEG_C, 			//A/B/C分相反向视在电能
-	
-			
-		},
-		{
-			0x0010, 0x0020, 								//正、反向有功
-			0x0030, 0x0040, 								//组合无功1、2
-			0x0050, 0x0060, 0x0070, 0x0080, //一二三四象限无功
-			
-			0x0011, 0x0012, 0x0013, 				//A/B/C分相正向有功电能
-			0x0021, 0x0022, 0x0023, 				//A/B/C分相正向有功电能
-			0x0031, 0x0032, 0x0033, 				//A/B/C分相正向有功电能
-			0x0041, 0x0042, 0x0043, 				//A/B/C分相正向有功电能
-			
-			0x0001,//组合有功	
-			0x0031, 0x0032, 0x0033, 		//A/B/C分相组合无功1
-			0x0041, 0x0042, 0x0043, 		//A/B/C分相组合无功2
-	
-			0x0051, 0x0052, 0x0053, 				//A/B/C分相一象限无功
-			0x0061, 0x0062, 0x0063, 				//A/B/C分相二象限无功
-			0x0071, 0x0072, 0x0073, 				//A/B/C分相三象限无功
-			0x0081, 0x0082, 0x0083, 				//A/B/C分相四象限无功
-	
-	//			0x0090, 0x00a0, 						//正/反向视在电能
-	//			0x0091, 0x0092, 0x0093, 				//A/B/C分相正向视在电能
-	//			0x00a1, 0x00a2, 0x00a3, 				//A/B/C分相反向视在电能
-		}
-	};
-	//准备电量数据
-	for(i=0;i<AC_ENERGY_NUM;i++)
-	{
-		m_i64E[g_wAcCurEnergyID[1][i]][0] = 0x0000+((DWORD)g_wAcCurEnergyID[1][i]<<16);
-		m_i64E[g_wAcCurEnergyID[1][i]][1] = 0x0101+((DWORD)g_wAcCurEnergyID[1][i]<<16);
-		m_i64E[g_wAcCurEnergyID[1][i]][2] = 0x0202+((DWORD)g_wAcCurEnergyID[1][i]<<16);
-		m_i64E[g_wAcCurEnergyID[1][i]][3] = 0x0303+((DWORD)g_wAcCurEnergyID[1][i]<<16);
-		m_i64E[g_wAcCurEnergyID[1][i]][4] = 0x0404+((DWORD)g_wAcCurEnergyID[1][i]<<16);
-	}
-	BYTE *p = bBuf;
-	WORD wLen;
-	for(i=0;i<AC_ENERGY_NUM;i++)
-	{
-		memset(bBuf, 0x00, sizeof(bBuf));
-		bBuf[0] = 0x01;
-		bBuf[1] = (RATE_NUM+1);
-		p = bBuf+2;
-		for(j=0;j<(RATE_NUM+1);j++)
-		{
-			if (IsAcEngSign(g_wAcCurEnergyID[2][i]))
-				wLen = AcEpToFmt(m_i64E[g_wAcCurEnergyID[1][i]][j], p, false, true);
-			else
-				wLen = AcEpToFmt(m_i64E[g_wAcCurEnergyID[1][i]][j], p, false, false);
-			p += wLen;
-		}	
-		WriteItemEx(BN0, PN0, g_wAcCurEnergyID[2][i], bBuf);
-	}
-
-	p = bBuf;
-	for(i=0;i<AC_ENERGY_NUM;i++)
-	{
-		memset(bBuf, 0x00, sizeof(bBuf));
-		bBuf[0] = 0x01;
-		bBuf[1] = (RATE_NUM+1);
-		p = bBuf+2;
-		for(j=0;j<(RATE_NUM+1);j++)
-		{
-			if (IsAcEngSign(g_wAcCurEnergyID[2][i]))
-				wLen = AcEpToFmt(m_i64E[g_wAcCurEnergyID[1][i]][j], p, true, true);
-			else
-				wLen = AcEpToFmt(m_i64E[g_wAcCurEnergyID[1][i]][j], p, true, false);
-			p += wLen;
-		}	
-		WriteItemEx(BN0, PN0, g_wAcCurEnergyID[0][i], bBuf);
-	}
-
-	
-	static WORD g_wAcCurDemandID[2][AC_DEMAND_NUM] =
-	{
-		//入库的数据项ID
-		{
-			0x1010, 0x1020, 						//正、反向有功最大需量
-			0x1030, 0x1040, 						//组合无功1、2最大需量
-			0x1050, 0x1060, 0x1070, 0x1080, 		//一二三四象限无功最大需量
-			
-			0x1011, 0x1012, 0x1013, 				//A/B/C分相正向有功电能
-			0x1021, 0x1022, 0x1023, 				//A/B/C分相反向有功电能
-			0x1031, 0x1032, 0x1033, 				//A/B/C组合无功1电能
-			0x1041, 0x1042, 0x1043, 				//A/B/C组合无功2电能	
-			0x1051, 0x1052, 0x1053, 				//A/B/C一象限无功	
-			0x1061, 0x1062, 0x1063, 				//A/B/C二象限无功	
-			0x1071, 0x1072, 0x1073, 				//A/B/C三象限无功	
-			0x1081, 0x1082, 0x1083, 				//A/B/C四象限无功	
-	
-			0x2017, 0x2018, 						//绝对值有功无功需量	
-	//			0x1090, 0x10a0, 						//正/反向视在电能
-	//			0x1091, 0x1092, 0x1093, 				//A/B/C分相正向视在电能
-	//			0x10a1, 0x10a2, 0x10a3, 				//A/B/C分相反向视在电能
-	
-		},
-		
-		//对应的内部计算ID
-		{
-			EP_POS_ABC, EP_NEG_ABC, 		//正、方向有功
-			EQ_COM_ABC1, EQ_COM_ABC2,		//组合无功1、2最大需量
-			EQ_Q1, EQ_Q2, EQ_Q3, EQ_Q4, 	//一二三四象限无功最大需量
-			
-			EP_POS_A,EP_POS_B,EP_POS_C, 	//A/B/C分相正向有功电能
-			EP_NEG_A,EP_NEG_B,EP_NEG_C, 	//A/B/C分相反向有功电能
-	
-			EQ_COM_A1,EQ_COM_B1,EQ_COM_C1,		//A/B/C分相组合无功1电能
-			EQ_COM_A2,EQ_COM_B2,EQ_COM_C2,		//A/B/C分相组合无功2电能	
-			
-			EQ_Q1_A, EQ_Q1_B, EQ_Q1_C,				//A/B/C分相一象限无功
-			EQ_Q2_A, EQ_Q2_B, EQ_Q2_C,				//A/B/C分相二象限无功
-			EQ_Q3_A, EQ_Q3_B, EQ_Q3_C,				//A/B/C分相三象限无功
-			EQ_Q4_A, EQ_Q4_B, EQ_Q4_C,				//A/B/C分相四象限无功
-			EP_ABS_ABC,EQ_ABS_ABC,					//绝对值有功无功需量	
-	//			ES_POS_ABC, ES_NEG_ABC, 				//正、方向视在
-	//			ES_POS_A,ES_POS_B,ES_POS_C, 			//A/B/C分相正向视在电能
-	//			ES_NEG_A,ES_NEG_B,ES_NEG_C, 			//A/B/C分相反向视在电能
-		}
-	};
-	DWORD m_dwDemand[DEMAND_TYPE_MAX][RATE_NUM+1]; 
-	BYTE  m_bTime[DEMAND_TYPE_MAX][(RATE_NUM+1)*7]; 
-	TTime now;
-	BYTE bTime[32];
-	bool fFmt5;
-	GetSysTime(&now);
-	//准备需量数据
-	for(i=0;i<AC_DEMAND_NUM;i++)
-	{
-		m_dwDemand[g_wAcCurDemandID[1][i]][0] = 0x1010+((DWORD)g_wAcCurDemandID[1][i]<<16);
-		m_dwDemand[g_wAcCurDemandID[1][i]][1] = 0x1111+((DWORD)g_wAcCurDemandID[1][i]<<16);
-		m_dwDemand[g_wAcCurDemandID[1][i]][2] = 0x1212+((DWORD)g_wAcCurDemandID[1][i]<<16);
-		m_dwDemand[g_wAcCurDemandID[1][i]][3] = 0x1313+((DWORD)g_wAcCurDemandID[1][i]<<16);
-		m_dwDemand[g_wAcCurDemandID[1][i]][4] = 0x1414+((DWORD)g_wAcCurDemandID[1][i]<<16);
-		OoTimeToDateTimeS(&now,bTime);
-		//memset(bTime, 0, sizeof(bTime));
-		memcpy(&m_bTime[g_wAcCurDemandID[1][i]][0], bTime, 7);
-		memcpy(&m_bTime[g_wAcCurDemandID[1][i]][7], bTime, 7);
-		memcpy(&m_bTime[g_wAcCurDemandID[1][i]][14], bTime, 7);
-		memcpy(&m_bTime[g_wAcCurDemandID[1][i]][21], bTime, 7);
-		memcpy(&m_bTime[g_wAcCurDemandID[1][i]][28], bTime, 7);
-	}
-
-	p = bBuf;
-	for(i=0;i<AC_ENERGY_NUM;i++)
-	{
-		memset(bBuf, 0x00, sizeof(bBuf));
-		bBuf[0] = 0x01;
-		bBuf[1] = (RATE_NUM+1);
-		p = bBuf+2;
-		for(j=0;j<(RATE_NUM+1);j++)
-		{
-			fFmt5 = IsDemFmt5(g_wAcCurDemandID[0][i]);
-			wLen = AcDemandToFmt(m_dwDemand[g_wAcCurDemandID[1][i]][j], &m_bTime[g_wAcCurDemandID[1][i]][j*7], p, fFmt5);
-			p += wLen;
-		}	
-		WriteItemEx(BN0, PN0, g_wAcCurDemandID[0][i], bBuf);
-	}
-
-
-
-
-
-
-	//谐波次数(19)+三相电压电流总谐波含量及2~19次谐波含量
-//		BYTE *p = bBuf;
-//		*p++ = HARMONIC_NUM;
-
-	int nHarPecent[6*(HARMONIC_NUM-1)] ={    
-									550,	2,		350,	2,		250,	3,		2,  1,  3,  5,	1,	3,	5,	2,	4,	1,	2,	4,	1,	2,		//Ua
-									750,	450,	3,		350,	2,		150,	2,	2,	4,	1,	2,	1,	3,	5,	1,	3,	5,	1,	3,	2,//Ub
-									650,	4,		400,	2,		200,	3,		200,7,	5,	3,	1,	2,	4,	6,	5,	2,	4,	6,	5,	2,//Uc
-									350,	2,		250,	2,		250,	3,		2,	8,	6,	4,	2,	1,	7,	5,	3,	1,	3,	2,	2,	3,//Ia
-									820,	350,	4,		250,	3,		250,	2,	2,	4,	6,	8,	1,	3,	5,	7,	2,	4,	6,	8,	2,//Ib
-									850,	3,		550,	3,		250,	3,		150,3,	3,	3,	2,	2,	2,	4,	4,	4,	3,	3,	3,	2};//Ic
-
-//			WriteItemVal(BN0, PN0, 0x128f, nHarPecent);
-//			if (bPn != PN0)
-//				WriteItemVal(BN0, PN0, 0x128f, nHarPecent);
-
-		TDataItem g_diVoltDistortion;	//电压波形失真度
-		TDataItem g_diCurDistortion;	//电流波形失真度
-		TDataItem g_diVoltHarPercent[3];	//电压谐波含量 总、2-19次
-		TDataItem g_diCurHarPercent[3]; //电流谐波含量 总、2-19次
-		TDataItem g_diHarmonicNum;	//谐波次数
-
-		g_diVoltDistortion = GetItemEx(BN0, PN0, 0x200b);
-		g_diCurDistortion = GetItemEx(BN0, PN0, 0x200c);
-		
-		for(i=0;i<3;i++)
-		{
-			g_diVoltHarPercent[i] = GetItemEx(BN0, PN0, 0x2600+i);
-			g_diCurHarPercent[i] = GetItemEx(BN0, PN0, 0x2603+i);
-		}
-		g_diHarmonicNum = GetItemEx(BN0, PN0, 0x2606);
-
-
-	
-		//电压波形失真度/总谐波畸变率
-		memset(bBuf, 0x00, sizeof(bBuf));
-		bBuf[0] = 0x01;
-		bBuf[1] = 0x03;
-		for(i=0;i<3;i++)
-		{
-			bBuf[2+i*3] = DT_LONG;
-			OoInt16ToLong(nHarPecent[(HARMONIC_NUM-1)*i],&bBuf[3+i*3]);
-		}	
-//			WriteItem(g_diVoltDistortion, bBuf);
-		WriteItemEx(BN0, PN0, 0x200b, bBuf);
-		
-		//电流波形失真度/总谐波畸变率
-		memset(bBuf, 0x00, sizeof(bBuf));
-		bBuf[0] = 0x01;
-		bBuf[1] = 0x03;
-		for(i=0;i<3;i++)
-		{
-			bBuf[2+i*3] = DT_LONG;
-			OoInt16ToLong(nHarPecent[(HARMONIC_NUM-1)*i+3*(HARMONIC_NUM-1)],&bBuf[3+i*3]);
-		}
-//			WriteItem(g_diCurDistortion, bBuf);
-		WriteItemEx(BN0, PN0, 0x200c, bBuf);
-	
-	
-		//电压总/2-N次谐波含量
-		for(i=0;i<3;i++)
-		{
-			memset(bBuf, 0x00, sizeof(bBuf));
-			bBuf[0] = 0x01;
-			bBuf[1] = (HARMONIC_NUM-1);
-			for(j=0;j<(HARMONIC_NUM-1);j++)
-			{
-				bBuf[2+j*3] = DT_LONG;
-	//				memcpy(&bBuf[3+j*3], (BYTE *)&pwHarPercent[HARMONIC_NUM*i+j], 2);
-				OoInt16ToLong(nHarPecent[(HARMONIC_NUM-1)*i+j],&bBuf[3+j*3]);
-			}
-//				WriteItem(g_diVoltHarPercent[i], bBuf);
-			WriteItemEx(BN0, PN0, 0x2600+i, bBuf);
-		}	
-		
-		//电流总/2-N次谐波含量
-		for(i=0;i<3;i++)
-		{
-			memset(bBuf, 0x00, sizeof(bBuf));
-			bBuf[0] = 0x01;
-			bBuf[1] = (HARMONIC_NUM-1);
-			for(j=0;j<(HARMONIC_NUM-1);j++)
-			{
-				bBuf[2+j*3] = DT_LONG;
-	//				memcpy(&bBuf[3+j*3], (BYTE *)&pwHarPercent[HARMONIC_NUM*i+j+3*HARMONIC_NUM], 2);
-				OoInt16ToLong(nHarPecent[(HARMONIC_NUM-1)*i+j+3*(HARMONIC_NUM-1)],&bBuf[3+j*3]);
-			}
-//				WriteItem(g_diCurHarPercent[i], bBuf);
-			WriteItemEx(BN0, PN0, 0x2603+i, bBuf);
-		}	
-
-
-		//谐波次数
-		memset(bBuf, 0x00, sizeof(bBuf));
-		bBuf[0] = 0x01;
-		bBuf[1] = 0x01;
-		bBuf[2] = DT_UNSIGN;
-		bBuf[3] = HARMONIC_NUM;
-//			WriteItem(g_diHarmonicNum, bBuf);
-		WriteItemEx(BN0, PN0, 0x2606, bBuf);
-
-
-
-
-//		p = bBuf;
-//		*p++ = 19;
-//		int nHarVal[6*19+1] ={	19,		1100,	20,		800,	2,		955,	3,		2,  1,  3,  5,	1,	3,	5,	2,	4,	1,	2,	4,	1,	//Ua
-//										1300,	800,	30,		1100,	2,		250,	2,	2,	4,	1,	2,	1,	3,	5,	1,	3,	5,	1,	3,	//Ub
-//										1800,	40,		850,	2,		118,	3,		200,7,	5,	3,	1,	2,	4,	6,	5,	2,	4,	6,	5,	//Uc
-//										1200,	20,		860,	2,		258,	3,		2,	8,	6,	4,	2,	1,	7,	5,	3,	1,	3,	2,	2,	//Ia
-//										1150,	1000,	40,		865,	3,		250,	2,	2,	4,	6,	8,	1,	3,	5,	7,	2,	4,	6,	8,	//Ib
-//										1250,	30,		550,	3,		651,	3,		150,3,	3,	3,	2,	2,	2,	4,	4,	4,	3,	3,	3};//Ic
-//	
-//			WriteItemVal(BN0, PN0, 0x127f, nHarVal);
-//			if (PN0 != PN0)
-//				WriteItemVal(BN0, PN0, 0x127f, nHarVal);
-//		}
-}
-#endif
 
 //显示是否处于U盘升级界面
 //返回：true 已进入， false 未进入
@@ -3510,9 +2972,7 @@ void ReleaseThreadsSem()
 
 BYTE BaudrateToGbNum(DWORD dwBaudRate)
 {
-	WORD GBBaudTab[8] = {
-		CBR_300,  CBR_600, CBR_1200, CBR_2400, 
-		CBR_4800, 0, CBR_9600, CBR_19200};
+	const WORD GBBaudTab[8] = {CBR_300, CBR_600, CBR_1200, CBR_2400, CBR_4800, 0, CBR_9600, CBR_19200};
 
 		for (BYTE i=0; i<sizeof(GBBaudTab)/sizeof(WORD); i++)
 		{

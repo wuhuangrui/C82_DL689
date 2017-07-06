@@ -4120,64 +4120,6 @@ int CFaProto::GetEvent(BYTE *pb)
 	return 0;
 }
 
-//数据优先帧
-int CFaProto::Tx_PriorFrm(bool fFinal)
-{
-	int iRet = -1;
-	BYTE bBuf[500];
-	BYTE bTmpTx[500];
-	WORD wFrmLen, wTxPtr = 0;	
-
-	BYTE* pbTmpTx =  bTmpTx;
-
-	wTxPtr = 0;
-	pbTmpTx[0] = 0x7e;
-	//m_bTxBuf[1] = 0xC0|((wFrmLen>>8)&0x7);	
-	//m_bTxBuf[2] = wFrmLen&0xff;
-	
-	wTxPtr += 3;
-	ReadItemEx( BN0, 0, 0x4037, bBuf);//倒序
-	revcpy(&pbTmpTx[3], bBuf, 2);
-	wTxPtr += 2;
-
-	if (IsFkTermn())
-		pbTmpTx[wTxPtr++] = 0x03;	//负控终端事件
-	else
-		pbTmpTx[wTxPtr++] = 0x02;	//集中器事件
-
-	pbTmpTx[wTxPtr++] = 0x02;
-	pbTmpTx[wTxPtr++] = 0x04;
-	pbTmpTx[wTxPtr++] = 0x11;
-	pbTmpTx[wTxPtr++] = m_AppComm.bEvtRPtr;	//循环事件编号
-
-/*		//应该是用事件对象按FIFO的顺序将未传的一条条连续传出		
-	if( (iRet=GetOneEvent(m_AppComm.bEvtRPtr, bBuf)) > 0 )  //02 03 要去掉
-	{
-		memcpy(pbTmpTx+wTxPtr, bBuf+2, iRet-2) ; //拷贝datatime+enum+ERC等的内容
-		wTxPtr += iRet-2;
-
-		m_AppComm.bEvtRPtr = (m_AppComm.bEvtRPtr+1)%MAXNUM_EVENT;
-		if( m_pFaProPara->ProPara.fLocal == false )//CONNECTTYPE_GPRS 
-			WriteItemEx( BANK0, 0, 0x5502, &m_AppComm.bEvtRPtr );
-		else
-			WriteItemEx( BANK0, 0, 0x5503, &m_AppComm.bEvtRPtr );
-		TrigerSaveBank(BN0, SECT_DLMS_TERMN_DATA, 0);		
-	}
-	else */
-		return -1;
-
-	wFrmLen = wTxPtr+2-1; //算上校验的长度 去掉帧头
-	pbTmpTx[1] = 0xC0|((wFrmLen>>8)&0x7);	//数据优先帧控制字
-	pbTmpTx[2] = wFrmLen&0xff;
-
-	WORD fcs = CheckCrc16( pbTmpTx+1, wTxPtr-1 );
-	pbTmpTx[wTxPtr++] = fcs&0xff;
-	pbTmpTx[wTxPtr++] = fcs>>8;
-	pbTmpTx[wTxPtr++] = 0x7e;
-	
-	iRet = Send(pbTmpTx, wTxPtr);
-	return iRet;
-}
 
 //物理连接断开时调用
 void CFaProto::OnBroken()
@@ -4250,14 +4192,7 @@ int CFaProto::ZJUserDef(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf)
 		case 0x07:
 			g_dwExtCmdClick = GetClick();
 			g_dwExtCmdFlg = FLG_REMOTE_DOWN;
-			g_PowerOffTmp.bRemoteDownIP[0] = pbRxBuf[FAP_DATA_EX+3]; 
-			g_PowerOffTmp.bRemoteDownIP[1] = pbRxBuf[FAP_DATA_EX+4];
-			g_PowerOffTmp.bRemoteDownIP[2] = pbRxBuf[FAP_DATA_EX+5];
-			g_PowerOffTmp.bRemoteDownIP[3] = pbRxBuf[FAP_DATA_EX+6];			
-			g_PowerOffTmp.bRemoteDownIP[4] = pbRxBuf[FAP_DATA_EX+7];
-			g_PowerOffTmp.bRemoteDownIP[5] = pbRxBuf[FAP_DATA_EX+8];
-			g_PowerOffTmp.bRemoteDownIP[6] = pbRxBuf[FAP_DATA_EX+9];
-			g_PowerOffTmp.bRemoteDownIP[7] = pbRxBuf[FAP_DATA_EX+10];
+			
 			return ZJReExtCmd(ERR_OK, pbRxBuf, pbTxBuf);
 
 		case 0x08:			//自动校准
@@ -4332,12 +4267,103 @@ int CFaProto::ZJUserDef(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf)
 			}
 			break;
 #endif //SYS_LINUX
+		case 0x21:
+			return ZJDealTestCmd(pbRxBuf, wRxDataLen, pbTxBuf);//测试用指令
+		case 0x22:			//自检
+			if (!PswCheck(DI_HIGH_PERM, &pbRxBuf[FAP_DATA_EX]))
+				return ZJReExtCmd(ERR_PERM, pbRxBuf, pbTxBuf);
+			return ZJAutoTest(pbRxBuf, wRxDataLen, pbTxBuf);
 	default:
 		return -1;
 	}
 
 	return -1;
 }
+
+
+
+int CFaProto::ZJAutoTest(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf)
+{
+	BYTE* pbRx = &pbRxBuf[FAP_DATA];
+	BYTE* pbTx = &pbTxBuf[FAP_DATA];
+	BYTE bRunState = 0;
+
+	*pbTx++ = *pbRx++;  //厂商编号
+	*pbTx++ = *pbRx++;  //科陆识别码
+	*pbTx++ = *pbRx++;
+	*pbTx++ = *pbRx++;  //扩展控制码
+
+	pbRx += 3;   //跳过密码
+
+	BYTE bBuf[5];
+	memset(bBuf,0,sizeof(bBuf));//*1000
+	WriteItemEx(BN2, PN0, 0x6002, bBuf);  //0x6002 清楚自检状态及结果
+	WriteItemEx(BN2, PN0, 0x6001, pbRx);  //0x6001 记录自检模式及项目
+	if(*pbRx==0)
+	{
+		SetInfo(INFO_AUTODETECT_STOP);
+	}
+	else
+	{
+		SetInfo(INFO_AUTODETECT_START);
+	}
+//		if(*pbRx&0x01)
+//		{
+//			bRunState = 0;
+//		}
+//		else
+//		{
+//			bRunState = 1;
+//		}
+//		WriteItemEx(BN23,PN0,0x3031,(BYTE*)&bRunState);
+	return ZJReExtCmd(ERR_OK, pbRxBuf, pbTxBuf);
+}
+
+
+int CFaProto::ZJDealTestCmd(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf)
+{
+	BYTE* pbRx = &pbRxBuf[FAP_LEN];
+	BYTE* pbTx = &pbTxBuf[FAP_DATA];
+	//BYTE bRet = 0;
+	//WORD wLen = 0;
+	//WORD wNameLen = 0;
+
+	//wLen = ByteToWord(pbRx);  
+
+	pbRx += 2;   
+	*pbTx++ = *pbRx++;  //厂商编号
+	*pbTx++ = *pbRx++;  //科陆识别码
+	*pbTx++ = *pbRx++;
+	*pbTx++ = *pbRx++;  //扩展控制码
+
+	pbRx += 3;   //跳过密码
+
+	switch (*pbRx)	//0x00 表示测试看门狗
+	{
+	case 0x00:
+		SetInfo(INFO_STOP_FEED_WDG);
+		*pbTx++ = *pbRx++;	//测试命令
+		*pbTx++ = *pbRx++;	//两位的附加数据长度
+		*pbTx++ = *pbRx++;
+		break;
+//	  	case 0x01:     //灯测试命令     
+//	        g_fRxLedTestCmd = true;
+//	   		*pbTx++ = *pbRx++;	//测试命令
+//			*pbTx++ = *pbRx++;	//两位的附加数据长度
+//			*pbTx++ = *pbRx++;
+//	   		break;
+//	  	case 0x02:    //退出灯测试命令
+//	        g_fRxLedTestCmd = false;
+//	   		*pbTx++ = *pbRx++;	//测试命令
+//			*pbTx++ = *pbRx++;	//两位的附加数据长度
+//			*pbTx++ = *pbRx++;
+//	   		break;    
+	}
+//		return ZJReExtCmd(ERR_OK, pbRxBuf, pbTxBuf);
+
+	return ZJMakeFrm((WORD)(pbTx-pbTxBuf-FAP_DATA), pbRxBuf, pbTxBuf, false);
+}
+
 
 //描述：通信帧的数据已经放好在p指向的通信缓冲区，本函数给它加上其余的通信字段
 //返回：通信帧的长度

@@ -68,7 +68,7 @@ bool InitDebug()
 
 	g_fDbInited = true;
 
-	ReadItemEx(BN10, PN0, 0xa323, &g_bDebug2File);
+	ReadItemEx(BN10, PN0, 0xa1c0, &g_bDebug2File);
 
 	if(g_bDebug2File == 1)
 	{
@@ -141,7 +141,7 @@ bool IsDebugOn(BYTE bType)
 		write(g_fHandle, bBuf, strlen((char*)bBuf));
 		close(g_fHandle);
 		
-		WriteItemEx(BN10, PN0, 0xa323, &g_bDebug2File);
+		WriteItemEx(BN10, PN0, 0xa1c0, &g_bDebug2File);
 	}
 
 	return true;

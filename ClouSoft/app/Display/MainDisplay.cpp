@@ -15684,7 +15684,7 @@ int SetLoopDisplay(void *arg)
 
 	CListBoxEx listbox;
 
-	ReadItemEx(BN3, PN0, 0x30d9, TmpBuf);
+	ReadItemEx(BN1, PN0, 0x2049, TmpBuf);
 
 	char *PortSeial[] = {"打开","关闭"};
 	while(1)
@@ -15740,9 +15740,9 @@ int SetLoopDisplay(void *arg)
 			{
 				if (MessageBox("确定要设置?",KEY_ESC,10000) > 0)
 				{
-					if(WriteItemEx(BN3,PN0,0x30d9,TmpBuf)> 0)//		
+					if(WriteItemEx(BN1, PN0, 0x2049,TmpBuf)> 0)//		
 					{
-						TrigerSaveBank(BN3, 0, 0);	//触发保存一次
+						TrigerSaveBank(BN1, 0, 0);	//触发保存一次
 						DoTrigerSaveBank();
 						MessageBox("设置成功",KEY_ESC,3000);
 					}
@@ -16588,7 +16588,7 @@ int LoopDisplay(void *arg)
 		return 1;
 	}
 
-	ReadItemEx(BN3, PN0, 0x30d9, bTmpBuf);
+	ReadItemEx(BN1, PN0, 0x2049, bTmpBuf);
 
 	while(j<bLoopPageNum)
 	{

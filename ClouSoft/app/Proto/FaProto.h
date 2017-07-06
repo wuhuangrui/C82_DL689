@@ -818,7 +818,7 @@ private:
 
 	//以下为链路层发送处理函数
 	int Tx_RegisterBeat();
-	int Tx_PriorFrm(bool fFinal);
+
 
 	int MakeFrm(BYTE *pbBuf, WORD wLen);
 	int MakeAutoFrm(bool fFinal);//链路层主动上报发送帧的统一出口，完成帧头帧尾和校验码，实现物理发送
@@ -973,6 +973,8 @@ private:
 	bool ZJRunCmd(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf);
 	int ZJTrigerAdj(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf);
 	int ZJLoadParaFile(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf);
+	int ZJAutoTest(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf);
+	int ZJDealTestCmd(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf);
 };//end class CFaProto;
 
 #endif  //FAPROTO_H

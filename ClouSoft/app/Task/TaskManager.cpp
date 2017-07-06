@@ -932,7 +932,7 @@ void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 			{
 				dwOAD = OoOadToDWord((BYTE *)&pdwOAD[wIndex]);
 				wCSDLen = OoGetDataLen(DT_OAD, (BYTE *)&dwOAD);
-				memset(bBuf, INVALID_DATA_MTR, sizeof(bBuf));
+				memset(bBuf, INVALID_DATA, sizeof(bBuf));
 				SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, pdwOAD[wIndex], bBuf, wCSDLen);
 				UpdItemErr(BN0, wPn, pInID[wIndex], ERR_ITEM, GetCurTime());
 			}
@@ -994,6 +994,16 @@ int DoTask(WORD wPn, TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, bool* pfModified)
 				OnMtrErrEstb(wPn);
 				DoPortRdErr(true);
 				break;
+			}
+		}
+		else if (iRet == -2)
+		{
+			int iLen = OoGetDataLen(DT_OAD, (BYTE *)&tRdItem.dwOAD); //ROAD直接取主OAD的长度
+			if (iLen > 0)
+			{
+				memset(bBuf, INVALID_DATA, sizeof(bBuf));
+				if (SaveMtrData(pMtrRdCtrl, tRdItem.bReqType, tRdItem.bCSD, bBuf, iLen))
+					*pfModified = true; //测量点数据已修改
 			}
 		}
 	}

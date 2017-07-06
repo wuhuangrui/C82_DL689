@@ -78,7 +78,17 @@
 
 #ifndef SYS_WIN
 #define EN_AC			1	//是否允许交采功能
+
+#if FA_TYPE == FA_TYPE_C82
+
 #define EN_ETHTOGPRS   1   //   是否允许以太网和GPRS切换
+
+#elif FA_TYPE == FA_TYPE_D82
+
+#define EN_ETHTOGPRS   1   //   是否允许以太网和GPRS切换
+
+#endif
+
 #endif
 
 //#define EN_INMTR		1	//是否允许内部DL645

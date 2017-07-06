@@ -16,7 +16,7 @@
 #include "FaAPI.h"
 #include "Pulse.h"
 
-static WORD g_wPulseCurEnergyID[3][MAX_PULSE_TYPE] = 
+const static WORD g_wPulseCurEnergyID[3][MAX_PULSE_TYPE] = 
 {
 	//入库的数据项ID
 	{
@@ -28,12 +28,7 @@ static WORD g_wPulseCurEnergyID[3][MAX_PULSE_TYPE] =
 	{
 		EP_POS_ABC, EQ_POS_ABC,	//正有、正无
 		EP_NEG_ABC, EQ_NEG_ABC, //反有、反无
-	},
-
-	{
-		0x2419, 0x241a,	//正有、正无
-		0x241b, 0x241c, //反有、反无
-	},	//低精度
+	}
 };
 
 /*static WORD g_wPulseCurDemandID[2][MAX_PULSE_TYPE] =
@@ -57,7 +52,7 @@ static WORD g_wPulseCurTimeID[MAX_PULSE_TYPE] =
 	0xb02f, 0xb12f,  //反有、反无最大需量时间
 };*/
 
-static WORD g_wAcCurEnergyID[3][AC_ENERGY_NUM] = 
+const static WORD g_wAcCurEnergyID[3][AC_ENERGY_NUM] = 
 {
 	//入库的数据项ID
 	{/*
@@ -160,7 +155,7 @@ static WORD g_wAcCurEnergyID[3][AC_ENERGY_NUM] =
 	}
 };
 
-static WORD g_wAcCurDemandID[3][AC_DEMAND_NUM] =
+const static WORD g_wAcCurDemandID[3][AC_DEMAND_NUM] =
 {
 	//入库的数据项ID
 	{
@@ -238,7 +233,7 @@ static WORD g_wAcCurDemandID[3][AC_DEMAND_NUM] =
 //		0xb11f, 0xb12f, //正、反向无功最大需量时间
 //		0xb13f, 0xb15f, 0xb16f, 0xb14f, //一二三四象限无功最大需量时间
 //	};
-static WORD g_wAcCurTimeID[AC_DEMAND_NUM] = 
+const static WORD g_wAcCurTimeID[AC_DEMAND_NUM] = 
 {
 		0x1010, 0x1020, 						//正、反向有功最大需量
 		0x1030, 0x1040, 						//组合无功1、2最大需量
@@ -478,7 +473,7 @@ bool PulseLoadPara(TPulseCfg* pPulseCfg, TPulsePara* pPulsePara)
 bool IsCombCurEnergyID(WORD wID)
 {
 	WORD i;
-	WORD wCombEngID[] = {
+	const WORD wCombEngID[] = {
 		0x900f,0x911f, 0x912f,
 	};
 				
@@ -1376,17 +1371,7 @@ int LoadAdjParak(DWORD *dwK) //放大了100000倍
     return -1;
 }
 
-void SaveNewAdjPara(BYTE* pbBuf)
-{
-	WriteItemEx(BN28, PN0, 0x001f, pbBuf);	//更新BN3 0x503f
-	TrigerSaveBank(BN28, 0, -1);
-	DoTrigerSaveBank();
-}
 
-void LoadNewAdjPara(BYTE *pbBuf)
-{
-	ReadItemEx(BN28, PN0, 0x001f, pbBuf);  //0x503f 
-}
 
 
 #endif

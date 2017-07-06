@@ -175,12 +175,12 @@ bool CaluDisOrderI33(const int* piAngle)
 
 BYTE CalCurPolar(const int* piAngle, BYTE bConnectType, BYTE bLastPolar)
 {
-	static WORD wAngleMin34[3] = {900, 900, 900}; 
-	static WORD wAngleMax34[3] = {2700, 2700, 2700};
-	static WORD wAngleMin33[3] = {1200, 2700, 600}; 
-	static WORD wAngleMax33[3] = {3000, 2700, 2400};
-	WORD* pwAngleMin;
-	WORD* pwAngleMax;
+	const WORD wAngleMin34[3] = {900, 900, 900}; 
+	const WORD wAngleMax34[3] = {2700, 2700, 2700};
+	const WORD wAngleMin33[3] = {1200, 2700, 600}; 
+	const WORD wAngleMax33[3] = {3000, 2700, 2400};
+	const WORD* pwAngleMin;
+	const WORD* pwAngleMax;
 	
 	BYTE bPolar = bLastPolar;
    	
@@ -390,6 +390,8 @@ void AcTransSaveCurDemand(WORD wId, BYTE* pbValue)
 		case 0x3118:
 		OoWriteAttr(0x2018, 0x02, pbValue);
 		break;
+		default:
+			break;
 	}	
 }
 

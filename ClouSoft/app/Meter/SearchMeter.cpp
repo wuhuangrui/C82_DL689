@@ -1,11 +1,8 @@
 #include "stdafx.h"
 #include "SearchMeter.h"
 #include "ComAPI.h"
-//#include "LibMtrAPI.h"
-//#include "LibCctConst.h"
 #include "FaAPI.h"
 #include "ComAPI.h"
-//#include "CctSchMtr.h"
 #include "StdReader.h"
 #include "DL69845.h"
 #include "MtrCtrl.h"
@@ -394,16 +391,7 @@ void ReinitSearch(BYTE bPort)
     g_tMtrRdSchInf[bPort].bCurTryLevel = 0;
 }
 
-//将通配符中的AA换成FF
-void TransAAToFF(BYTE bD, BYTE bS, BYTE *pbAddr, BYTE bLen)
-{
-    BYTE i;
-    for (i=0; i<bLen; i++)
-    {
-        if (pbAddr[i] == bS)
-            pbAddr[i] = bD;
-    }
-}
+
 
 //检查下表地址是否有效
 //返回1-有效，0-无效
@@ -472,9 +460,7 @@ BYTE IsMetOrNot(BYTE bPort, BYTE bMetType, BYTE bAddrLen)
 	WORD wPortNum, wPortMin, wPortMax;
 	GetLogicPortNum(&wPortNum, &wPortMin, &wPortMax);
    
-    if (g_tMeterPro[bMetType].bProto == CCT_MTRPRO_NJSL)
-        memset(bMAC, 0xff, 6);
-	else if (g_tMeterPro[bMetType].bProto == CCT_MTRPRO_69845)
+    if (g_tMeterPro[bMetType].bProto == CCT_MTRPRO_69845)
 	{
 		memset(bMAC+1, 0xaa, bAddrLen);
 	}
@@ -550,65 +536,6 @@ BYTE IsMetOrNot(BYTE bPort, BYTE bMetType, BYTE bAddrLen)
     return bMetNum;
 }
 
-/*
-typedef struct TBTNode
-{
-    BYTE bAddr;
-    TBTNode *ptLchild;
-    TBTNode *ptRbrother;
-}TBTNode;
-
-TBTNode *g_ptRootTree = NULL;
-void RcodAddrB(BYTE bAddrBNow, BYTE bAddrNO)
-{
-    if (g_bFirstAddr == 0)    //第一个有冲突的地址，作为ROOT
-    {        
-        g_ptRootTree = (TBTNode *)malloc(sizeof(TBTNode));    // 分配ROOT       
-        if (g_ptRootTree == NULL)
-        {
-            //内存分配失败
-        }
-        else
-        {
-            g_ptRootTree->bAddr = bAddrNO;          //顶节点
-            g_ptRootTree->ptLchild = NULL;
-            g_ptRootTree->ptRbrother = NULL;            
-        }
-    }
-    else
-    {        
-    }    
-    g_bFirstAddr ++;
-}
-
-//返回0-失败， 1-成功
-BYTE CreateBTNode(TBTNode *ptBTNode, BYTE bData)
-{
-    //if ()//
-    ptBTNode = (TBTNode *)malloc(sizeof(TBTNode));     
-    if (ptBTNode == NULL)
-    {
-        return 0;
-    }
-    else
-    {
-        ptBTNode->bAddr = bData;          //顶节点
-        ptBTNode->ptLchild = NULL;
-        ptBTNode->ptRbrother = NULL;            
-    }
-    return 1;
-}
-
-//删除整树
-void DelTree(TBTNode *ptRoot)
-{
-    if (ptRoot != NULL)
-    {
-        DelTree(ptRoot->ptLchild);
-        DelTree(ptRoot->ptRbrother);
-        free(ptRoot);
-    }
-}*/
 
 //搜表从地址低字节向高尝试，第一个尝试的地址为AA AA AA AA AA 00，如果碰到多块表应该将00压入栈中，
 //然后尝试AA AA AA AA 00 00，AA AA AA AA 01 00，...
@@ -889,10 +816,7 @@ BYTE SearchMeter(BYTE bPort, BYTE bMetType, BYTE bAddrLen)
 	if (g_tMtrRdSchInf[bPort].bFinish)
         return SEARCH_OVER; 
 
-	if (g_tMeterPro[bMetType].bProto == CCT_MTRPRO_NJSL)
-	{
-		 TransAAToFF(0xFF, 0xAA, bMtrAddr, 6);       
-	} 
+ 
 	for (BYTE i=0; i<1; i++)  //重复三次
 	{
 		for (BYTE j=0; j<1; j++)  //重复三次
@@ -965,6 +889,7 @@ BYTE SearchMeter(BYTE bPort, BYTE bMetType, BYTE bAddrLen)
 
 void DoSearch(BYTE bPort)
 {
+   
     BYTE bSerState;  
 	static BYTE bCnt[MTR_PORT_NUM] = {0};
 
@@ -996,7 +921,7 @@ void DoSearch(BYTE bPort)
         if (IsMetOrNot(bPort, 0) >= 2)//是否有多块97的表
             g_tMtrRdSchInf[bPort].bSearchState = PRO97;
         else 
-            g_tMtrRdSchInf[bPort].bSearchState = PRONJSLMETORNOT;
+            g_tMtrRdSchInf[bPort].bSearchState = PRO69845ORNOT;  //liyan
         break;
     case PRO97:              //97协议搜表 
         bSerState = SearchMeter(bPort, 0);
@@ -1005,24 +930,7 @@ void DoSearch(BYTE bPort)
             if (g_tMtrRdSchInf[bPort].bFinish)//97搜完
             {
                 ReinitSearch(bPort);
-                g_tMtrRdSchInf[bPort].bSearchState = PRONJSLMETORNOT;
-            }
-        }
-        break;
-    case PRONJSLMETORNOT:        
-        if (IsMetOrNot(bPort, 0) >= 2)//是否有多块南京松林的表
-            g_tMtrRdSchInf[bPort].bSearchState = PRONJSL;
-        else
-            g_tMtrRdSchInf[bPort].bSearchState = PRO69845;//-----------------
-        break;
-    case PRONJSL: 
-        bSerState = SearchMeter(bPort, 0);
-        if (bSerState == SEARCH_OVER) 
-        {
-            if (g_tMtrRdSchInf[bPort].bFinish)//
-            {
-                ReinitSearch(bPort);
-                g_tMtrRdSchInf[bPort].bSearchState = PRO69845;//-----------------------
+                g_tMtrRdSchInf[bPort].bSearchState = PRO69845ORNOT;
             }
         }
         break;

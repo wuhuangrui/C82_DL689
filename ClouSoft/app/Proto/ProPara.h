@@ -83,9 +83,7 @@ void LoadGprsModePara(TGprsPara* pGprsPara);
 
 void LoadSmsPara(TModemPara *pModemPara);
 void LoadGprsChangePara(TGprsPara* pGprsPara);
-bool LoadLinkPara(TCommIfPara* pCommIfPara);
-void LoadGbProPara(TFaProPara* pGbPara);
-bool LoadLinkTermPara();
+
 void LoadFaProPara(TFaProPara* pGbPara);
 
 bool LoadGprsUnrstPara(TGprsPara* pGprsPara);

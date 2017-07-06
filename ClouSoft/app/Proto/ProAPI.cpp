@@ -64,16 +64,12 @@ TR230mIfPara g_R230mIfPara;
 CP2PIf g_P2PIf;		//p2p通信接口
 TP2PIfPara g_P2PIfPara;
 
-//link全局参数
-CFaProto g_FapLinkProto;
-TCommIfPara g_FapLinkIfPara;
-CCommIf g_FapLinkIf;
-TProPara g_FapLinkProtoPara;
+
 
 //本地维护口
 CFaProto g_FapLocal;
 CFaProto g_FapTest;
-CFaProto g_FapLink;
+
 CCommIf g_CommIf;
 CCommIf g_CommTestIf;
 CCommIf g_CommLinkIf;
@@ -116,7 +112,7 @@ CSocketIf g_SocketSvrIfGprs[PRO_SVR_MAX];
 
 CModem* NewModem(BYTE bModuleType, BYTE bModuleArea)
 {
-	BYTE  bConnType = 0;
+	BYTE  bConnType = 1;
 	CModem *pModem;
 	switch (bModuleType)
 	{
@@ -389,26 +385,6 @@ bool InitTestProto()
 	return true;
 }
 
-bool InitLinkProto()
-{
-	//级联口的初始化
-	g_LinkDownQueue.Init(20);
-	g_LinkUpQueue.Init(20);
-	LoadFaProPara(&g_GbLinkPara);
-	if (!LoadLinkPara(&g_CommLinkIfPara))
-		return false;
-
-	g_CommLinkIf.Init(&g_CommLinkIfPara);
-	g_FapLink.AttachIf(&g_CommLinkIf);
-	g_CommLinkIf.AttachProto(&g_FapLink);
-	g_GbLinkPara.ProPara.fLocal = true;
-	g_GbLinkPara.ProPara.fAutoSend = (g_fMasterTerm==false);
-	g_GbLinkPara.ProPara.fUseLoopBuf = true;
-	g_GbLinkPara.wConnectType = CONNECTTYPE_UPLINK;
-	g_FapLink.Init(&g_GbLinkPara);	
-	g_CommLinkIf.m_fExit = false;
-	return true;
-}
 
 bool InitSvrProto()
 {
@@ -846,14 +822,7 @@ void NewFaUpdateThread()
 	NewFaProtoThread();
 }
 
-void SetProtoParaChg(WORD wFN, WORD wPN)
-{
-	/*g_FaProto.SetParaChgFlg(wFN, wPN);
-	g_FapLinkProto.SetParaChgFlg(wFN, wPN);
-	g_FapLocal.SetParaChgFlg(wFN, wPN);
-	g_FapTest.SetParaChgFlg(wFN, wPN);
-	g_FapLink.SetParaChgFlg(wFN, wPN);*/
-}
+
 
 void WHTraceSecsTime(char *pStr,DWORD dwSecs)
 {

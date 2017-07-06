@@ -13,14 +13,7 @@
 #include "sysarch.h"
 #include "LibDbStruct.h"
 
-typedef struct{
-	BYTE  bValid:1;        				//有效的标志  
-	BYTE  bNotFix:7;					//长度是否固定的标志
-	BYTE  bBank;        				//对应Bank标识    
-    WORD  wID;         					//对应ID标识  
-	BYTE  bType;						//PN类型  
-	WORD  wPNMax;						//PN数量  
-}TConvertFNIDDesc;
+
 
 #define PARSE_MAX	64
 typedef struct{

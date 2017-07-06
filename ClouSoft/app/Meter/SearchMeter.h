@@ -11,18 +11,17 @@
 #define PRO97             1
 #define PRO07METORNOT     2
 #define PRO07             3
-#define PRONJSLMETORNOT   4
-#define PRONJSL           5
-#define PROT188WATERORNOT 6
-#define PROT188WATER      7 //水表
-#define PROT188GAS        8 //气表
-#define PROT188GASORNOT   9
-#define PROT188HEATORNOT  10 //热表
-#define PROT188HEAT       11
-#define PRO69845ORNOT     12
-#define PRO69845          13
-#define SEARCHOVER        14
-#define SEARCHWAIT        15
+#define PROT188WATERORNOT 4                    //liyan
+#define PROT188WATER      5 //水表
+#define PROT188GAS        6 //气表
+#define PROT188GASORNOT   7
+#define PROT188HEATORNOT  8 //热表
+#define PROT188HEAT       9
+#define PRO69845ORNOT     10
+#define PRO69845          11
+#define SEARCHOVER        12
+#define SEARCHWAIT        13
+
 
 #define WATER_TYPE10      0x10
 #define WATER_TYPE11      0x11

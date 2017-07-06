@@ -1166,15 +1166,17 @@ void LoadIfDefPara(TIfPara* pIfPara)
 //			11	18 ** **	//心跳周期(秒)  long-unsigned
 void LoadSocketUnrstPara(TSocketPara* pPara, BYTE bSockType)
 {
+	DWORD dwSvrModeBeatTimes;
+	BYTE bBuf[10] = {0};
+
 	if (bSockType == SOCK_TYPE_ETH)
 		LoadEthCommPara(pPara);
 	else
 		LoadGPRSCommPara(pPara);
 
-	BYTE bBuf[4] = {0};
-	ReadItemEx(BN1, PN0, 0x3000, bBuf);
-	DWORD dwSvrModeBeatTestTimes = BcdToDWORD(bBuf, 2);
-	g_dwSvrModeBeatTestTimes = dwSvrModeBeatTestTimes * (pPara->dwBeatSeconds) / 100;	//Fmt6 format as SNN.NN
+	ReadItemEx(BN1, PN0, 0x2030, bBuf);		//服务器模式下心跳次数 NN.NN
+	dwSvrModeBeatTimes = BcdToDWORD(bBuf, 2);
+	g_dwSvrModeBeatTestTimes = dwSvrModeBeatTimes * (pPara->dwBeatSeconds) / 100;
 
 }
 
@@ -2032,90 +2034,6 @@ bool LoadLinkCommPara(TCommIfPara* pCommIfPara)
 					 pCommIfPara->CommPara.wPort, pCommIfPara->CommPara.dwBaudRate, pCommIfPara->CommPara.bParity));
 						
 	return true;
-}
-
-//配置从终端地址
-bool LoadLinkTermPara()
-{
-	WORD i;
-	BYTE bBuf[100];
-	BYTE* p = &bBuf[3];
-
-	memset(bBuf, 0, sizeof(bBuf));	
-	p = &bBuf[7];
-	//if (GBReadItem(GB_DATACLASS4,37,0,bBuf,0) < 0)
-	if (ReadItemEx(BN0, PN0, 0x025f, bBuf) < 0)
-	{		
-		memset((BYTE* )g_dwSlaveAddr, 0, FAP_LINK_SLAVE_NUM*4);
-		g_fMasterTerm = false;
-		g_wLinkInterv = 0;
-		return false;
-	}
-	else
-	{
-		if( (bBuf[0]>0) && (bBuf[0]<32) && ((bBuf[6]&0x80)==0) )
-			g_fMasterTerm = true;	//是否主终端
-		g_wLinkInterv = bBuf[5]*60;		//询问间隔时间
-		if (g_wLinkInterv==0)
-			g_wLinkInterv = 60;
-
-		for (i=0; i<FAP_LINK_SLAVE_NUM; i++)
-		{
-			memcpy(&g_dwSlaveAddr[i], p, 4);
-			p += 4;
-		} 
-	}
-	return true;
-}
-
-//描述:装载Link通信参数
-bool LoadLinkPara(TCommIfPara* pCommIfPara)
-{
-//	LoadLinkSlaveTermPara();
-	LoadLinkTermPara();
-	return LoadLinkCommPara(pCommIfPara);
-}
-
-//描述:装载国标协议参数
-void LoadGbProPara(TFaProPara* pGbPara)
-{
-// 	WORD	len;
-// 	BYTE	buf[64];
-// 
-// 	pGbPara->ProPara.fUseLoopBuf = true;
-// 
-// 	//终端参数F1		
-// 	if (GBReadItemEx(GB_DATACLASS4, 1, 0, buf, &len) <  0)
-// 	{
-// 		pGbPara->wConfirmDelayTime = 16;	//确认超时(s)
-// 		pGbPara->fNeedConfirm1 = false;	//需要确认的服务1
-// 		pGbPara->fNeedConfirm2 = false;	//需要确认的服务2
-// 	}
-// 	else
-// 	{
-// 		pGbPara->wConfirmDelayTime = (((WORD)buf[3]&0xf)<<8) | buf[2]; //确认超时(s)
-// 		pGbPara->fNeedConfirm1 = (buf[4]&1)?true:false;	//需要确认的服务1
-// 		pGbPara->fNeedConfirm2 = (buf[4]&2)?true:false;	//需要确认的服务2
-// 	}
-// 
-// 	//消息认证
-// 	if (GBReadItemEx(GB_DATACLASS4, 5, 0, buf, &len) >= 0)
-// 	{
-// 		pGbPara->bAuthType = buf[0];
-// 		pGbPara->wAuthPass = buf[1] | ((WORD)buf[2]<<8);
-// 	}
-// 	else
-// 	{
-// 		pGbPara->bAuthType = 0xff;
-// 		pGbPara->wAuthPass = 0x8967;
-// 	}
-// 
-// 	//组地址
-// 	if (GBReadItemEx(GB_DATACLASS4, 6, 0, (BYTE* )pGbPara->wGrpAddr, &len) < 0)
-// 		memset(&pGbPara->wGrpAddr, 0, sizeof(pGbPara->wGrpAddr));
-// 
-// 	ReadItemEx(BN10, PN0, 0xa040, (BYTE*)&pGbPara->wAddr1); //行政区划码A1
-// 	ReadItemEx(BN10, PN0, 0xa041, (BYTE*)&pGbPara->wAddr2);	//终端地址A2	
 }
 
 

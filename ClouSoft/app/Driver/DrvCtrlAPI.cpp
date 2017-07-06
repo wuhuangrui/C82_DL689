@@ -581,7 +581,7 @@ void InitCtrlModule()
 #endif
 
 	SetAlrLedCtrlMode(false);
-	if(ReadItemEx(BN24, PN0, 0x5023, bBuf) > 0)
+	if(ReadItemEx(BN10, PN0, 0xa1be, bBuf) > 0)		//BN24, 0x5023
 	{
 		g_wPulseWide = BcdToDWORD(bBuf, 2);
 	}

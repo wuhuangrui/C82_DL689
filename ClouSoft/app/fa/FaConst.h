@@ -3,16 +3,12 @@
 #include "FaCfg.h"
 #include "DbConst.h"
 
-#ifdef SYS_WIN32
-	#include "..\fa\const.h"
-#endif //SYS_WIN32
+
 
 #define  PWROFF_VER       0x0001
 
-#define READ_LENTH 512
 
-//系统的数量配置
-#define DIFF_NUM          10
+
 
 #define ERR_OK       0x0
 #define ERR_FORWARD  0x1
@@ -34,7 +30,7 @@
 
 #define EMPTY_DATA 	 0
 #define INVALID_DATA 0xff
-#define INVALID_DATA_MTR 0xff
+
 
 
 //应用通知:
@@ -167,7 +163,14 @@
 #define INFO_MTR_BRAODCAST_ARG_CCT			118	//广播校时参数更改
 #define INFO_MTR_BRAODCAST_ARG_485			119	//广播校时参数更改
 
-#define INFO_END	   						120//空消息,作为所有消息的结束
+#define INFO_AUTODETECT_START				120
+#define INFO_AUTODETECT_STOP				121
+#define INFO_STOP_FEED_WDG					122 //禁止喂狗消息，看门狗测试命令用
+
+
+
+
+#define INFO_END	   						123//空消息,作为所有消息的结束
 									//把本通知恒定作为最后一个
 
 #define INFO_NUM	   	    		(INFO_END+1)
@@ -215,9 +218,8 @@
 
 #define	CCT_MTRPRO_97	1	//97版645
 #define	CCT_MTRPRO_07	2	//07版645
-#define	CCT_MTRPRO_NJSL	3	//南京松林版645
-#define CCT_MTRPRO_T188   4   //T188协议
-#define CCT_MTRPRO_69845  5   //698.45
+#define CCT_MTRPRO_T188   3   //T188协议
+#define CCT_MTRPRO_69845  4   //698.45
 
 #define FLG_FORMAT_DISK   		0x34aebd24
 #define FLG_DEFAULT_CFG   		0x8a5bc4be

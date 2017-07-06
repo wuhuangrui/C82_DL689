@@ -86,7 +86,7 @@ bool CPulse::Init(TPulseCfg* pPulseCfg)
 	if (!PulseLoadPara(pPulseCfg, &m_PulsePara))
 		return false;
 
-	ReadItemEx(BN3, PN0, 0x30d0+pPulseCfg->bPortNo, (BYTE* )&m_PulseCfg);	//读取该路脉冲旧的参数配置
+	ReadItemEx(BN1, PN0, 0x2040+pPulseCfg->bPortNo, (BYTE* )&m_PulseCfg);	//读取该路脉冲旧的参数配置
 
 	if (memcmp(&m_PulseCfg, pPulseCfg, sizeof(TPulseCfg)) != 0)	//第1次上电初始化且该路脉冲配置改变
 	{
@@ -94,11 +94,12 @@ bool CPulse::Init(TPulseCfg* pPulseCfg)
 	    DTRACE(DB_FA, ("CPulse::Init Cfg Change: New Cfg wPn=%d,bPortNo=%d,bType=%d,iConst=%u.\r\nClearPulseLog.\r\n", pPulseCfg->wPn, pPulseCfg->bPortNo, pPulseCfg->bType, pPulseCfg->i64Const));	    
 
 	    m_PulseCfg = *pPulseCfg;
-	    WriteItemEx(BN3, PN0, 0x30d0+pPulseCfg->bPortNo, (BYTE* )pPulseCfg);
-	    TrigerSaveBank(BN3, 0, -1);
+	    WriteItemEx(BN1, PN0, 0x2040+pPulseCfg->bPortNo, (BYTE* )pPulseCfg);
+	    TrigerSaveBank(BN1, 0, -1);
 
     	ClearLogBlock(pPulseCfg->bPortNo);//清除该路所在块的日志数据
 	}
+
 
 	m_wRate = GetRate(m_wPn);
 	m_PulsePara.EnergyPara.wRate = m_wRate;
@@ -109,9 +110,11 @@ bool CPulse::Init(TPulseCfg* pPulseCfg)
 
 	m_Energy.Init(&m_PulsePara.EnergyPara);   //多费率电能
 	//m_Demand.Init(&m_PulsePara.DemandPara);   //需量
-	
+
+#ifdef ACLOG_ENABLE	
 	m_Energy.ResetLog();	//重新初始化日志
 	//m_Demand.ResetLog();	//重新初始化日志
+#endif
 	
 	memset(m_dwPulse, 0, sizeof(m_dwPulse));
 	memset(m_dwLastPulse, 0 , sizeof(m_dwLastPulse));  //上次计算时的电能脉冲数
@@ -524,14 +527,14 @@ bool CPulseManager::Init()
 	m_bPulsePnNum = bPulsePnIndex;	//脉冲测量点个数
 	if (m_bPulseNum == 0)	//F9清脉冲配置后，需要把各路脉冲的铁电数据也清除
 	{
-	    iLen = ReadItemEx(BN3, PN0, 0x30d1, bBuf);
+		iLen = ReadItemEx(BN1, PN0, 0x2041, bBuf);
 	    if (iLen>0 && bBuf[0]!=0)
 	    {
 			memset(bBuf, 0, sizeof(bBuf));
 			for (i=0; i<MAX_YMNUM; i++)
-				WriteItemEx(BN3, PN0, 0x30d1+i, bBuf);
+				WriteItemEx(BN1, PN0, 0x2041+i, bBuf);
 
-			TrigerSaveBank(BN3, 0, -1);
+			TrigerSaveBank(BN1, 0, -1);
 	    }
 	}
 

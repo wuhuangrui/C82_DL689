@@ -2186,7 +2186,7 @@ WORD GetCurveData(Toad645Map tOad645Map, BYTE* pbSrcBuf, BYTE* pbDstBuf)
 	int iRet = -1;
 	BYTE bBuf[64];
 
-	memset(bBuf, INVALID_DATA_MTR, sizeof(bBuf));
+	memset(bBuf, INVALID_DATA, sizeof(bBuf));
 	switch (tOad645Map.wID)
 	{
 	case 0x3701:
@@ -2429,7 +2429,11 @@ int DL645V07AskItemRecord(struct TMtrPro* pMtrPro, DWORD dwOAD,  BYTE* pbData, B
 				memrcpy((BYTE* )&dwRelaOAD, pbRCSD, 4);
 				if (dwRelaOAD != 0x20210200) //非时标
 				{
-					dwRelaOAD += 2;
+					if ((dwRelaOAD&0xff000000) == 0x20000000)	//变量类ID映射
+						dwRelaOAD += 0x12;
+					else	//电能需量类ID映射
+						dwRelaOAD += 0x2;
+					
 					iRet = DL645V07AskItemCurve(pMtrPro, &tTmpV07, dwRelaOAD, pbTmp);
 				}
 				else
