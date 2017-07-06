@@ -4766,7 +4766,8 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 			m_iStart = -1;
 			m_iRdPn = 0;
 		}
-
+		
+		BYTE bRpNum = 1;
 		if (GetTaskCfg(m_wCurTaskId, &tTaskCfg) && (tTaskCfg.bSchType == SCH_TYPE_REPORT))
 		{
 			if (GetTaskCurExeTime(&tTaskCfg, &dwCurSec, &dwStartSec, &dwEndSec) != 0)
@@ -4779,6 +4780,25 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 				m_iStart = -1;
 				continue;//本间隔里已上报过了
 			}
+			else if (TiToSecondes(&(tTaskCfg.tiExe)) != 0)
+			{
+				if (dwCurSec > dwRptSec)
+				{
+					bRpNum = (dwCurSec - dwRptSec)/TiToSecondes(&(tTaskCfg.tiExe));
+
+				}
+			}
+			if (bRpNum == 0)
+				bRpNum = 1;
+			if (bRpNum > 10)
+				bRpNum = 10;
+			
+			for (BYTE n=bRpNum; n>0; n--)
+			{
+				if (dwStartSec > (n-1)*TiToSecondes(&(tTaskCfg.tiExe)))
+					dwStartSec -= (n-1)*TiToSecondes(&(tTaskCfg.tiExe));
+				if (dwEndSec > (n-1)*TiToSecondes(&(tTaskCfg.tiExe)))
+					dwEndSec -= (n-1)*TiToSecondes(&(tTaskCfg.tiExe));
 			
 			ret = 0;
 			pbSchCfg = GetSchCfg(&tTaskCfg, &ret);
@@ -5202,6 +5222,7 @@ NEXT_PN:
 						break;
 NEXT_TASK:
 						;
+						}
 					}
 				}
 			}
@@ -5608,8 +5629,10 @@ int CFaProto::AppendEvtMsg(TEvtMsg* pEvtMsg)
 	if ( m_pFaProPara->ProPara.fAutoSend == false)//本通道不具备上报功能测退出
 		return -1;
 	
-	m_queEvt.Append((BYTE *)(pEvtMsg), sizeof(TEvtMsg), 1);
-	return sizeof(TEvtMsg);
+	if (m_queEvt.Append((BYTE *)(pEvtMsg), sizeof(TEvtMsg), 1))
+		return sizeof(TEvtMsg);
+	else
+		return -2;//消息添加失败
 }
 
 //描述：设置通道OAD
