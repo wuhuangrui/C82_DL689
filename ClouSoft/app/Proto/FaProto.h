@@ -323,6 +323,7 @@ enum TLinkRequestSvr
 #define	DR_SignErr			30		//签名错误
 #define	DR_MeterHalt		31		//电能表挂起
 #define	DR_TimeTagErr		32		//时间标签无效
+#define	DR_Timeout			33		//请求超时
 #define	DR_Other			255		//其他
 
 ///////////////////////////////////方法执行结果的定义////////////////////////////////////

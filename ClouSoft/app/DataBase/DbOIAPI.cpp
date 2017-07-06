@@ -1232,7 +1232,7 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 	BYTE *pbTmp;
 	BYTE bBuf[PNPARA_LEN+1];
 	BYTE *pbSch, bType;
-	WORD wPnNum=0, wLen;
+	WORD wPnNum=0, wLen = 0, wNum = 0;
 	BYTE bTaskNum=0, bSchNum=0;
 	TTaskCfg tTaskCfg;
 
@@ -1570,7 +1570,14 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 
 			bSwValidNum = 0;
 			pbTmp = pbBuf + 2;
-			for (bSwSn=0; bSwSn<pOI->wVal; bSwSn++)
+			wNum = pOI->wVal;
+			
+			#ifndef VER_ZJ		//浙江版在YX8,必须回8路的
+			if (pOI->wID == 0xF203)		//开关量输入 标准II型集中器为了过台体，协议层特殊处理为4路
+				wNum = MAX_SW_PORT_NUM/2;				//MAX_SW_PORT_NUM/2
+			#endif	
+
+			for (bSwSn=0; bSwSn<wNum; bSwSn++)
 			{
 				memset(bBuf, 0, sizeof(bBuf));
 				iLen = ReadItemEx(BN0, bSwSn, pOI->wID, bBuf);
@@ -1914,6 +1921,8 @@ int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bo
 	int iLen0;
 	//int iDataLen = 0;
 	//BYTE bOADBuf[4];
+	TTime tm;
+	TTimeInterv Ti;
 
 	memset(bTmpBuf, 0, sizeof(bTmpBuf));//防止当变长数据个数为0时（如重点表计清单清除）设置下取随机值
 	if ((bAttr == 0) || ((bAttr == 1)))	//0属性,逻辑名属性是只读的
@@ -1942,6 +1951,22 @@ int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bo
 			int nRet = OoScanData(pbTmpBuf, pOI->pFmt, pOI->wFmtLen, false, -1, &wDataLen, &bType);
 			if (nRet > 0)
 			{
+				if((wLen - nRet >= 11) && (*(pbBuf + nRet) == 0x01))//带时间标签，需判断时效性
+				{
+					memset((BYTE*)&tm, 0, sizeof(tm));
+					tm.nYear = (*(pbBuf+nRet+1))*256 +*(pbBuf+nRet+2);
+					tm.nMonth = *(pbBuf+nRet+3);
+					tm.nDay = *(pbBuf+nRet+4);
+					tm.nHour = *(pbBuf+nRet+5);
+					tm.nMinute = *(pbBuf+nRet+6);
+					tm.nSecond = *(pbBuf+nRet+7);
+
+					Ti.bUnit = *(pbBuf+nRet+8);					
+					Ti.wVal = OoLongUnsignedToWord(pbBuf+nRet+9);
+
+					if(TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti)))//传输延时时间大于零,判断时效性
+						return -5;
+				}
 				if (IsNeedWrSpec(pOI))
 				{
 					iLen = OIWrite_Spec(pOI, pbTmpBuf);
@@ -2004,8 +2029,26 @@ int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bo
 
 			memset(bSrc, 0, sizeof(bSrc));
 			iSrcLen = OoReadAttr(wOI, bAttr, bSrc, &pbFmt, &wFmtLen);
+			
+			
 			if (iSrcLen > 0)
 			{
+				if((wLen - iSrcLen >= 11) && (*(pbBuf + iSrcLen) == 0x01))//带时间标签，需判断时效性
+				{
+					memset((BYTE*)&tm, 0, sizeof(tm));
+					tm.nYear = (*(pbBuf+iSrcLen+1))*256 +*(pbBuf+iSrcLen+2);
+					tm.nMonth = *(pbBuf+iSrcLen+3);
+					tm.nDay = *(pbBuf+iSrcLen+4);
+					tm.nHour = *(pbBuf+iSrcLen+5);
+					tm.nMinute = *(pbBuf+iSrcLen+6);
+					tm.nSecond = *(pbBuf+iSrcLen+7);
+				
+					Ti.bUnit = *(pbBuf+iSrcLen+8); 				
+					Ti.wVal = OoLongUnsignedToWord(pbBuf+iSrcLen+9);
+				
+					if(TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti)))//传输延时时间大于零,判断时效性
+						return -5;
+				}
 			//	OoDWordToOad(GetOAD(wOI, bAttr, bIndex), bOADBuf);
 			//	iDataLen = OoGetDataLen(DT_OAD, bOADBuf);	//+1:去除数据类型
 			//	if (!(iDataLen >= wLen))
@@ -3231,6 +3274,8 @@ bool IsSpecOMD(const TOmMap* pOmMap)
 //返回：如果正确则返回pbRes中结果的长度,否则返回负数
 int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaLen, BYTE* pvAddon, BYTE* pbRes)
 {
+	TTime tm;
+	TTimeInterv Ti;
 	//搜索对象方法对应的映射表
 	const TOmMap* pOmMap = GetOmMap((((DWORD )wOI)<<16)+(((DWORD )bMethod<<8)));
 	if (pOmMap == NULL)
@@ -3247,6 +3292,23 @@ int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaL
 			iParaLen = OoDataFieldScan(pbPara, pOmMap->pFmt, pOmMap->wFmtLen);
 			if (iParaLen< 0)
 				return -1;
+
+			if((strlen((const char *)pbPara) - iParaLen >= 11) && (*(pbPara + iParaLen) == 0x01))//带时间标签，需判断时效性
+			{
+				memset((BYTE*)&tm, 0, sizeof(tm));
+				tm.nYear = (*(pbPara+iParaLen+1))*256 +*(pbPara+iParaLen+2);
+				tm.nMonth = *(pbPara+iParaLen+3);
+				tm.nDay = *(pbPara+iParaLen+4);
+				tm.nHour = *(pbPara+iParaLen+5);
+				tm.nMinute = *(pbPara+iParaLen+6);
+				tm.nSecond = *(pbPara+iParaLen+7);
+
+				Ti.bUnit = *(pbPara+iParaLen+8);					
+				Ti.wVal = OoLongUnsignedToWord(pbPara+iParaLen+9);
+
+				if(TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti)))//传输延时时间大于零,判断时效性
+					return -7;
+			}
 		}
 	}
 

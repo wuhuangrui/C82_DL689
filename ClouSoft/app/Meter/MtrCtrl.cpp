@@ -592,7 +592,7 @@ TThreadRet MtrRdThread(void* pvPara)
 	char pszThrName[32] = {0};
 	sprintf(pszThrName, "MtrRdThread-thrd-%d", bThrId);
 	int iMonitorID = ReqThreadMonitorID(pszThrName, 4*60*60);	//申请线程监控ID
-	
+	InitThreadMaskId(iMonitorID);
 
 	DTRACE(DB_METER, ("MtrRdThread: bThrId=%d start with bPort=%d\r\n", bThrId, bPort));
 	while (1)
@@ -623,7 +623,12 @@ TThreadRet MtrRdThread(void* pvPara)
 		{
 			UpdThreadRunClick(iMonitorID);
 
-			WaitSemaphore(g_semRdMtr[bThrId]);
+			if (!IsThreadExe(iMonitorID))
+			{
+				SetRecvThreadMaskId(iMonitorID);	
+				Sleep(500);
+				break;
+			}
 
 			wPn = SearchPnFromMask(pbPnMask, wPn);	//这里搜出的测量点都是485的
 			if (wPn >= POINT_NUM)

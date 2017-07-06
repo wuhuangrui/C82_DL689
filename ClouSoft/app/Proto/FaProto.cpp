@@ -2310,7 +2310,7 @@ int CFaProto::Act_Response_Normal()
 		}
 		else
 		{
-			*pApdu++ = DR_RWDenied;
+			*pApdu++ = GetErrOfAct(iRet); //DR_RWDenied;
 			DTRACE(DB_FAPROTO, ("Act_Response_Normal failed, dwOMD=0x%08x !\r\n", dwOMD));
 			
 		}
@@ -2372,7 +2372,7 @@ int CFaProto::Act_Response_List()
 			}
 			else
 			{
-				*pApdu++ = GetErrOfGet(iRet);	//对象不存在
+				*pApdu++ = GetErrOfAct(iRet);	//对象不存在
 				*pApdu++ = 0;
 				DTRACE(DB_FAPROTO, ("Act_response-Act-list failed, dwOMD:0x%08x DoObjMethod failed !\r\n", dwOMD));
 				//break;
@@ -2380,7 +2380,7 @@ int CFaProto::Act_Response_List()
 		}
 		else
 		{
-			*pApdu++ = GetErrOfGet(iRet);	//对象不存在
+			*pApdu++ = GetErrOfAct(iRet);	//对象不存在
 			DTRACE(DB_FAPROTO, ("Act_response-Act-list failed, dwOMD:0x%08x GetOmMap failed !\r\n", dwOMD));
 			break;
 		}
@@ -2442,7 +2442,7 @@ int CFaProto::Act_Then_Rd_List()
 			else
 			{
 				pApdu += OoDWordToOad(dwSetOMD, pApdu);
-				*pApdu++ = GetErrOfGet(iRet);	//对象不存在
+				*pApdu++ = GetErrOfAct(iRet);	//对象不存在
 				DTRACE(DB_FAPROTO, ("Act_Then_Rd_List failed, dwOMD:0x%08x DoObjMethod failed !\r\n", dwSetOMD));
 				break;
 			}
@@ -2450,7 +2450,7 @@ int CFaProto::Act_Then_Rd_List()
 		else
 		{
 			pApdu += OoDWordToOad(dwSetOMD, pApdu);
-			*pApdu++ = GetErrOfGet(iRet);	//对象不存在
+			*pApdu++ = GetErrOfAct(iRet);	//对象不存在
 			DTRACE(DB_FAPROTO, ("Act_Then_Rd_List failed, dwOMD:0x%08x GetOmMap failed !\r\n", dwSetOMD));
 			break;
 		}
@@ -2470,7 +2470,7 @@ int CFaProto::Act_Then_Rd_List()
 		{
 			pApdu += OoDWordToOad(dwGetOAD, pApdu);
 			*pApdu++ = 0x00;				//DAR
-			*pApdu++ = GetErrOfGet(iRet);	//对象不存在
+			*pApdu++ = GetErrOfAct(iRet);	//对象不存在
 			break;
 		}
 		else
@@ -2500,6 +2500,7 @@ int CFaProto::GetErrOfGet(int iRetVal)
 	case -2: return DR_ObjUndefined;
 	case -3: return DR_ObjIFInValid;
 	case -4: return DR_Other;
+	case -5: return DR_TimeTagErr;
 	}
 	return DR_Other;
 }
@@ -2512,6 +2513,7 @@ int CFaProto::GetErrOfSet(int iRetVal)
 	case -2: return DR_ObjUndefined;
 	case -3: return DR_ObjIFInValid;
 	case -4: return DR_Other;
+	case -5: return DR_TimeTagErr;
 	}
 	return DR_Other;
 }
@@ -2526,6 +2528,7 @@ int CFaProto::GetErrOfAct(int iRetVal)
 	case -4: return AR_Other;				//其它错误
 	case -5: return 0xff;//pan 确认ACT协议OK，但获取数据返回错误，2008-1-15
 	case -6: return AR_ScopeViolated;		//操作无效，2009-9-2
+	case -7: return DR_TimeTagErr;
 	}
 	return AR_Other;
 }
@@ -4767,7 +4770,7 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 			m_iRdPn = 0;
 		}
 		
-		BYTE bRpNum = 1;
+		
 		if (GetTaskCfg(m_wCurTaskId, &tTaskCfg) && (tTaskCfg.bSchType == SCH_TYPE_REPORT))
 		{
 			if (GetTaskCurExeTime(&tTaskCfg, &dwCurSec, &dwStartSec, &dwEndSec) != 0)
@@ -4780,25 +4783,6 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 				m_iStart = -1;
 				continue;//本间隔里已上报过了
 			}
-			else if (TiToSecondes(&(tTaskCfg.tiExe)) != 0)
-			{
-				if (dwCurSec > dwRptSec)
-				{
-					bRpNum = (dwCurSec - dwRptSec)/TiToSecondes(&(tTaskCfg.tiExe));
-
-				}
-			}
-			if (bRpNum == 0)
-				bRpNum = 1;
-			if (bRpNum > 10)
-				bRpNum = 10;
-			
-			for (BYTE n=bRpNum; n>0; n--)
-			{
-				if (dwStartSec > (n-1)*TiToSecondes(&(tTaskCfg.tiExe)))
-					dwStartSec -= (n-1)*TiToSecondes(&(tTaskCfg.tiExe));
-				if (dwEndSec > (n-1)*TiToSecondes(&(tTaskCfg.tiExe)))
-					dwEndSec -= (n-1)*TiToSecondes(&(tTaskCfg.tiExe));
 			
 			ret = 0;
 			pbSchCfg = GetSchCfg(&tTaskCfg, &ret);
@@ -5222,7 +5206,7 @@ NEXT_PN:
 						break;
 NEXT_TASK:
 						;
-						}
+
 					}
 				}
 			}

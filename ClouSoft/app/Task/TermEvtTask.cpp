@@ -7254,20 +7254,15 @@ int DoYXChgJudge(struct TEvtCtrl* pEvtCtrl)
 		return 0;
 	}
 
-#ifdef SYS_LINUX
-	bDoorStat = GetDoorStatus(); //门节点分状态为高电平
-#endif
+
 
     int nRead = ReadItemEx(BN2, PN0, 0x1100, &bStaByte);
     if (nRead <= 0)
     	return -1;
 
-	if(bDoorStat > 0)	//增加门节点状态量变位事件
-		bDoorStat = 0x00;
-	else
-		bDoorStat = 0x10;
-
-	bStaByte = (bStaByte&0xef) | bDoorStat;
+	#ifdef VER_ZJ
+	bStaByte <<= 7;
+	#endif
     	
     //bStaByte >>= 4; //取遥信状态（高四位）；
 

@@ -597,7 +597,7 @@ void DeleteMtrRdCtrl()
 		DeleteFile(szName);
 	}
 	memset(dwTaskLastUpdataTime, 0, sizeof(dwTaskLastUpdataTime));
-	DelSchData();	//add 17-06-16
+	
 }
 
 

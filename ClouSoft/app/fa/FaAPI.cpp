@@ -877,12 +877,20 @@ void DoYX()
     if (nRead <= 0 || GetClick() < 5)
     	return;
 
+#ifdef VER_ZJ
+	bYxVal <<= 7;
+#endif
+
+
+/*
 	if(bDoorStat > 0)
 		bDoorStat = 0x00;
 	else
 		bDoorStat = 0x10;
 
-	 bYxVal = (bYxVal&0xef) | bDoorStat;	
+	 bYxVal = (bYxVal&0xef) | bDoorStat;
+*/
+
 
     if (!g_fYxInit)
     {//第一次仅仅读取遥信状态位，不判断；
@@ -2146,43 +2154,43 @@ TThreadRet SlowSecondThread(void* pvPara)
 	{
 		if (GetInfo(INFO_MTR_UPDATE))
 		{
-			RequestThreadsSem();
+			InitThreadExeFlg();
 			InitMtrMask();
 			InitMtrCacheCtrl();
 			DeleteMtrRdCtrl();
 			SetInfo(INFO_SYNC_MTR);
-			ReleaseThreadsSem();
+			SetThreadExeFlg();
 		}
 
 		if (GetInfo(INFO_TASK_CFG_UPDATE))
 		{
-			RequestThreadsSem();
+			InitThreadExeFlg();
 			InitTaskMap();
 			InitSchMap();
 			InitSchTable();
 			DeleteMtrRdCtrl();
 			SetInfo(INFO_SYNC_MTR);
 			InitMtrCacheCtrl();
-			ReleaseThreadsSem();
+			SetThreadExeFlg();
 		}
 
 		if (GetInfo(INFO_ACQ_SCH_UPDATE))
 		{
-			RequestThreadsSem();
+			InitThreadExeFlg();
 			InitSchMap();
 			InitSchTable();
 			DeleteMtrRdCtrl();
 			SetInfo(INFO_SYNC_MTR);
 			InitMtrCacheCtrl();
-			ReleaseThreadsSem();
+			SetThreadExeFlg();
 		}
 		if (GetInfo(INFO_RP_SCH_UPDATE))
 		{
-			RequestThreadsSem();
+			InitThreadExeFlg();
 			InitSchMap();
 			InitSchTable();
 			ClearBankData(BN16, 0, -1);
-			ReleaseThreadsSem();
+			SetThreadExeFlg();
 		}
 
 		if (GetInfo(INFO_CLASS19_METHOD_RST) || GetInfo(INFO_APP_RST))	
@@ -2200,17 +2208,17 @@ TThreadRet SlowSecondThread(void* pvPara)
 		if (GetInfo(INFO_CLASS19_METHOD_DATA_INIT))	
 		{
 			DTRACE(DB_FA, ("Dev interface class=19 method=3. Data init...\n"));
-			RequestThreadsSem();
+			InitThreadExeFlg();
 			FaInit(DATA_INIT);
-			ReleaseThreadsSem();
+			SetThreadExeFlg();
 		}
 
 		if (GetInfo(INFO_CLASS19_METHOD_RST_FACT_PARA))	
 		{
 			DTRACE(DB_FA, ("Dev interface class=19 method=4. Restore factory para...\n"));
-			RequestThreadsSem();
+			InitThreadExeFlg();
 			FaInit(PARAM_INIT);
-			ReleaseThreadsSem();
+			SetThreadExeFlg();
 		}
 
 		if (GetInfo(INFO_CLASS19_METHOD_EVT_INIT))	
@@ -2970,6 +2978,98 @@ void ReleaseThreadsSem()
 }
 
 
+#define THREAD_MASK_ID	(THRD_MNTR_NUM/8+1)
+
+BYTE g_bValidThreadID[THREAD_MASK_ID] = {0};
+BYTE g_bRecvThreadID[THREAD_MASK_ID] = {0};
+bool g_fIsExeFlg = true;
+
+//描述：初始化线程ID
+void InitThreadMaskId(BYTE bId)
+{
+	BYTE bMask;
+	BYTE bBit;
+
+	bMask = bId/8;
+	bBit = bId%8;
+
+	g_bValidThreadID[bMask] |= 1<<bBit;
+	g_bRecvThreadID[bMask] |= 1<<bBit;
+}
+
+void InitThreadExeFlg()
+{
+	ClearThreadExeFlg();
+	ClearRecvThreadMaskId();
+	while (!IsAllThreadRecv())	//函数返回，表明数据初始化已完成
+		Sleep(500);	
+}
+
+void ClearRecvThreadMaskId()
+{
+	memset(g_bRecvThreadID, 0, sizeof(g_bRecvThreadID));
+}
+
+void ClearThreadExeFlg()
+{
+	g_fIsExeFlg = false;
+}
+
+void SetThreadExeFlg()
+{
+	g_fIsExeFlg = true;
+}
+
+//描述：设置接收有效线程ID
+void SetRecvThreadMaskId(BYTE bID)
+{
+	g_bRecvThreadID[bID/8] |= 1<<(bID%8);
+}
+
+//描述：线程是否可以工作
+bool IsThreadExe(BYTE bID)
+{
+	bool fIsExeFlg = true;
+
+	if (!(g_bValidThreadID[bID/8] & (1<<(bID%8))))	//不在数据初始化处理的线程内就直接返回
+		return fIsExeFlg;
+
+	for (BYTE i=0; i<THREAD_MASK_ID; i++)
+	{
+		if (g_bValidThreadID[i]^g_bRecvThreadID[i])
+		{
+			fIsExeFlg = false;
+			break;
+		}
+	}
+
+	if (!g_fIsExeFlg)
+		fIsExeFlg = false;
+
+	return fIsExeFlg;
+}
+
+
+//描述：所有线程是否都已经接收到信号
+bool IsAllThreadRecv()
+{
+	bool fIsExeFlg = true;
+
+	for (BYTE i=0; i<THREAD_MASK_ID; i++)
+	{
+		if (g_bValidThreadID[i]^g_bRecvThreadID[i])
+		{
+			fIsExeFlg = false;
+			break;
+		}
+	}
+
+	return fIsExeFlg;
+}
+
+
+
+
 BYTE BaudrateToGbNum(DWORD dwBaudRate)
 {
 	const WORD GBBaudTab[8] = {CBR_300, CBR_600, CBR_1200, CBR_2400, CBR_4800, 0, CBR_9600, CBR_19200};
@@ -3070,8 +3170,12 @@ void CheckDownSoft(void)
 		{
 			DWORD dwCurSec = GetCurTime();;
 			if (g_dwFileTransCurSec > dwCurSec ||dwCurSec > g_dwFileTransCurSec+60*10)//10分钟都没有下发升级包就清掉这个升级标志
+			{
 				g_fDownSoft = false;
+				g_dwFileTransCurSec = 0;
+			}
 		}
 	}
+
 }
 

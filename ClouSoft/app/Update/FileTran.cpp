@@ -102,14 +102,18 @@ int GetFileTransAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wBufSi
 		*p ++ = 0x05;
 #endif
 		*p ++ = g_FileBlkTrans.bSrcFile[0];
-		iLenArea = DecodeLength(&g_FileBlkTrans.bSrcFile[1], &dwDataLen);	//gkps###
-		memcpy(p, &g_FileBlkTrans.bSrcFile[1], dwDataLen+iLenArea);//gkps###
+		iLenArea = DecodeLength(&g_FileBlkTrans.bSrcFile[1], &dwDataLen);	
+		if (iLenArea < 0)
+			return -1;
+		memcpy(p, &g_FileBlkTrans.bSrcFile[1], dwDataLen+iLenArea);
 		p += dwDataLen+iLenArea;
 		dwDataLen = 0;
 		iLenArea = 0;
 		
 		*p ++ = g_FileBlkTrans.bDstFile[0];
 		iLenArea = DecodeLength(&g_FileBlkTrans.bDstFile[1], &dwDataLen);	
+		if (iLenArea < 0)
+			return -1;
 		memcpy(p, &g_FileBlkTrans.bDstFile[1], dwDataLen+iLenArea);
 		p += dwDataLen+iLenArea;
 		dwDataLen = 0;
@@ -125,6 +129,8 @@ int GetFileTransAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wBufSi
 
 		*p ++ = g_FileBlkTrans.bFileVer[0];
 		iLenArea = DecodeLength(&g_FileBlkTrans.bFileVer[1], &dwDataLen);	
+		if (iLenArea < 0)
+			return -1;
 		memcpy(p, &g_FileBlkTrans.bFileVer[1], dwDataLen+iLenArea);
 		p += dwDataLen+iLenArea;
 		dwDataLen = 0;
@@ -182,7 +188,9 @@ int SetFileTransAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbPara)
 		*p ++;
 		*p ++;
 		g_FileBlkTrans.bSrcFile[0] = *p ++;
-		iLenArea = DecodeLength(p, &dwDataLen);	//gkps###
+		iLenArea = DecodeLength(p, &dwDataLen);	
+		if (iLenArea < 0)
+			return -1;
 		memcpy(&g_FileBlkTrans.bSrcFile[1], p, dwDataLen+iLenArea);
 		p += dwDataLen+iLenArea;
 		dwDataLen = 0;
@@ -190,6 +198,8 @@ int SetFileTransAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbPara)
 		
 		g_FileBlkTrans.bDstFile[0] = *p ++;
 		iLenArea = DecodeLength(p, &dwDataLen);	
+		if (iLenArea < 0)
+			return -1;
 		memcpy(&g_FileBlkTrans.bDstFile[1], p, dwDataLen+iLenArea);
 		p += dwDataLen+iLenArea;
 		dwDataLen = 0;
@@ -206,6 +216,8 @@ int SetFileTransAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbPara)
 		*p ++;
 		g_FileBlkTrans.bFileVer[0] = *p ++;
 		iLenArea = DecodeLength(p, &dwDataLen);	
+		if (iLenArea < 0)
+			return -1;
 		memcpy(&g_FileBlkTrans.bFileVer[1], p, dwDataLen+iLenArea);
 		p += dwDataLen+iLenArea;
 		//*p ++;
@@ -312,10 +324,11 @@ int FileBlkTransMethod7(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 	g_FileBlkTrans.wBlkSize = OoLongUnsignedToWord(pbPara+dwOff);//传输块大小
 
 	g_FileBlkTrans.wTotalBlks = g_FileBlkTrans.dwTotalLen/g_FileBlkTrans.wBlkSize;//算总块数,块序号从0~n-1
-	if (g_FileBlkTrans.wTotalBlks >= 1)
-		g_FileBlkTrans.wTotalBlks--;
 	if ((g_FileBlkTrans.dwTotalLen%g_FileBlkTrans.wBlkSize) != 0)
 		g_FileBlkTrans.wTotalBlks ++;
+	if (g_FileBlkTrans.wTotalBlks >= 1)
+		g_FileBlkTrans.wTotalBlks--;
+
 
 	//文件校验
 	dwOff += 2 + 2+1;
@@ -323,12 +336,12 @@ int FileBlkTransMethod7(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 	dwOff += 1 + 1;
 	memcpy((BYTE *)&(g_FileBlkTrans.bChkVal), pbPara+dwOff, 2);
 	PartWriteFile(USER_DATA_PATH"downinfo.dat", 0, (BYTE*)&g_FileBlkTrans, sizeof(TFileBlkTrans));
+	g_fDownSoft = true;
+	g_dwFileTransCurSec = GetCurTime();
 	return 0;
 		
 
 }
-//gkps### 下载时把下载标志置上，以免流量超限。。。
-//把命令结果都能做的做上
 //下载文件
 int FileBlkTransMethod8(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
@@ -406,6 +419,8 @@ int FileBlkTransMethod8(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 			
 		}
 		PartWriteFile(USER_DATA_PATH"downinfo.dat", 0, (BYTE*)&g_FileBlkTrans, sizeof(TFileBlkTrans));
+		g_fDownSoft = true;
+		g_dwFileTransCurSec = GetCurTime();
 		return 0;
 	}
 	else
@@ -504,7 +519,9 @@ int UpdFile()
 		}
 		if (g_FileBlkTrans.bChkVal[0] != 0)
 		{
-			WORD wCrcOld = OoOiToWord(&(g_FileBlkTrans.bChkVal[1]));//gkps###
+			WORD wCrcOld = OoOiToWord(&(g_FileBlkTrans.bChkVal[1]));
+			//CheckCrc16();
+			//pppfcs16
 			if(wCrcOld != wCrc)
 			{
 				DTRACE(DB_FAPROTO, ("CFaProto::RxCmd_TransFile CRC Error\r\n"));
@@ -551,8 +568,6 @@ int FileExtTransmit(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPar
 	}
 	return 0;
 }
-
-
 
 
 
