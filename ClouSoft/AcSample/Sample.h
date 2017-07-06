@@ -21,13 +21,8 @@
 #include "AcStruct.h"
 #include "AcSample.h"
 
-#ifdef SYS_VDK
-#include <filter.h>
-extern short g_sSampleBuf[SCN_NUM][NUM_PER_CYC*CYC_NUM];  //Ñùµã»º³åÇø
-extern TSem g_semSampleData;
-#else
 #include "filter2.h"
-#endif //SYS_VDK
+
 
 extern WORD g_wSamplePtr;
 extern WORD g_wSigmaPntNum;

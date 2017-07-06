@@ -2429,10 +2429,10 @@ int DL645V07AskItemRecord(struct TMtrPro* pMtrPro, DWORD dwOAD,  BYTE* pbData, B
 				memrcpy((BYTE* )&dwRelaOAD, pbRCSD, 4);
 				if (dwRelaOAD != 0x20210200) //非时标
 				{
-					if ((dwRelaOAD&0xff000000) == 0x20000000)	//变量类ID映射
+					//if ((dwRelaOAD&0xff000000) == 0x20000000)	//变量类ID映射
 						dwRelaOAD += 0x12;
-					else	//电能需量类ID映射
-						dwRelaOAD += 0x2;
+					//else	//电能需量类ID映射
+					//	dwRelaOAD += 0x2;
 					
 					iRet = DL645V07AskItemCurve(pMtrPro, &tTmpV07, dwRelaOAD, pbTmp);
 				}
@@ -2467,10 +2467,10 @@ int DL645V07AskItemRecord(struct TMtrPro* pMtrPro, DWORD dwOAD,  BYTE* pbData, B
 				memrcpy((BYTE* )&dwRelaOAD, pbRCSD, 4);
 				if (dwRelaOAD < 0x20000000) //电量和需量
 				{
-					if (dwOAD == 0x50040200)
-						dwRelaOAD += 4;
+					if (dwOAD == 0x50040200) //映射OAD
+						dwRelaOAD += 0x14;  //日冻结
 					else
-						dwRelaOAD += 5;
+						dwRelaOAD += 0x15;  	//月冻结
 				}
 				iRet = DL645V07AskItemEx(pMtrPro, 1, dwRelaOAD,  pbTmp);
 				pbRCSD += 4;

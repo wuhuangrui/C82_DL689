@@ -24,7 +24,7 @@
 #include "stdafx.h"
 #include "syscfg.h"
 
-#ifdef SYS_VDK
+#ifdef 0
 //#include "StdAfx.h"
 //#include <stdio.h>
 //#include <stdlib.h>

@@ -38,9 +38,7 @@ TAvgPower g_AvgPower[AVGP_NUM];  //用来累加电能的平均功率
 WORD g_wAvgPwrHead = 0;
 WORD g_wAvgPwrTail = 0;
 
-#ifdef SYS_VDK
-TSem g_semSampleData;
-#endif //SYS_VDK
+
 
 
 //#pragma align   16
@@ -83,14 +81,7 @@ unsigned long ADCdata[240];
 
 bool InitSample()
 {
-#ifdef SYS_VDK
-	if (g_fFirstInitSample)   //那些只能初始化一次的变量放在这里初始化
-	{
-		g_semSampleData = NewSemaphore(1);
-		
-		g_fFirstInitSample = false;
-	}
-#endif //SYS_VDK
+
 	   
 	WORD wPn = GetAcPn();	//取得交采的测量点号
 	InitAcValToDb(wPn);	//初始化交采数据入库的控制结构
@@ -98,9 +89,7 @@ bool InitSample()
 	g_wSigmaPntNum = NUM_PER_CYC * SIGMA_CYC_NUM;
 
 	g_wSamplePtr = 0;			
-#ifdef SYS_VDK
-	memset(g_sSampleBuf, 0, sizeof(g_sSampleBuf));  	//无功计算可能用到之前还没有的电压样点,所以先清除
-#endif //SYS_VDK
+
 
 	g_iBarrelEp = 0;    	//电能累积的桶
 	g_iBarrelEq = 0;    	//电能累积的桶
@@ -150,9 +139,7 @@ bool InitSample()
 	g_iAdErrCnt = 0;
 	g_fAdCheckOK = false;
 
-#ifdef SYS_VDK
-	InitAD73360();
-#endif //SYS_VDK
+
 
 	g_fSampleInit = true;
 	
@@ -165,28 +152,7 @@ bool InitSample()
 //计算直流分量
 void CalcuDcValue()	//zqq to modify
 {
-#ifdef SYS_VDK
-	if (g_fNewDcSum == false)
-		return;
-	
-	for (WORD i=0; i<SCN_NUM; i++)
-	{
-		WORD* pwMaxOver = AcGetMaxOver();
-		
-		//溢出检测	
-		if (pwMaxOver[i] > 6)
-		{
-			g_sDcValue[i] = 0;   //在发生通道溢出的情况下,不要进行直流分量的计算
-			pwMaxOver[i] = 0;
-		}
-		else
-		{
-			g_sDcValue[i] = g_iDcSum[i] / g_wDcPntNum;
-		}
-	}
-	
-	g_fNewDcSum = false;
-#endif //SYS_VDK
+
 }
 
 TThreadRet AcThread(void* pvPara)

@@ -50,17 +50,17 @@ BYTE g_bComHiPreEngFmt[] = {0x01, 0x05, DT_LONG64};	//高精度组合电能量
 BYTE g_bHiPreEngFmt[] = {0x01, 0x05, DT_LONG64_U};	//高精度电能量
 
 BYTE g_bVoltDataFmt[3] = {0x01, 0x03, DT_LONG_U};
-BYTE g_bPhaseVoltDataFmt[] = {DT_LONG_U};	//单相电压
+
 BYTE g_bCurDataFmt[3] = {0x01, 0x04, DT_DB_LONG};
-BYTE g_bPhaseCurDataFmt[] = {DT_DB_LONG};	//单相电流
+
 BYTE g_bPowerDataFmt[3] = {0x01, 0x04, DT_DB_LONG};
-BYTE g_bPhasePowerDataFmt[] = {DT_DB_LONG};	//电相功率
+
 
 BYTE g_bEngUnitFmt[] = {0x0f};
 BYTE g_bMaxDemFmt[6] = {0x01,0x05,0x02,0x02,0x06,DT_DATE_TIME_S};
 BYTE g_bComMaxDemFmt[] = {0x01,0x05,0x02,0x02,0x05,DT_DATE_TIME_S};
 BYTE g_bCosDataFmt[3] = {0x01, 0x04, DT_LONG};
-BYTE g_bPhaseCosDataFmt[] = {DT_LONG};	//单相功率因数
+
 BYTE g_bFreqDataFmt[] = {0x01, 0x01, DT_LONG_U};
 BYTE g_bVarDmdFmt[] = {DT_DB_LONG};							//需量
 BYTE g_bPwrPrice[1] = {DT_DB_LONG_U};	//电价
@@ -74,6 +74,15 @@ BYTE g_bVoltHarPercentDataFmt[] = {0x01, HARMONIC_NUM-1, DT_LONG};		//电压谐波含
 BYTE g_bCurHarPercentDataFmt[] = {0x01, HARMONIC_NUM-1, DT_LONG};			//电流谐波含量 总,2-21次
 
 BYTE g_bUnsignedDataFmt[] = {0x01, 0x01, DT_UNSIGN};		//unsigned
+
+BYTE g_bPhaseVoltDataFmt[] = {DT_LONG_U};	//单相电压
+BYTE g_bPhaseCurDataFmt[] = {DT_DB_LONG};	//单相电流
+BYTE g_bPhasePowerDataFmt[] = {DT_DB_LONG};	//单相功率
+BYTE g_bPhaseCosDataFmt[] = {DT_LONG};	//单相功率因数
+BYTE g_bFeeMaxDemFmt[4] = {0x02,0x02,0x06,DT_DATE_TIME_S};	//分费率需量
+BYTE g_bAngleFmt[3] = {0x01, 0x03, DT_LONG_U};	//相角
+BYTE g_bPhaseAngleFmt[] = {DT_LONG_U};	//单相相角
+
 
 //水气热表数据格式
 BYTE g_b645ExtDataFmt[1] = {DT_DB_LONG_U};

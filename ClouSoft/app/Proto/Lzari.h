@@ -14,7 +14,7 @@
 #define LZARI_H
 #include "syscfg.h"
 
-#ifdef SYS_VDK
+#ifdef 0
 #include "bios.h"
 /********** Bit I/O **********/
 //#ifndef _FILE_H_COMPRESSION_LZARI_
