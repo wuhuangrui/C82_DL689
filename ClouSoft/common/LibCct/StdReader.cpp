@@ -4005,7 +4005,7 @@ void CStdReader::RunThread()
 {
 	int iMonitorID = ReqThreadMonitorID("CStdReader-thrd", 4*60*60);	//ÉêÇëÏß³Ì¼à¿ØID,
 
-	InitThreadMaskId(iMonitorID);
+	//InitThreadMaskId(iMonitorID);
 
 	DTRACE(DB_CCT, ("CStdReader::Cct thread started.\n"));
 
@@ -4014,14 +4014,15 @@ void CStdReader::RunThread()
 	while(1)
 	{
 
-		if (!IsThreadExe(iMonitorID))
+		
+		LockReader();
+		if (!GetThreadRunFlag(iMonitorID))
 		{
-			SetRecvThreadMaskId(iMonitorID);	
 			Sleep(500);
+			UnLockReader();
 			continue;
 		}
-	
-		LockReader();
+		
 		CctRunStateCheck();
 		if (GetInitState())
 		{

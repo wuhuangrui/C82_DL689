@@ -67,6 +67,8 @@ bool DelMeterInfo(WORD wPn);
 
 bool GetMeterInfo(BYTE *pbTsa, BYTE bTsaLen, TOobMtrInfo *pTMtrInfo);
 
+int IsValidMtrInfo(BYTE *pMtrInfoBuf);
+
 bool GetMeterInfo(WORD wPn, TOobMtrInfo *pTMtrInfo);
 
 bool SetMeterInfo(WORD wMtrSn, TOobMtrInfo tTMtrInfo);

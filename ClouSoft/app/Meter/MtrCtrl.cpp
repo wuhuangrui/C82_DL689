@@ -37,8 +37,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////////
 //MtrCtrl私有数据定义
 TMtrCacheCtrl g_MtrCacheCtrl[MTR_CACHE_NUM];
+TSem g_semMtrCacheCtrl;		//抄表控制缓存信号量
 
-TSem g_semMtrCtrl;		//抄表控制线程间的信号量
+//TSem g_semMtrCtrl;		//抄表控制线程间的信号量
+
 TSem g_semRdMtr[LOGIC_PORT_NUM];
 
 bool g_fDirRd[LOGIC_PORT_NUM] = {false, false};	//直抄标志
@@ -545,7 +547,8 @@ void MtrCtrlInit()
 {
 	BYTE i;
 
-	g_semMtrCtrl = NewSemaphore(1);
+	//g_semMtrCtrl = NewSemaphore(1);
+	g_semMtrCacheCtrl = NewSemaphore(1);
 
 	for (i=0; i<LOGIC_PORT_NUM; i++)
 	{
@@ -592,7 +595,7 @@ TThreadRet MtrRdThread(void* pvPara)
 	char pszThrName[32] = {0};
 	sprintf(pszThrName, "MtrRdThread-thrd-%d", bThrId);
 	int iMonitorID = ReqThreadMonitorID(pszThrName, 4*60*60);	//申请线程监控ID
-	InitThreadMaskId(iMonitorID);
+	//InitThreadMaskId(iMonitorID);
 
 	DTRACE(DB_METER, ("MtrRdThread: bThrId=%d start with bPort=%d\r\n", bThrId, bPort));
 	while (1)
@@ -623,9 +626,10 @@ TThreadRet MtrRdThread(void* pvPara)
 		{
 			UpdThreadRunClick(iMonitorID);
 
-			if (!IsThreadExe(iMonitorID))
+			WaitSemaphore(g_semRdMtr[bThrId]);
+			if (!GetThreadRunFlag(bThrId))
 			{
-				SetRecvThreadMaskId(iMonitorID);	
+				SignalSemaphore(g_semRdMtr[bThrId]);
 				Sleep(500);
 				break;
 			}

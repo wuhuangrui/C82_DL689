@@ -58,5 +58,9 @@ WORD AcDemandTimeToFmt(BYTE* pSrcBuf, BYTE* pDstBuf, WORD wRateNum, BYTE bDemTim
 void AcTTimeToDemandTime(BYTE* pbTime, TTime *pTime );
 BYTE AcDemandTimeGetMonth(BYTE* pbTime);
 
+BYTE PulseHiFmtToLoEng(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum);
+BYTE PulseFmtToEng(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum);		//¡ä¨®¨ºy?Y?a?¨¢3???3?¦Ì?¨¢?
+BYTE PulseEngToFmt(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum);	
+
 
 #endif //ACFMT_H

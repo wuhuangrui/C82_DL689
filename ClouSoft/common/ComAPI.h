@@ -155,6 +155,8 @@ void BufByteReverse(BYTE *bBuf, WORD wLen);	//对字节串以字节为单位进行倒序
 void BufBitReverse(BYTE *bBuf, WORD wLen);	//对字节串以位为单位进行倒序
 
 int64 Pow(int iBase, WORD wExp);
+bool IsTimeValid(BYTE *pBuf);
+bool Isdate_time_sValid(BYTE *pBuf);
 char* TimeToStr(const TTime& time, char* psz);
 char* TimeToStr(DWORD dwTime, char* psz);
 char* MillTimeToStr(TMillTime tMillTime, char *psz);

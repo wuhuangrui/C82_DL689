@@ -184,20 +184,26 @@ BYTE GetGrpProp(WORD wPn)
 	if (wPn >= GB_MAXSUMGROUP)
 		return INVALID_POINT;
 
-	BYTE bProp[GRPPARA_LEN]={0};
-	if (ReadItemEx(BN0, wPn, 0x2301, bProp) <= 0)
-		return INVALID_POINT;
+	WORD wLen;
+	BYTE *pbBuf, bType, bBuf[120];
+	if (ReadItemEx(BN0, wPn, 0x2301, bBuf) > 0)
+	{		
+		const ToaMap* pOadMap = GetOIMap(0x23010200);
+		for (BYTE i=0; i<bBuf[1]; i++)
+		{
+			pbBuf = OoGetField(bBuf, pOadMap->pFmt, pOadMap->wFmtLen, i, &wLen, &bType);
+			if (pbBuf == NULL)
+				return INVALID_POINT;
 
-	if (bProp[1] == 0) //测量点个数为0
-		return INVALID_POINT;	
-
-	for (int i=0; i<bProp[1]; i++) //当配置有无效的测量点时,总加组无效
-	{
-		if ( !IsPnValid(MtrAddrToPn(&bProp[i*25+3], bProp[i*25+3])) )
-			return INVALID_POINT;
+			if (MtrAddrToPn(pbBuf+3, pbBuf[3]+1)>0 || PulseAddrToPn(pbBuf+3, pbBuf[3]+1)>0) //电表测量点号 || 脉冲测量点
+				continue;
+			else
+				return INVALID_POINT;
+		}
+		return bBuf[1];
 	}
 
-	return bProp[1];
+	return INVALID_POINT;
 }
 
 #ifdef PRO_698
@@ -718,6 +724,31 @@ void InitAcPn()
 //#endif	//EN_AC
 }
 
+//#ifdef VER_ZJ
+//同步终端地址到扩展参数
+//注意该函数必须在外部软件版本有变更
+void SyncTermAddr()
+{
+	BYTE bTmp[60];
+	BYTE bBuf[60];
+
+	if (g_bInnerSoftVer[16]=='0' && g_bInnerSoftVer[17]=='0' && g_bInnerSoftVer[18]=='1' && g_bInnerSoftVer[19]=='g')	//内部软件版本号
+	{
+		DTRACE(DB_CRITICAL, ("SaveSoftVerChg update term addr to BN10, A1DO.\r\n"));
+		memset(bBuf, 0, sizeof(bBuf));
+		memset(bTmp, 0, sizeof(bTmp));
+		ReadItemEx(BN0, PN0, 0x4001, bBuf);
+		ReadItemEx(BN10, PN0, 0xa1d0, bTmp);
+		if (memcmp(bBuf, bTmp, 17) != 0)	//不同
+		{
+			WriteItemEx(BN10, PN0, 0xa1d0, bBuf);	//将终端地址参数4001更新到BN10, a1d0
+			TrigerSaveBank(BN10, 0, -1);
+		}
+	}
+}
+//#endif
+
+
 //终端软件版本变更保存
 void SaveSoftVerChg()
 {
@@ -731,6 +762,12 @@ void SaveSoftVerChg()
 		TrigerSaveBank(BANK0, SECT_PARAM, -1);
 		//生成软件版本变更事件
 		SetInfo(INFO_TERM_VER_CHG);
+
+		//#ifdef VER_ZJ
+		//特别注意：如外部软件版本或日期未变更，程序跑不到这里！！！
+		SyncTermAddr();
+		//#endif
+		
 	}
 }
 
@@ -1054,10 +1091,10 @@ void ClrPulsePnData(WORD wPn)
 //清总加组数据
 void ClrGrpPnData(WORD wPn)
 {
-	static WORD wBank0Id[] = {0x109f, 0x10af, 0x10bf, 0x10cf, //C1F17,C1F18,C1F19,C1F20  //当前(日,月)总加功率及电量
-		0x10df, 0x10ef, 0x130f, 0x131f, //C1F21,C1F22,C1F19+,C1F20+ 
-		0x320f, 0x321f, 0x322f, 0x323f, 0x324f, 0x325f, 0x326f, 0x327f, //上日(月)统计
-		0x328f, 0x329f, }; //C2F57+~C2F76+ //上一曲线点
+	static WORD wBank0Id[] = {0x2302, 0x2303, 0x2304, 0x2305, //总加功率
+	0x2306, 0x2307, 0x2308, 0x2309, //总加电量
+	0x230a, 0x230b, 0x230f, 0x2310,}; //控制状态
+ 
 	BYTE bBuf[128];
 	if (wPn >= GB_MAXSUMGROUP)
 		return;
@@ -1070,11 +1107,12 @@ void ClrGrpPnData(WORD wPn)
 		WriteItemEx(BN0, wPn, wBank0Id[i], bBuf, (DWORD )0);	//清数据清时间
 	}
 
-	static WORD wBank18Id[] = {0x026f, 0x029f, 0x02cf, 0x02df, //C2F57+,C2F60+,C2F65+,C2F66+ //当日(月)统计
+	static WORD wBank18Id[] = {0x003f, 0x004f, 0x005f, 0x006f, 0x009f, 0x00af, 0x00bf, 0x00cf, //当日月累计
 		0x035f, 0x036f, 0x037f, 0x038f, 0x039f, 0x03af, 0x03bf, 0x03cf};//当日(月)总加累计起点及示值起点
 
 	for (WORD i=0; i<sizeof(wBank18Id)/sizeof(WORD); i++)
 	{
+		WriteItemEx(BN18, 0, wBank18Id[i], bBuf, (DWORD )0);	//清数据清时间
 		WriteItemEx(BN18, wPn, wBank18Id[i], bBuf, (DWORD )0);	//清数据清时间
 	}
 }

@@ -213,13 +213,38 @@ void CPulse::Run(bool fCalcuPwr)
 }
 
 
+void CPulse::TransferHiToLo()
+{
+	BYTE bType;
+	WORD wID;
+	BYTE bBuf[100];
+	int64 i64E[MAX_PULSE_TYPE][RATE_NUM+1]; //与数据库对应的电能
+	const WORD wRateNum = RATE_NUM+1;
+
+	wID = PULSE_HI_POSE_ID + bType;
+	ReadItemEx(BN0, m_PulseCfg.wPn, wID, bBuf);			//高精度电能
+	TraceBuf(DB_FA, "step444-> ", (BYTE*)bBuf, 47);
+	PulseHiFmtToLoEng(wID, i64E[bType], bBuf, wRateNum);	//当前电能示值
+	DTRACE(DB_FA, ("CPulse::RunMeter step555 -> i64E[0]=%lld, i64E[1]=%lld, i64E[2]=%lld, i64E[3]=%lld, i64E[4]=%lld.\r\n", i64E[bType][0] , i64E[bType][1], i64E[bType][2], i64E[bType][3], i64E[bType][4]));
+
+	wID = PULSE_LO_POSE_ID + bType;
+	PulseEngToFmt(wID, i64E[bType], bBuf, wRateNum);	//转成DT_DB_LONG (4位小数格式)
+	TraceBuf(DB_FA, "step666-> ", (BYTE*)bBuf, 27);
+	WriteItemEx(BN0, m_PulseCfg.wPn, wID, bBuf);
+}
+
+
+
 //描述:计算电表的电能和需量,每秒调用一次
 void CPulse::RunMeter()
 {
     BYTE bPortIndex, bType;
-	WORD i, wTypeNum, wInnerID;
+	WORD i, wTypeNum, wInnerID, wID;
 	int iDiffPulse[ENERGY_NUM_MAX];  //前后两次电能脉冲数的差
 	DWORD dwDemandPulse[AC_DEMAND_NUM];
+	BYTE bBuf[100];
+	int64 i64E[MAX_PULSE_TYPE][RATE_NUM+1]; //与数据库对应的电能
+	const WORD wRateNum = RATE_NUM+1;
 	//DWORD dwDemandTick[ENERGY_NUM_MAX];
 	
 	memset(iDiffPulse, 0, sizeof(iDiffPulse));
@@ -234,6 +259,10 @@ void CPulse::RunMeter()
 	iDiffPulse[0] = m_dwPulse[wInnerID] - m_dwLastPulse[wInnerID];
 
 	m_Energy.AddPulse(iDiffPulse);   //多费率电能
+	if (iDiffPulse[0] > 0)
+	{
+		TransferHiToLo();
+	}
 	
 	/*if (m_fClrDemand)	//清需量标志,别的线程设置,交采线程去执行
 	{
@@ -387,7 +416,8 @@ bool CPulse::ResetData()
 		{
 			for (i=0; i<TOTAL_RATE_NUM; i++)
 			{
-				memset(bBuf+9*i+3, 0, 8);	//8 高精度电能量∷=long64-unsigned 
+				bBuf[5*i+2] = DT_DB_LONG_U;
+				memset(bBuf+5*i+3, 0, 4);	//4 //4字节，4位小数位
 			}
 
 			OoWriteAttr(wOI, bAttr, bBuf);
@@ -414,6 +444,34 @@ CPulseManager::~CPulseManager()
 
 }
 
+
+void CPulseManager::CheckPulseCfg(WORD wOI)
+{
+	BYTE bBuf[PULSE_CFG_ID_LEN];
+	DWORD dwOAD;
+	int iLen;
+	const ToaMap* pOI;
+	
+	dwOAD = GetOAD(wOI, ATTR4, 0);	//脉冲配置 属性4
+	pOI = GetOIMap(dwOAD);
+	if (pOI == NULL)
+	{
+		DTRACE(DB_CRITICAL, ("CPulseManager::CheckPulseCfg: dwOAD=%08x, fail\r\n", dwOAD));
+		return;
+	}
+
+	memset(bBuf, 0, sizeof(bBuf));	
+	iLen = ReadItemEx(BN0, pOI->wPn, pOI->wID, bBuf);
+	if (iLen>0 && IsAllAByte(bBuf, 0, sizeof(bBuf)))	//格式化后，配置一个默认值
+	{
+		DTRACE(DB_CRITICAL, ("CPulseManager::Init: set default val.\r\n"));
+		bBuf[0] = DT_ARRAY;
+		WriteItemEx(BN0, pOI->wPn, pOI->wID, bBuf);
+		TrigerSaveBank(BN0, SECT15, -1);
+	}
+}
+
+
 bool CPulseManager::Init()
 {
     int iLen = 0;
@@ -436,6 +494,9 @@ bool CPulseManager::Init()
     
     memset(&g_PulseInData, 0, sizeof(g_PulseInData));
     memset(m_PulsePnDesc, 0, sizeof(m_PulsePnDesc));
+
+	ReadItemEx(BN0, PN0, PULSE_LO_POSE_ID, bBuf);			//高精度电能
+	TraceBuf(DB_FA, "step888-> ", (BYTE*)bBuf, 27);
 	
 	for (bType=0; bType<MAX_PULSE_TYPE; bType++)
 	{
@@ -466,6 +527,8 @@ bool CPulseManager::Init()
     {
         fPulsePnValid = false;
 		wOI = OI_PULSE_BASE + wPn;
+		CheckPulseCfg(wOI);
+		
 		DTRACE(DB_FA, ("CPulseManager::Init: wOI=0x%04x\r\n", wOI));
 		iLen = OoReadAttr(wOI, ATTR4, bBuf, &pbFmt, &wFmtLen);	//脉冲配置参数
 
@@ -539,7 +602,9 @@ bool CPulseManager::Init()
 	}
 
 	DTRACE(DB_FA, ("CPulseManager::Init: m_bPulseNum=%d\r\n", m_bPulseNum));
-
+	ReadItemEx(BN0, PN0, PULSE_LO_POSE_ID, bBuf);			//高精度电能
+	TraceBuf(DB_FA, "step999-> ", (BYTE*)bBuf, 27);
+	
 	return true;
 }
 
@@ -760,7 +825,9 @@ void CPulseManager::CalcStatEnergy()
 
 void CPulseManager::Run()
 {
-	WORD i;	
+	BYTE bPn;
+	WORD i;
+	BYTE bBuf[10];	
 
 	if (GetInfo(INFO_PULSE))	//脉冲配置参数8903更改
 	{
@@ -773,6 +840,15 @@ void CPulseManager::Run()
 
 	if (GetInfo(INFO_PULSEDATA_RESET))	//收到复位数据命令
 	{
+		for (bPn=PN0; bPn<PULSE_PN_NUM; bPn++)		//脉冲计量点号<-->测量点号 映射
+		{
+			bBuf[0] = bPn;
+			bBuf[1] = 0xA5;	//有效标志
+			WriteItemEx(BN11, bPn, 0x0b14, bBuf);
+		}
+
+		TrigerSaveBank(BN11, 0, -1); //触发保存
+		
 		ResetPulseData();
 		SetInfo(INFO_PULSE);	//重新初始化
 		return;
@@ -836,6 +912,8 @@ bool  CPulseManager::ResetPulseData()
 	bool fTrigSave = false;
 	BYTE bBuf[10];
 
+	DTRACE(DB_FA, ("CPulseManager::ResetPulseData at Click=%ld.\r\n", GetClick()));
+
 	for (wPn=PN0; wPn<PULSE_PN_NUM; wPn++)		//脉冲计量点号<-->测量点号 映射
 	{
 		memset(bBuf, 0, sizeof(bBuf));
@@ -869,6 +947,8 @@ bool  CPulseManager::ResetPulseData()
 		}
 	}
 
+	memset(m_i64LastE, 0, sizeof(m_i64LastE));	//清零上次数据
+		
 	if (fTrigSave)
 		TrigerSaveBank(BN11, 0, -1); //触发保存
 
@@ -952,26 +1032,11 @@ int OnAddPulseCfgCmd(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPa
 	{
 		if (FieldCmp(DT_PULSE_CFG, &bBuf[i*PULSE_CFG_LEN + 3], DT_PULSE_CFG, pbPara+1) == 0)	//完全相同，则认为是无效参数,保证OAD唯一性
 		{
-			*pbRes = 3;	//拒绝读写 （3）
-			return -1;
+			*pbRes = 0;	//成功  （0）// 返回结果
+			return 1;	//过台体需要回确认
 		}
 		else if (FieldCmp(DT_PULSE_CFG, &bBuf[i*PULSE_CFG_LEN + 3], DT_OAD, pbPara+OFFSET_PULSE_PORT) == 0)	//OAD相同，但脉冲属性或脉冲常数不同,修改
 		{
-			fTypeAlreadyExist = false;
-			for (j=0; j<bCfgNum; j++)	//遍历是否已经存在 bBuf+j*PULSE_CFG_LEN+5
-			{
-				if (j == i)
-					continue;
-
-				if (bBuf[j*PULSE_CFG_LEN + 10] == pbPara[OFFSET_PULSE_TYPE])	//该属性已经存在 +10为属性的偏移
-				{
-					fTypeAlreadyExist = true;
-					*pbRes = 3;	//拒绝读写 （3）
-					return -1;
-				}
-			}
-
-			if (!fTypeAlreadyExist)	//该脉冲属性没设置过
 			{
 				memcpy(&bBuf[i*PULSE_CFG_LEN + 2], pbPara, PULSE_CFG_LEN);	//修改关联对象参数
 				break;

@@ -133,113 +133,26 @@ WORD CmbToSubIdNum(WORD wBn, WORD wID)
 
 int PostWriteItemExHook(WORD wBank, WORD wPn, WORD wID, BYTE* pbBuf, BYTE bPerm, BYTE* pbPassword, int nRet)
 {
-	BYTE bBuf[100], bOldBuf[100], bProp, bOldProp, bProType, bNum, bPn, bOldPn, bPulseProp;
-	WORD wNum, wSn, wPoint, wUsePn;//wPoint为下发的测量点号，wObj为序号，wUsePn为序号对应的已经使用的测量点号
-	BYTE* pbTmp;
-	WORD i, j, n, step, wFindObj;
-	bool fSame, fChg;
+	//BYTE bBuf[100], bOldBuf[100], bProp, bOldProp, bProType, bNum, bPn, bOldPn, bPulseProp;
+	//WORD wNum, wSn, wPoint, wUsePn;//wPoint为下发的测量点号，wObj为序号，wUsePn为序号对应的已经使用的测量点号
+	//BYTE* pbTmp;
+	//WORD i, j, n, step, wFindObj;
+	//bool fSame, fChg;
+	BYTE bTmpBuf[80];
 
-	if (wBank==BN0 && wPn==PN0 && wID==0x5011) //轮次、遥信开关对照
-	{
-		wNum = *pbBuf;
-		for (i=0; i<wNum; i++)
-		{			
-			WriteItemEx(BN0, *(pbBuf+i*3+1), 0x5010, pbBuf+i*3+1);//轮次开关号				
-		}		
-	}	
-	else if (wBank==BN0 && wID==0x5032) //中文短信的存储
-	{
-		BYTE bBuf1[210];
-		BYTE bTmp[3];
-		WORD wID1 = 0;
-		BYTE bNo;		
-
-		pbTmp = pbBuf;
-		pbTmp ++; //去掉bit位数
-
-		if ((*pbTmp>>4) == 0) //普通短信
+	if (wBank==BN0 && wID==0x4001)	//终端地址
+	{		
+		if (GetItemLen(BN10, 0xa1d0) > 0)
 		{
-			wID1 = 0x5030;
-		}
-		else if ((*pbTmp>>4) == 1) //重要短信
-		{
-			wID1 = 0x5031;
-		}
-		
-		bNo = *pbTmp&0xf; //中文信息编号		
-		if ( bNo!=0 && bNo<=GB_MAXCOMCHNNOTE && wID1==0x5031 //重要短信且为有效编号
-			&& ReadItemEx(BN0, bNo, wID1, bBuf1)>0 )
-		{			
-			WriteItemEx(BN0, bNo, wID1, pbBuf); //替换原来的短信
+			if (pbBuf[1] > TSA_LEN-2)	//pbBuf[1]为OCTSTRING长度，TSA_LEN-2=15
+				pbBuf[1] = TSA_LEN-2;
 
-			memcpy(bTmp, (BYTE*)&wID1, 2);
-			bTmp[2] = bNo;
-			WriteItemEx(BN0, PN0, 0x5033, bTmp); //最近一次短信的记录信息
-		}
-		else //压桟方式存储
-		{				
-			for (i=1; i<GB_MAXCOMCHNNOTE; i++)
-			{
-				if (i == (GB_MAXCOMCHNNOTE-1))//写入最新的一条
-				{
-					WriteItemEx(BN0, 1, wID1, pbBuf);//测量点从1开始
-
-					memcpy(bTmp, (BYTE*)&wID1, 2);
-					bTmp[2] = 1;
-					WriteItemEx(BN0, PN0, 0x5033, bTmp); //最近一次短信的记录信息
-				}
-				else //调整顺序
-				{
-					ReadItemEx(BN0, GB_MAXCOMCHNNOTE-i-1, wID1, bBuf1);
-					WriteItemEx(BN0, GB_MAXCOMCHNNOTE-i, wID1, bBuf1);
-				}
-			}
-		}
-
-		nRet = *(pbBuf+1)+2;
-	}
-	else if (wBank==BN0 && wID==0x8901)
-	{
-		wPoint = ByteToWord(pbBuf, 2);
-		if (pbBuf[2] == PN_PROP_AC)//电表类型
-		{
-			WORD wAcPn = GetAcPn();
-			if (wAcPn!=PN0 && wAcPn!=wPoint)	//交采测量点号发生更改,当前修改有效，之前设置的置无效
-			{
-				memset(bBuf, 0, sizeof(bBuf));
-				WriteItemEx(BN0, wAcPn, 0x8901, bBuf);
-				DTRACE(DB_FAPROTO,("Old Ac-Point:%d Del,new Ac-Point:%d \r\n",wAcPn, wPoint));
-			}
+			memset(bTmpBuf, 0, sizeof(bTmpBuf));
+			memcpy(bTmpBuf, pbBuf, pbBuf[1]+2);		//+2, 类型1Byte + 长度1Byte
+			WriteItemEx(BN10, PN0, 0xa1d0, bTmpBuf);
 		}
 	}
-	#ifdef SYS_LINUX
-	else if(wBank==BN2 && wID == 0x5039)
-	{
-		AcSetPulseRatio(pbBuf);//不能调用InitSample();
-		TraceBuf(DB_FAPROTO,"\r\nPostWriteItemExHook: wBank=BN2,wID=0x5039,pbBuf= ",pbBuf,1);
 
-	}
-	else if((wBank==BN25 && 
-				((wID >= 0x5001 && wID <= 0x5005)
-				  ||(wID == 0x500f) 
-				  )
-			)
-			||
-			(wBank==BN28 && 
-				((wID >= 0x0011 && wID <= 0x0019)
-				  ||(wID == 0x001f) 
-				  )
-			)
-			
-		  )
-	{// 交采参数变化
-		BYTE bCnt = 0;
-		AcSetPulseRatio(&bCnt);//不能调用InitSample();
-//			InitSample();
-//			DTRACE(DB_FAPROTO,("PostWriteItemExHook: AC_PARA change-> InitSample\r\n"));
-	}
-	#endif
-		
 	return nRet;
 }
 
@@ -252,43 +165,7 @@ int PostReadItemExHook(WORD wBank, WORD wPn, WORD wID, BYTE* pbBuf, int nRet)
 	WORD i,j;
 	int len;
 
-	if (wBank==BN0 && wPn==PN0 && wID==0x5011) //轮次、遥信开关对照
-	{	
-		*pbTmp++ = bNum;
-		for (i=1; i<GB_MAXCONTROLTURN; i++)
-		{			
-			len = ReadItemEx(BN0, i, 0x5010, bBuf);//轮次开关号		
-			if (len>0 && bBuf[0]>0)
-			{
-				bNum++;
-				memcpy(pbTmp, bBuf, len);
-				pbTmp += len;
-			}
-		}	
-		pbBuf[0] = bNum;
-
-		if (bNum == 0)
-			memset(pbBuf, 0, 3*GB_MAXCONTROLTURN);
-	}
-	else if (wBank==BN0 && wID==0x5032) //中文短信的存储
-	{
-		BYTE bTmp[3];
-		WORD wID = 0;
-		BYTE bNo;		
-
-		ReadItemEx(BN0, PN0, 0x5033, bTmp); //最近一次短信的记录信息
-		memcpy((BYTE*)&wID, bTmp, 2);
-		bNo = bTmp[2];
-
-		if (bNo==0 || bNo>GB_MAXCOMCHNNOTE || (len=ReadItemEx(BN0, bNo, wID, pbBuf))<=0)
-		{
-			memset(pbBuf, INVALID_DATA, 203);
-			return 203;
-		}	
-		
-		return len;		
-	}
-	else if (wBank==BN0 && wID==0x4010) //SAP要与逻辑设备名相关联
+	if (wBank==BN0 && wID==0x4010) //SAP要与逻辑设备名相关联
 	{
 		/*WORD wSap;
 
@@ -303,6 +180,10 @@ int PostReadItemExHook(WORD wBank, WORD wPn, WORD wID, BYTE* pbBuf, int nRet)
 	else if (wBank==BN0 && wID==0x100f) //版本信息里的终端设备名要与管理设备名相关联
 	{
 		ReadItemEx(BN0, PN0, 0x4000, pbBuf); //替换管理逻辑设备名
+	}
+	else if (wBank==BN0 && wID==0x4001)	//终端地址
+	{
+		ReadItemEx(BN10, PN0, 0xa1d0, pbBuf);
 	}
 
 	return nRet;

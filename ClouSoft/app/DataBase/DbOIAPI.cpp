@@ -1364,7 +1364,7 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 			pbBuf[0] = DT_ARRAY; //数组
 			pbBuf[1] = bTaskNum;
 			
-			if (i == wMaxNum) //参数全部发完
+			if (i == TASK_NUM) //参数全部发完
 				*piStart = -1;
 
 			return (pbTmp-pbBuf);	
@@ -1409,12 +1409,15 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 				}
 			}
 
+			/*  // wqs 屏蔽这里才可以过协议一致性
 			if (bSchNum == 0)
 			{
 				*pbBuf = EMPTY_DATA;
 				*piStart = -1;		//单帧结束
-				return 1;
+				return -1;
 			}
+			*/
+			
 			pbBuf[0] = DT_ARRAY;	//array
 			pbBuf[1] = bSchNum;
 
@@ -1625,6 +1628,12 @@ int OIWrite_Spec(const ToaMap* pOI, BYTE* pbBuf)
 			tm.nHour = *pbBuf++;
 			tm.nMinute = *pbBuf++;
 			tm.nSecond = *pbBuf++;
+
+			if(IsInvalidTime(tm))
+			{// 
+				DTRACE(DB_FAPROTO, ("date_time_s value invalid\n"));
+				return -1;
+			}
 			
 			SetSysTime(tm);
 			#ifndef SYS_WIN
@@ -1845,6 +1854,13 @@ int OoProReadAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wBufSize,
 					DTRACE(DB_FAPROTO, ("OoProReadAttr: There is something wrong when call wID:%02x !\n", pOI->wID));
 					return -1;
 				}
+
+				if (0x44010200 == pOI->dwOA)
+				{
+					DTRACE(DB_FAPROTO, ("OoProReadAttr: refuse read dwOA:%08x !\n", pOI->dwOA));
+					return -1;
+				}
+				
 				if (pOI->pFmt != NULL && pOI->wFmtLen > 0)
 				{
 					if (IsAllAByte(bTmpBuf, 0x00, iLen))	//如果全部是0x00，那应该是没有写过，格式不可能为0
@@ -1911,165 +1927,276 @@ int OoProReadAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wBufSize,
 //	   @pbBuf	要写入属性值的缓冲区，要写入数据为通信协议字节顺序
 int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bool fIsSecurityLayer)
 {
-	BYTE bTmpBuf[3000], bType, bPassWord[16];	//临时数据存放,去格式后的数据将存放在这里,用于下一步写入到系统数据库.
-	BYTE bDbBuf[3000];
-	BYTE *pbTmpBuf = bTmpBuf;
-	BYTE bPerm = 0x11;
-	ToaMap* pOI = NULL;
-	WORD wID, wDataLen;
-	int iLen = -1;
-	int iLen0;
-	//int iDataLen = 0;
-	//BYTE bOADBuf[4];
-	TTime tm;
-	TTimeInterv Ti;
-
-	memset(bTmpBuf, 0, sizeof(bTmpBuf));//防止当变长数据个数为0时（如重点表计清单清除）设置下取随机值
-	if ((bAttr == 0) || ((bAttr == 1)))	//0属性,逻辑名属性是只读的
-	{
-		return -1;	//读写拒绝
-	}
-	else //其他属性
-	{
-		DWORD dwOIAtt = ((DWORD )wOI<<16) + ((DWORD )bAttr<<8);
-		const ToaMap* pOI = GetOIMap(dwOIAtt);
-		if ((wOI>=0xF000) && (wOI<=0xF002))
+		BYTE bTmpBuf[3000], bType, bPassWord[16];	//临时数据存放,去格式后的数据将存放在这里,用于下一步写入到系统数据库.
+		BYTE bDbBuf[3000];
+		BYTE *pbTmpBuf = bTmpBuf;
+		BYTE bPerm = 0x11;
+		ToaMap* pOI = NULL;
+		WORD wID, wDataLen;
+		int iLen = -1;
+		int iLen0;
+		//int iDataLen = 0;
+		//BYTE bOADBuf[4];
+		TTime tm;
+		TTimeInterv Ti;
+		
+		memset(bTmpBuf, 0, sizeof(bTmpBuf));//防止当变长数据个数为0时（如重点表计清单清除）设置下取随机值
+		if ((bAttr == 0) || ((bAttr == 1))) //0属性,逻辑名属性是只读的
 		{
-			iLen = SetFileTransAttr(wOI, bAttr, bIndex, pbBuf);
-			return iLen;
+			return -1;	//读写拒绝
 		}
-		if (pOI == NULL)
-			return -1;
-
-		if (pOI->wMode == MAP_VAL || pOI->wMode == MAP_BYTE)	//如果是固定数据格式，不允许更改
-			return -1;
-
-		if (bIndex == 0)	//全属性
+		else //其他属性
 		{
-			pbTmpBuf = pbBuf;
-			wID = pOI->wID;
-			int nRet = OoScanData(pbTmpBuf, pOI->pFmt, pOI->wFmtLen, false, -1, &wDataLen, &bType);
-			if (nRet > 0)
+			DWORD dwOIAtt = ((DWORD )wOI<<16) + ((DWORD )bAttr<<8);
+			const ToaMap* pOI = GetOIMap(dwOIAtt);
+			if ((wOI>=0xF000) && (wOI<=0xF002))
 			{
-				if((wLen - nRet >= 11) && (*(pbBuf + nRet) == 0x01))//带时间标签，需判断时效性
-				{
-					memset((BYTE*)&tm, 0, sizeof(tm));
-					tm.nYear = (*(pbBuf+nRet+1))*256 +*(pbBuf+nRet+2);
-					tm.nMonth = *(pbBuf+nRet+3);
-					tm.nDay = *(pbBuf+nRet+4);
-					tm.nHour = *(pbBuf+nRet+5);
-					tm.nMinute = *(pbBuf+nRet+6);
-					tm.nSecond = *(pbBuf+nRet+7);
-
-					Ti.bUnit = *(pbBuf+nRet+8);					
-					Ti.wVal = OoLongUnsignedToWord(pbBuf+nRet+9);
-
-					if(TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti)))//传输延时时间大于零,判断时效性
-						return -5;
-				}
-				if (IsNeedWrSpec(pOI))
-				{
-					iLen = OIWrite_Spec(pOI, pbTmpBuf);
-					goto RET_ATTR;
-				}
-				else 
-				{
-					//写对应的属性之前，先判断下与系统库中的属性值是否一致，不一致就写系统库
-					memset(bDbBuf, 0, sizeof(bDbBuf));
-					iLen0 = ReadItemEx(BN0, pOI->wPn, pOI->wID, bDbBuf);
-					if (iLen0 > 0)	
-					{
-						int nRdRet = OoScanData(bDbBuf, pOI->pFmt, pOI->wFmtLen, false, -1, &wDataLen, &bType);
-						if (nRdRet>0 && nRet==nRdRet && (memcmp(bDbBuf, pbTmpBuf, nRdRet) == 0))
-						{
-							iLen = nRdRet;
-							goto RET_ATTR;
-						}
-						else
-						{
-							iLen = nRet;
-						}
-					}
-
-					if ((dwOIAtt&0xf0000000) == 0x30000000) // 事件
-					{						
-						ReInitEvtPara(dwOIAtt);
-						if (dwOIAtt==0x31060900 && pbTmpBuf[1]==1)	//停电事件有效性从无效变为有效
-						{
-							UpdateTermPowerOffTime();
-						}
-					}
-					else if ((dwOIAtt&0xff00ff00)==0x21000300 || (dwOIAtt&0xff00ff00)==0x22000300)	//统计参数变更，通知冻结更新
-					{
-						OnStatParaChg();
-					}
-
-					if ((iLen0 = WriteItemEx(BN0, pOI->wPn, pOI->wID, pbTmpBuf, bPerm, bPassWord)) <= 0)
-					{
-						DTRACE(DB_FAPROTO, ("DlmsWriteAttrToDB: There is something wrong when call WriteItemEx()\n"));
-						return -1;	//返回其它错误
-					}
-				}
+				iLen = SetFileTransAttr(wOI, bAttr, bIndex, pbBuf);
+				return iLen;
 			}
-			else
+	
+			if (0x44000200 == dwOIAtt)
 			{
-				DTRACE(DB_FAPROTO, ("OoProWriteAttr: OoDataScan Data failed, nRet=%d !\n", nRet));
+					
+			}
+			
+			if (pOI == NULL)
+				return -1;
+	
+			if(0x4300==wOI && bAttr>=3 && bAttr<=6)
+			{	// 拒绝写
 				return -1;
 			}
-
-			if (iLen == -1)//对应不去格式直接写的情况
-				iLen = iLen0;
-		}
-		else	//子属性
-		{
-			int iSrcLen;
-			WORD wFmtLen;
-			BYTE bSrc[1024];
-			BYTE *pbFmt;
-
-			memset(bSrc, 0, sizeof(bSrc));
-			iSrcLen = OoReadAttr(wOI, bAttr, bSrc, &pbFmt, &wFmtLen);
-			
-			
-			if (iSrcLen > 0)
+	
+			if (pOI->wMode == MAP_VAL || pOI->wMode == MAP_BYTE)	//如果是固定数据格式，不允许更改
+				return -1;
+	
+			if (bIndex == 0)	//全属性
 			{
-				if((wLen - iSrcLen >= 11) && (*(pbBuf + iSrcLen) == 0x01))//带时间标签，需判断时效性
+				pbTmpBuf = pbBuf;
+				wID = pOI->wID;
+				int nRet = OoScanData(pbTmpBuf, pOI->pFmt, pOI->wFmtLen, false, -1, &wDataLen, &bType);
+				if (nRet > 0)
 				{
-					memset((BYTE*)&tm, 0, sizeof(tm));
-					tm.nYear = (*(pbBuf+iSrcLen+1))*256 +*(pbBuf+iSrcLen+2);
-					tm.nMonth = *(pbBuf+iSrcLen+3);
-					tm.nDay = *(pbBuf+iSrcLen+4);
-					tm.nHour = *(pbBuf+iSrcLen+5);
-					tm.nMinute = *(pbBuf+iSrcLen+6);
-					tm.nSecond = *(pbBuf+iSrcLen+7);
-				
-					Ti.bUnit = *(pbBuf+iSrcLen+8); 				
-					Ti.wVal = OoLongUnsignedToWord(pbBuf+iSrcLen+9);
-				
-					if(TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti)))//传输延时时间大于零,判断时效性
-						return -5;
+					if((wLen - nRet >= 11) && (*(pbBuf + nRet) == 0x01))//带时间标签，需判断时效性
+					{
+						memset((BYTE*)&tm, 0, sizeof(tm));
+						tm.nYear = (*(pbBuf+nRet+1))*256 +*(pbBuf+nRet+2);
+						tm.nMonth = *(pbBuf+nRet+3);
+						tm.nDay = *(pbBuf+nRet+4);
+						tm.nHour = *(pbBuf+nRet+5);
+						tm.nMinute = *(pbBuf+nRet+6);
+						tm.nSecond = *(pbBuf+nRet+7);
+	
+						Ti.bUnit = *(pbBuf+nRet+8); 				
+						Ti.wVal = OoLongUnsignedToWord(pbBuf+nRet+9);
+	
+						if((TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti))) || GetCurTime() < TimeToSeconds(tm))//传输延时时间大于零,判断时效性
+							return -5;
+					}
+								
+					if (IsNeedWrSpec(pOI))
+					{
+						iLen = OIWrite_Spec(pOI, pbTmpBuf);
+						if(iLen < 0)
+							return iLen;
+						goto RET_ATTR;
+					}
+					else 
+					{
+						//写对应的属性之前，先判断下与系统库中的属性值是否一致，不一致就写系统库
+						memset(bDbBuf, 0, sizeof(bDbBuf));
+						iLen0 = ReadItemEx(BN0, pOI->wPn, pOI->wID, bDbBuf);
+						if (iLen0 > 0)	
+						{
+							int nRdRet = OoScanData(bDbBuf, pOI->pFmt, pOI->wFmtLen, false, -1, &wDataLen, &bType);
+							if (nRdRet>0 && nRet==nRdRet && (memcmp(bDbBuf, pbTmpBuf, nRdRet) == 0))
+							{
+								iLen = nRdRet;
+								goto RET_ATTR;
+							}
+							else
+							{
+								iLen = nRet;
+							}
+						}
+	
+						if ((dwOIAtt&0xf0000000) == 0x30000000) // 事件
+						{						
+							ReInitEvtPara(dwOIAtt);
+							if (dwOIAtt==0x31060900 && pbTmpBuf[1]==1)	//停电事件有效性从无效变为有效
+							{
+								UpdateTermPowerOffTime();
+							}
+						}
+						else if ((dwOIAtt&0xff00ff00)==0x21000300 || (dwOIAtt&0xff00ff00)==0x22000300)	//统计参数变更，通知冻结更新
+						{
+							OnStatParaChg();
+						}
+						else if(dwOIAtt==0x45000200)
+						{
+							BYTE bPos = 3;
+							BYTE bWorkmode = *(pbTmpBuf+bPos); bPos+=2;
+							BYTE blinemode = *(pbTmpBuf+bPos); bPos+=2;
+							BYTE bConnectmode = *(pbTmpBuf+bPos); bPos+=2;
+							BYTE bConnectAppmode = *(pbTmpBuf+bPos);
+							if(bWorkmode>2 ||  blinemode>1 || bConnectmode>1 ||  bConnectAppmode>1)
+							{
+								DTRACE(DB_FAPROTO, ("bWorkmode\blinemode\bConnectmode\bConnectAppmode error\n"));
+								return -1;	//返回其它错误
+							}
+						}
+						else if(dwOIAtt == 0x42020200) // 级联通信参数
+						{
+							if(IsAllAByte(pbTmpBuf+5,0xff, 4))
+							{
+								DTRACE(DB_FAPROTO, ("CascadeCommParam port error %08x\n", ByteToDWORD(pbTmpBuf+5, 4)));
+								return -1;
+							}
+						}
+						else if(dwOIAtt == 0x42040200) // 级联通信参数
+						{
+							if(*(pbTmpBuf+2)== DT_TIME)
+							{
+								if(!IsTimeValid(pbTmpBuf+3))
+								{
+									DTRACE(DB_FAPROTO, ("time value invalid\n"));
+									return -1;
+								}							
+							}
+						}
+						else if(dwOIAtt == 0x42040300) // 级联通信参数
+						{
+							if(*(pbTmpBuf+4)== DT_TIME)
+							{
+								if(!IsTimeValid(pbTmpBuf+5))
+								{
+									DTRACE(DB_FAPROTO, ("time value invalid\n"));
+									return -1;
+								}
+							}
+						}
+						else if(dwOIAtt == 0x40060200)
+						{
+							if(*(pbTmpBuf+3)>4 || *(pbTmpBuf+5)>1)
+							{
+								DTRACE(DB_FAPROTO, (" clock source invalid\n"));
+								return -1;							  
+							}						 
+						}
+						else if(dwOIAtt == 0x40040200)
+						{
+							if(*(pbTmpBuf+5)>1 || *(pbTmpBuf+5+10)>1 )
+							{
+								DTRACE(DB_FAPROTO, (" longitude / latitude	invalid\n"));
+								return -1;							  
+							}						 
+						}
+						else if(0x40000300 == dwOIAtt)
+						{
+							if(*(pbTmpBuf+1)>2 && *(pbTmpBuf+1)!=256)
+							{
+								DTRACE(DB_FAPROTO, (" timing mode invalid\n"));
+								return -1;
+							}
+						}
+						else if(0x44000500 == dwOIAtt)
+						{
+							if(*(pbTmpBuf+1)>3 )
+							{
+								DTRACE(DB_FAPROTO, (" ConnectAuthmech invalid\n"));
+								return -1;
+							}
+						}
+						else if(0x45100200 == dwOIAtt)
+						{
+							if(*(pbTmpBuf+3)>2 || *(pbTmpBuf+5)>1 || *(pbTmpBuf+7)>1  )
+							{
+								DTRACE(DB_FAPROTO, (" EthCommCfg invalid\n"));
+								return -1;
+							}
+						}
+						else if(0x45100400 == dwOIAtt)
+						{
+							if(*(pbTmpBuf+3)>2)
+							{
+								DTRACE(DB_FAPROTO, (" EthNetCfg invalid\n"));
+								return -1;
+							}
+						}
+						else if(0x44000200 == dwOIAtt)
+						{
+							if(*(pbTmpBuf+16)>3)
+							{
+								DTRACE(DB_FAPROTO, (" ApplyConnectObList invalid\n"));
+								return -1;
+							}
+						}
+	
+						if ((iLen0 = WriteItemEx(BN0, pOI->wPn, pOI->wID, pbTmpBuf, bPerm, bPassWord)) <= 0)
+						{
+							DTRACE(DB_FAPROTO, ("DlmsWriteAttrToDB: There is something wrong when call WriteItemEx()\n"));
+							return -1;	//返回其它错误
+						}
+					}
 				}
-			//	OoDWordToOad(GetOAD(wOI, bAttr, bIndex), bOADBuf);
-			//	iDataLen = OoGetDataLen(DT_OAD, bOADBuf);	//+1:去除数据类型
-			//	if (!(iDataLen >= wLen))
-			//		wLen = iDataLen;	
-				if (fIsSecurityLayer)
-					iSrcLen = OoWriteField(bSrc, iSrcLen, pbFmt, wFmtLen, bIndex-1, pbBuf, wLen);	//-4: 4字节OAD，Esam加密没有时间标签
 				else
-					iSrcLen = OoWriteField(bSrc, iSrcLen, pbFmt, wFmtLen, bIndex-1, pbBuf, wLen);	//-5: 4字节OAD + 1字节时间标签	//此处应该在外面处理wLen参数传进来OAD和时间标签就已经去掉了
-				if (iSrcLen > 0)
-					return OoProWriteAttr(wOI, bAttr, 0, bSrc, iSrcLen, fIsSecurityLayer);
+				{
+					DTRACE(DB_FAPROTO, ("OoProWriteAttr: OoDataScan Data failed, nRet=%d !\n", nRet));
+					return -1;
+				}
+	
+				if (iLen == -1)//对应不去格式直接写的情况
+					iLen = iLen0;
 			}
+			else	//子属性
+			{
+				int iSrcLen;
+				WORD wFmtLen;
+				BYTE bSrc[1024];
+				BYTE *pbFmt;
+	
+				memset(bSrc, 0, sizeof(bSrc));
+				iSrcLen = OoReadAttr(wOI, bAttr, bSrc, &pbFmt, &wFmtLen);
+				if (iSrcLen > 0)
+				{
+					if((wLen - iSrcLen >= 11) && (*(pbBuf + iSrcLen) == 0x01))//带时间标签，需判断时效性
+					{
+						memset((BYTE*)&tm, 0, sizeof(tm));
+						tm.nYear = (*(pbBuf+iSrcLen+1))*256 +*(pbBuf+iSrcLen+2);
+						tm.nMonth = *(pbBuf+iSrcLen+3);
+						tm.nDay = *(pbBuf+iSrcLen+4);
+						tm.nHour = *(pbBuf+iSrcLen+5);
+						tm.nMinute = *(pbBuf+iSrcLen+6);
+						tm.nSecond = *(pbBuf+iSrcLen+7);
+					
+						Ti.bUnit = *(pbBuf+iSrcLen+8);				
+						Ti.wVal = OoLongUnsignedToWord(pbBuf+iSrcLen+9);
+					
+						if((TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti))) || GetCurTime() < TimeToSeconds(tm))//传输延时时间大于零,判断时效性
+							return -5;
+					}
+				//	OoDWordToOad(GetOAD(wOI, bAttr, bIndex), bOADBuf);
+				//	iDataLen = OoGetDataLen(DT_OAD, bOADBuf);	//+1:去除数据类型
+				//	if (!(iDataLen >= wLen))
+				//		wLen = iDataLen;	
+					if (fIsSecurityLayer)
+						iSrcLen = OoWriteField(bSrc, iSrcLen, pbFmt, wFmtLen, bIndex-1, pbBuf, wLen);	//-4: 4字节OAD，Esam加密没有时间标签
+					else
+						iSrcLen = OoWriteField(bSrc, iSrcLen, pbFmt, wFmtLen, bIndex-1, pbBuf, wLen);	//-5: 4字节OAD + 1字节时间标签	//此处应该在外面处理wLen参数传进来OAD和时间标签就已经去掉了
+					if (iSrcLen > 0)
+						return OoProWriteAttr(wOI, bAttr, 0, bSrc, iSrcLen, fIsSecurityLayer);
+				}
+			}
+	
+	RET_ATTR:
+			OutBeepMs(50);
+			TrigerSave();
+			return iLen;
 		}
+	
+		return -1;
 
-//		SetParaChg(wClass, pbObis);
-RET_ATTR:
-		OutBeepMs(50);
-		TrigerSave();
-		return iLen;
-	}
-
-	return -1;
 }
 
 BYTE OIGetStrLen(BYTE* pbStr, BYTE bLen, BYTE bFill)
@@ -2210,7 +2337,12 @@ int OoScanData(BYTE* pbSrc, BYTE* pbFmt, WORD wFmtLen, bool fRevOrder, int iInde
 	{
 		DTRACE(DB_DB, ("OoScanData: pbFmt is NULL, return!!\n"));
 		return -1;
-	}		
+	}
+
+	if (bAttrType==0)
+	{
+		return 0;
+	}
 
 	//如果查找子属性，那么第一个类型描述，必须是01或02
 	if ((bAttrType != pbFmt[0]) /*|| (iIndex>=0 && bAttrType!=0x01 && bAttrType!=0x02)*/)
@@ -3211,6 +3343,8 @@ bool IsSpecOMD(const TOmMap* pOmMap)
 	case 0x43000400:	//设备接口类19--恢复出厂参数
 	case 0x43000500:	//设备接口类19--事件初始化
 	case 0x43000600:	//设备接口类19--需量初始化
+	case 0x40067f00:    // 启用时钟源
+	case 0x40068000:    // 停用时钟源
 	case 0x45000100:	//公网设备初始化
 	case 0x45010100:	//公网设备初始化
 	case 0x45100100:	//以太网设备初始化
@@ -3276,6 +3410,8 @@ int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaL
 {
 	TTime tm;
 	TTimeInterv Ti;
+	int offset;
+	
 	//搜索对象方法对应的映射表
 	const TOmMap* pOmMap = GetOmMap((((DWORD )wOI)<<16)+(((DWORD )bMethod<<8)));
 	if (pOmMap == NULL)
@@ -3286,13 +3422,13 @@ int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaL
 	int iParaLen = 0;
 	if (!IsSpecOMD(pOmMap))
 	{
-		if (pbPara != NULL)	//hyl pbPara有可能入参为空
+		if (pbPara != NULL) //hyl pbPara有可能入参为空
 		{
 			//扫描参数，求参数长度、对字节顺序进行调整
 			iParaLen = OoDataFieldScan(pbPara, pOmMap->pFmt, pOmMap->wFmtLen);
 			if (iParaLen< 0)
 				return -1;
-
+#if 0
 			if((strlen((const char *)pbPara) - iParaLen >= 11) && (*(pbPara + iParaLen) == 0x01))//带时间标签，需判断时效性
 			{
 				memset((BYTE*)&tm, 0, sizeof(tm));
@@ -3309,7 +3445,34 @@ int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaL
 				if(TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti)))//传输延时时间大于零,判断时效性
 					return -7;
 			}
+#endif
 		}
+	}
+
+	if(iParaLen == 0)
+		offset = 1;
+	else
+		offset = iParaLen;
+		
+	if((strlen((const char *)pbPara) - offset >= 11) && (*(pbPara + offset) == 0x01))//带时间标签，需判断时效性
+	{
+		memset((BYTE*)&tm, 0, sizeof(tm));
+		tm.nYear = (*(pbPara+offset+1))*256 +*(pbPara+offset+2);
+		tm.nMonth = *(pbPara+offset+3);
+		tm.nDay = *(pbPara+offset+4);
+		tm.nHour = *(pbPara+offset+5);
+		tm.nMinute = *(pbPara+offset+6);
+		tm.nSecond = *(pbPara+offset+7);
+	
+		Ti.bUnit = *(pbPara+offset+8);					
+		Ti.wVal = OoLongUnsignedToWord(pbPara+offset+9);
+	
+		if((TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti))) || GetCurTime() < TimeToSeconds(tm))//传输延时时间大于零,判断时效性
+			return -7;
+	}
+	else if ((wOI==0x8000 || wOI==0x8001) && *(pbPara+offset)==0) //台体测试(V1.17.06.05版本)：下发遥控跳闸命令不带时间标签，不处理，返回时间标签无效.
+	{
+		return -7;
 	}
 
 	//执行对象方法
@@ -3318,7 +3481,9 @@ int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaL
 	{
 		TrigerSavePara();
 	}
+	*piParaLen = iParaLen;
 	return iRet;
+
 }
 
 //描述：把源数据解析成一个个字段的偏移和长度，方便访问
@@ -3701,7 +3866,7 @@ int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen
 				{
 					if (bVFill == 0) //0-不填充,加一个长度字节放到开头
 					{
-						bByteLen = *pbSrc++;
+						 bByteLen = bsLen;//*pbSrc++;
 					}
 					else	//用填充字节来填充
 					{
@@ -3962,8 +4127,15 @@ int OIFmtDataExt(BYTE* pbSrc, BYTE bsLen, BYTE* pbDst, BYTE* pbFmt, WORD wFmtLen
 			}
 			else
 			{
-				*pbDst++ = bType;
-				revcpy(pbDst, pbSrc, 7);
+				if (dwOAD==0x60400200 || dwOAD==0x60410200 || dwOAD==0x60420200)
+				{
+					revcpy(pbDst, pbSrc, 7);
+				}
+				else
+				{
+					*pbDst++ = bType;
+					revcpy(pbDst, pbSrc, 7);
+				}
 				pbDst += 7;
 				pbSrc += 7;
 			}

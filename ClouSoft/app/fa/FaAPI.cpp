@@ -422,43 +422,16 @@ bool SavePoweroffTmp()
 
 void UdpMeterPara()
 {
-	if (GetInfo(INFO_METER_PARA) == false)
-	 	return;	
+		if (GetInfo(INFO_METER_PARA) == false)
+			return; 
+		
+		DTRACE(DB_METER, ("UdpGrpPara: para chg!\r\n"));
 	
-	DTRACE(DB_METER, ("UdpMeterPara: para chg!\r\n"));
-
-//	SetCtrlGrpParaChg(true);//发给控制线程停止运算
-
-	UpdMeterPnMask();
-//	UpdPnMask();
-	SetInfo(INFO_AC_PARA);		//交采参数变更
-	SetInfo(INFO_COMTASK_PARA); //普通任务参数变更
-//	SetInfo(INFO_EXC_PARA);		//异常任务参数变更
-//	SetInfo(INFO_PULSE);		//脉冲参数变更
-	SetInfo(INFO_STAT_PARA);	//统计参数变更
-	SetInfo(INFO_DC_SAMPLE);	//直流模拟量
-	SetInfo(INFO_CTRL);			//控制参数
-	SetInfo(INFO_RJMTR_PARACHG);//RJ45抄表参数
-//	SetInfo(INFO_PRIMTR_PARACHG);//Prime抄表参数
-
-//	SetMtrParaChg(true);
-//	SetGrpParaChg(true);
+	//	SetCtrlGrpParaChg(true);//发给控制线程停止运算
 	
-	ClrPnChgMask();
+	//	SetMtrParaChg(true);
+	//	SetGrpParaChg(true);
 
-	//CCT
-#ifdef EN_CCT
-	CctUpdPnMask();
-	CctInitStat(); //初始化集抄抄读统计信息
-	
-	//UpdateVipMask(); //CctUpdPnMask里有处理
-	
-	SetInfo(INFO_PLC_PARA); //本函数放到CctUpdPnMask()后,
-							//载波模块更新参数时可能用到测量点屏蔽位
-	SetInfo(INFO_PLC_STATUPDATA);
-#endif
-
-	TrigerSaveBank(BN11, 0, -1); //即时统计的起点数据
 }
 
 bool g_fProgState = false;
@@ -591,6 +564,7 @@ void FaInitStep1()
 	}
 	InitInfo();
 
+	TdbSetMaxTabNum(1024);	//目
 	TdbSetMaxRecLen(720);
 	TdbSetMaxFieldLen(900);
 	TdbSetPeriCacheNum(PN_VALID_NUM);
@@ -2141,11 +2115,43 @@ void CheckSignStrength()
 }
 
 
+/* 打包的升级脚本，开始执行打包时，会向/tmp/update.log写0， 打包完成、拷贝就绪，向/tmp/update.log写1，
+*  慢秒现场不停的读取/tmp/update.log文件，当内容为1时，复位集中器
+*/
+bool IsTermUptateEnd()
+{
+    BYTE bBuf[8] = {0};
+    if(!PartReadFile("/tmp/update.log", 0, bBuf, 1))
+    {
+        return false;
+    }
+
+    if(bBuf[0] == '1')
+    {        
+        return true;
+    }
+    else
+    {   
+        return false;
+    }
+}
+
+void WriteCfgPathName(void)
+{
+	char szCfgBuf[50];
+
+	memset(szCfgBuf, 0, sizeof(szCfgBuf));
+	sprintf(szCfgBuf, "clou.dft");
+	WriteFile(USER_CFG_PATH"cfgpermit.cfg", (BYTE*)szCfgBuf, strlen(szCfgBuf));
+	DTRACE(DB_FA, ("WriteCfgPathName: write cfgpermit.cfg!\r\n"));
+}
+
+
 
 //描述:慢线程
 TThreadRet SlowSecondThread(void* pvPara)
 {
-	int iMonitorID = ReqThreadMonitorID("SlowSecond-thrd", 4*60*60);	//申请线程监控ID,更新间隔为5分钟
+		int iMonitorID = ReqThreadMonitorID("SlowSecond-thrd", 60*60);	//申请线程监控ID,更新间隔为5分钟
 
 	DTRACE(DB_CRITICAL, ("SlowSecondThread : started!\n"));
 	//SaveSoftVerChg();
@@ -2154,46 +2160,65 @@ TThreadRet SlowSecondThread(void* pvPara)
 	{
 		if (GetInfo(INFO_MTR_UPDATE))
 		{
-			InitThreadExeFlg();
+			RequestThreadsSem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_UPDATE start ###\r\n"));
+			SetThreadDelayFlg();
 			InitMtrMask();
 			InitMtrCacheCtrl();
 			DeleteMtrRdCtrl();
 			SetInfo(INFO_SYNC_MTR);
-			SetThreadExeFlg();
+			
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_UPDATE end ###\r\n"));
+			ReleaseThreadsSem();
 		}
 
 		if (GetInfo(INFO_TASK_CFG_UPDATE))
 		{
-			InitThreadExeFlg();
+			RequestThreadsSem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_TASK_CFG_UPDATE start ###\r\n"));
+			SetThreadDelayFlg();
+
 			InitTaskMap();
 			InitSchMap();
 			InitSchTable();
 			DeleteMtrRdCtrl();
 			SetInfo(INFO_SYNC_MTR);
 			InitMtrCacheCtrl();
-			SetThreadExeFlg();
+
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_TASK_CFG_UPDATE end ###\r\n"));
+			ReleaseThreadsSem();
 		}
 
 		if (GetInfo(INFO_ACQ_SCH_UPDATE))
 		{
-			InitThreadExeFlg();
+			RequestThreadsSem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_ACQ_SCH_UPDATE start ###\r\n"));
+			SetThreadDelayFlg();
+
 			InitSchMap();
 			InitSchTable();
 			DeleteMtrRdCtrl();
 			SetInfo(INFO_SYNC_MTR);
 			InitMtrCacheCtrl();
-			SetThreadExeFlg();
+
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_ACQ_SCH_UPDATE end ###\r\n"));
+			ReleaseThreadsSem();
 		}
 		if (GetInfo(INFO_RP_SCH_UPDATE))
 		{
-			InitThreadExeFlg();
+			RequestThreadsSem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_RP_SCH_UPDATE start ###\r\n"));
+			SetThreadDelayFlg();
+
 			InitSchMap();
 			InitSchTable();
 			ClearBankData(BN16, 0, -1);
-			SetThreadExeFlg();
+
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_RP_SCH_UPDATE end ###\r\n"));
+			ReleaseThreadsSem();
 		}
 
-		if (GetInfo(INFO_CLASS19_METHOD_RST) || GetInfo(INFO_APP_RST))	
+		if (GetInfo(INFO_CLASS19_METHOD_RST) || GetInfo(INFO_APP_RST))	//硬件初始化
 		{
 			DTRACE(DB_FA, ("Dev interface class=19 method=1. Reset system...\n"));
 			FaInit(RESTART_SYSTEM);
@@ -2208,17 +2233,24 @@ TThreadRet SlowSecondThread(void* pvPara)
 		if (GetInfo(INFO_CLASS19_METHOD_DATA_INIT))	
 		{
 			DTRACE(DB_FA, ("Dev interface class=19 method=3. Data init...\n"));
-			InitThreadExeFlg();
+			RequestThreadsSem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_CLASS19_METHOD_DATA_INIT end ###\r\n"));
+			SetThreadDelayFlg();
 			FaInit(DATA_INIT);
-			SetThreadExeFlg();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_CLASS19_METHOD_DATA_INIT end ###\r\n"));
+			ReleaseThreadsSem();
 		}
 
 		if (GetInfo(INFO_CLASS19_METHOD_RST_FACT_PARA))	
 		{
 			DTRACE(DB_FA, ("Dev interface class=19 method=4. Restore factory para...\n"));
-			InitThreadExeFlg();
+			WriteCfgPathName(); //恢复出厂参数后自动应用配置文件
+			RequestThreadsSem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_CLASS19_METHOD_RST_FACT_PARA end ###\r\n"));
+			SetThreadDelayFlg();
 			FaInit(PARAM_INIT);
-			SetThreadExeFlg();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_CLASS19_METHOD_RST_FACT_PARA end ###\r\n"));
+			ReleaseThreadsSem();
 		}
 
 		if (GetInfo(INFO_CLASS19_METHOD_EVT_INIT))	
@@ -2239,6 +2271,12 @@ TThreadRet SlowSecondThread(void* pvPara)
 			g_pGprsFaProtoIf->SetDisConnect(); //在收到外部的断开连接命令时,调用本函数通知接口
 			g_pEthFaProtoIf->SetDisConnect();
 		}
+        
+        if (IsTermUptateEnd())  
+        {// 为区分 class=19 method=1引起的集中器复位， 故在这里复位，加调试信息予以区分
+            DTRACE(DB_FA, ("term update success, Reset system...\n"));
+            FaInit(RESTART_SYSTEM);
+        }
 
 		DoMangerMtrCacheCtrl();
 		
@@ -2978,94 +3016,33 @@ void ReleaseThreadsSem()
 }
 
 
+
 #define THREAD_MASK_ID	(THRD_MNTR_NUM/8+1)
+#define  THREAD_DELAY_TIME		15	//线程延迟15S执行
+BYTE g_bThreadDelayFlag[THREAD_MASK_ID] = {0};
+DWORD g_dwThreadClick[THRD_MNTR_NUM] = {0};
 
-BYTE g_bValidThreadID[THREAD_MASK_ID] = {0};
-BYTE g_bRecvThreadID[THREAD_MASK_ID] = {0};
-bool g_fIsExeFlg = true;
-
-//描述：初始化线程ID
-void InitThreadMaskId(BYTE bId)
+//描述：设置所有线程延时标识
+void SetThreadDelayFlg()
 {
-	BYTE bMask;
-	BYTE bBit;
-
-	bMask = bId/8;
-	bBit = bId%8;
-
-	g_bValidThreadID[bMask] |= 1<<bBit;
-	g_bRecvThreadID[bMask] |= 1<<bBit;
+	memset(g_bThreadDelayFlag, 0xff, sizeof(g_bThreadDelayFlag));
 }
 
-void InitThreadExeFlg()
+//描述：获取线程是否可以运行
+bool GetThreadRunFlag(BYTE bThrId)
 {
-	ClearThreadExeFlg();
-	ClearRecvThreadMaskId();
-	while (!IsAllThreadRecv())	//函数返回，表明数据初始化已完成
-		Sleep(500);	
-}
-
-void ClearRecvThreadMaskId()
-{
-	memset(g_bRecvThreadID, 0, sizeof(g_bRecvThreadID));
-}
-
-void ClearThreadExeFlg()
-{
-	g_fIsExeFlg = false;
-}
-
-void SetThreadExeFlg()
-{
-	g_fIsExeFlg = true;
-}
-
-//描述：设置接收有效线程ID
-void SetRecvThreadMaskId(BYTE bID)
-{
-	g_bRecvThreadID[bID/8] |= 1<<(bID%8);
-}
-
-//描述：线程是否可以工作
-bool IsThreadExe(BYTE bID)
-{
-	bool fIsExeFlg = true;
-
-	if (!(g_bValidThreadID[bID/8] & (1<<(bID%8))))	//不在数据初始化处理的线程内就直接返回
-		return fIsExeFlg;
-
-	for (BYTE i=0; i<THREAD_MASK_ID; i++)
+	if (g_bThreadDelayFlag[bThrId/8] & (1<<(bThrId%8)))
 	{
-		if (g_bValidThreadID[i]^g_bRecvThreadID[i])
-		{
-			fIsExeFlg = false;
-			break;
-		}
+		g_bThreadDelayFlag[bThrId/8] &= ~(1<<(bThrId%8));
+		g_dwThreadClick[bThrId] = GetClick();
 	}
 
-	if (!g_fIsExeFlg)
-		fIsExeFlg = false;
+	if (GetClick()-g_dwThreadClick[bThrId] > THREAD_DELAY_TIME)
+		return true;
 
-	return fIsExeFlg;
+	return false;
 }
 
-
-//描述：所有线程是否都已经接收到信号
-bool IsAllThreadRecv()
-{
-	bool fIsExeFlg = true;
-
-	for (BYTE i=0; i<THREAD_MASK_ID; i++)
-	{
-		if (g_bValidThreadID[i]^g_bRecvThreadID[i])
-		{
-			fIsExeFlg = false;
-			break;
-		}
-	}
-
-	return fIsExeFlg;
-}
 
 
 

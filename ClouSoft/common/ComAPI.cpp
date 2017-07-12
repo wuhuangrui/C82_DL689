@@ -1774,6 +1774,26 @@ int64 Pow(int iBase, WORD wExp)
 	return iVal;
 }
 
+bool IsTimeValid(BYTE *pbBuf)
+{
+	if (pbBuf == NULL)
+		return false;
+
+    if (*pbBuf>23 || *(pbBuf+1)>59 || *(pbBuf+2)>59)
+        return false;
+	else
+	    return true;
+}
+
+bool Isdate_time_sValid(BYTE *pbBuf)
+{
+    TTime Time;
+	if (pbBuf == NULL)
+		return false;
+	else
+	    return  OoDateTimeSToTime(pbBuf, &Time);
+}
+
 //描述:把时间转换成可以显示的字符串
 //参数:@time 待转换的时间
 //	   @psz 用来存放转换后的字符串

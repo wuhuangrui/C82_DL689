@@ -212,28 +212,10 @@ extern bool IsInProgState();
 extern bool IsFkTermn();
 extern void DoFaSave();
 
-//?豕那?㏒o3?那??‘??3足ID
-void InitThreadMaskId(BYTE bId);
+void SetThreadDelayFlg();
 
-void InitThreadExeFlg();
+bool GetThreadRunFlag(BYTE bThrId);
 
-void ClearThreadExeFlg();
-
-void SetThreadExeFlg();
-
-void ClearRecvThreadMaskId();
-
-//?豕那?㏒o谷豕??車DD∫??3足ID
-void SetThreadMaskId(BYTE bID);
-
-//?豕那?㏒o?車那?車DD∫??3足ID
-void SetRecvThreadMaskId(BYTE bID);
-
-//?豕那?㏒o??3足那?﹞??谷辰?1∟℅¯
-bool IsThreadExe(BYTE bID);
-
-//?豕那?㏒o?迄車D??3足那?﹞???辰??-?車那?米?D?o?
-bool IsAllThreadRecv();
 
 
 

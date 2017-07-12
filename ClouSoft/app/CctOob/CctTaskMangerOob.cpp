@@ -2180,6 +2180,60 @@ int SpecReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int* piStart, BYTE* p
 			goto SpecReadRecord_ret;
 		}
 	}
+	else if (bRSD == 0)//台体协议一致性测试修改
+	{
+		dwOAD = OoOadToDWord(pbOAD);
+		const ToaMap* pOI = GetOIMap(dwOAD & 0xFFFFFF00);
+		if (pOI == NULL)
+		{
+			DTRACE(DB_FAPROTO, ("SpecReadRecord: pOI is NULL, dwOAD=0x%08x.\n", dwOAD));
+			return -1;
+		}
+		switch (dwOAD & 0xFFFFFF00)
+		{
+		case 0x60000200:	//采集档案配置表
+			bSubIdx = 1;
+			if (bSubIdx != 1)	//档案信息只能用到子属性1，其它为结构体，无法访问
+			{
+				DTRACE(DB_FAPROTO, ("SpecReadRecord: dwOAD=0x%08x subidx=%d invalid.\n", dwOAD, bSubIdx));
+				return -1;
+			}
+			for (WORD i=0; i<POINT_NUM; i++)
+			{
+				memset(bBuf, 0, sizeof(bBuf));
+				if (((iRet=ReadItemEx(BANK0, i, pOI->wID, bBuf))>0) && !IsAllAByte(bBuf, 0, sizeof(bBuf)))
+				{
+					p = OoGetField(bBuf+1, pOI->pFmt, pOI->wFmtLen, bSubIdx-1, &wDataLen, &bType);	//+1:0x6000档案的第一个自己为整个采集单元的数据长度
+					if (p != NULL)
+					{
+						//if (memcmp(pbRSD, p, wDataLen) == 0)	//格式类型比较 && 数据比较
+						{
+							if (iRet > wBufSize)
+							{
+								DTRACE(DB_FAPROTO, ("SpecReadRecord: Buffer overflow, iRet=%d, wBufSize=%d.\n", iRet, wBufSize));
+								goto SpecReadRecord_ret;
+							}
+							else
+							{
+								memcpy(pbBuf, bBuf+1, bBuf[0]);
+								pbBuf += bBuf[0];
+								*pwRetNum += 1;
+							}
+						}
+					}
+					else
+					{
+						DTRACE(DB_FAPROTO, ("SpecReadRecord: i=%d, pointer is Null!!!!\n", i));
+					}
+				}
+			}
+			break;
+		default:
+			DTRACE(DB_FAPROTO, ("SpecReadRecord: RSD=0 unsupport dwOad=0x%08x.\n", dwOAD));
+			goto SpecReadRecord_ret;
+		}
+		
+	}
 
 	iRet = pbBuf - pbBuf0;
 	pbBuf = pbBuf0;
@@ -2234,6 +2288,11 @@ int ReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int *piTabIdx, int* piSta
 	{
 		wRcsdIdx = 1;	//协议层中RCSD第一个字节为CSD个数，跳过，即索引初始化为1
 		iRetNum = SearchTable(pbOAD, pbRSD, pbRCSD, wRcsdIdx, piTabIdx, pszTableName, &tFixFields, &tDataFields);
+		if(iRetNum == -2)
+		{
+			return iRetNum;
+		}
+		
 		if (iRetNum <= 0)	//搜表失败
 			return -4;
 
@@ -2298,7 +2357,7 @@ NEXT_ONE_TABLE:	//为了解决普通采集方案里跨表MS问题
 				else
 				{
 					if ((iRet=ReadTable(pszTableName, &tFixFields, &tDataFields, pbOAD, pbRSD, bTmpRcsd, piStart, 1, pwRetNum, pbBuf)) <= 0)
-						return -1;	//直接退出
+							return 0;// return -1;	//直接退出, 协议一致性 Get_10
 					pbBuf += iRet;
 					wSucRetNum += *pwRetNum;
 				}
@@ -2372,6 +2431,12 @@ int ReadTable(char* pszTableName, TFieldParser* pFixFields, TFieldParser* pDataF
 	{
 		bRecNo = pbRSD[1];
 		fFromEnd = true;
+	}
+	else if (bRsdMethod == 0)//RSD方法0特殊处理为方法9，台体协议一致性测试修改
+	{
+		bRsdMethod = 9;
+		bRecNo = 1;
+		fFromEnd = true;	
 	}
 
 	wRetNum = 0;
@@ -3151,7 +3216,7 @@ int OoCopyData(BYTE* pbOAD, BYTE* pbDst, BYTE* pbSrc, WORD wItemOffset, WORD wLe
 		{
 			wRetDstLen = 0;
 			wRetSrcLen = 0;
-			OoCopyDataROADLinkOAD(pbDst, &wRetSrcLen, pbSrc, &wRetDstLen, pFmt+2, wFmtLen-2);
+			OoCopyDataROADLinkOAD(pbDst, &wRetSrcLen, pbSrc+wItemOffset, &wRetDstLen, pFmt+2, wFmtLen-2);
 			pbDst += wRetSrcLen;
 			pbSrc += wRetDstLen;
 		}
@@ -3175,7 +3240,7 @@ int OoCopyData(BYTE* pbOAD, BYTE* pbDst, BYTE* pbSrc, WORD wItemOffset, WORD wLe
 		{
 			wRetDstLen = 0;
 			wRetSrcLen = 0;
-			OoCopyDataROADLinkOAD(pbDst, &wRetSrcLen, pbSrc, &wRetDstLen, pFmt, wFmtLen);
+			OoCopyDataROADLinkOAD(pbDst, &wRetSrcLen, pbSrc+wItemOffset, &wRetDstLen, pFmt, wFmtLen);
 			pbDst += wRetSrcLen;
 			pbSrc += wRetDstLen;
 		}
@@ -3472,6 +3537,64 @@ int SearchTable(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, WORD wRcsdIdx, int *piTa
 	}
 	else if (dwOAD>=0x50000200 && dwOAD<=0x50110200)	//冻结, 每次根据RCSD偏移值wRcsdIdx 匹配一张表
 	{
+		BYTE bMethod = *pbRSD;  
+		if(bMethod==1)
+		{
+			if(*(pbRSD+5)==0)
+			{
+				return -2;
+			}
+			else if(*(pbRSD+5)==1)
+			{
+				for(int i=0; i< *(pbRSD+6);i++)
+				{
+				  BYTE bDt = *(pbRSD+6+1+i*2);				 
+				  if(bDt==DT_BOOL)
+				  {
+					BYTE bVal = *(pbRSD+6+1+i*2+1);
+					if (bVal>1)
+					{
+						return -2;
+					}
+				  }
+				}
+			}			
+		}
+        else if(bMethod==2)
+        {
+            bool IsDateTimeType =false;
+			BYTE *pbRSD2 = pbRSD;
+			pbRSD2++; // 跳过方法
+			pbRSD2+=4; // 跳过OAD
+			if (*pbRSD2==DT_DATE_TIME_S)
+            {
+                pbRSD2+=8;
+                IsDateTimeType = true;
+            }
+            else if(*pbRSD2==DT_DATE_TIME)
+            {
+                pbRSD2+=11;
+                IsDateTimeType = true;
+            }
+
+            if(IsDateTimeType)
+            {
+                if (*pbRSD2==DT_DATE_TIME_S)
+                {
+                    pbRSD2+=8;
+                }
+                else if(*pbRSD2==DT_DATE_TIME)
+                {
+                    pbRSD2+=11;
+                }
+    			
+    			if (*pbRSD2!=DT_TI && *pbRSD2!=DT_NULL)
+    			{
+    				return -2;
+    			} 
+            }            
+        }
+		
 		dwROAD = OoOadToDWord(pbRCSD+2);	//根据RCSD偏移值wRcsdIdx确定表名
 		if (!GetFrzTaskFileName((WORD )(dwOAD>>16), dwROAD, pszTableName))
 			return -1;

@@ -28,7 +28,7 @@ const static WORD g_wPulseCurEnergyID[3][MAX_PULSE_TYPE] =
 	{
 		EP_POS_ABC, EQ_POS_ABC,	//正有、正无
 		EP_NEG_ABC, EQ_NEG_ABC, //反有、反无
-	}
+	},
 };
 
 /*static WORD g_wPulseCurDemandID[2][MAX_PULSE_TYPE] =
@@ -1371,6 +1371,17 @@ int LoadAdjParak(DWORD *dwK) //放大了100000倍
     return -1;
 }
 
+void SaveNewAdjPara(BYTE* pbBuf)
+{
+	WriteItemEx(BN28, PN0, 0x001f, pbBuf);	//更新BN3 0x503f
+	TrigerSaveBank(BN28, 0, -1);
+	DoTrigerSaveBank();
+}
+
+void LoadNewAdjPara(BYTE *pbBuf)
+{
+	ReadItemEx(BN28, PN0, 0x001f, pbBuf);  //0x503f 
+}
 
 
 

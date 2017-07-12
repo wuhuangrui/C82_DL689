@@ -66,7 +66,7 @@
 #define INFO_ADJTIME_PLC   		25	//对载波进行校时
 #define INFO_ADJTIME_485   		26	//对485进行校时
 #define INFO_VIPLIST	   		27 	//重点户更改
-//#define INFO_RESTART	   		28	//重启集中器工作
+#define INFO_GRP_PARA	   		28	//总加组参数变更
 #define INFO_READ_DONE	   		29	//抄表完成
 #define INFO_DC_SAMPLE			30
 #define INFO_LINK	   			31	//级联参数更改
@@ -259,7 +259,7 @@
 #define LOG_DEMAND		1		//交采需量
 #define LOG_TERMSTAT	2		//终端统计信息
 #define LOG_PULSE_ENERGY1	3		//第一路脉冲电能
-#define LOG_PULSE_DEMAND1	5//11		//第一路脉冲需量
+//#define LOG_PULSE_DEMAND1	5//11		//第一路脉冲需量
 #define LOG_ENERGY_BAR		7		//交采电能不足最小计量单位的
 #define LOG_ENABLE	1 
 

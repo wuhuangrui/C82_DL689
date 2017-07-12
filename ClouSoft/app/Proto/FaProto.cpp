@@ -184,6 +184,79 @@ int CFaProto::RcvBlock(BYTE *pbBuf,int wLen)
 }
 
 
+//单帧数据解析
+int CFaProto::SingleRcvBlock(BYTE* pbBuf, int wLen)
+{
+	int nRxStep = 0;
+	int nRxCnt = 0;
+	WORD wRxPtr = 0;
+	BYTE *pbBlock = pbBuf;
+
+	if (wLen > sizeof(m_bSingleRxBuf))
+		return -wLen;
+
+	for (int i=0; i<wLen; i++)
+	{
+        BYTE b = *pbBlock++;
+		
+        switch (nRxStep) 
+		{
+		case 0:
+			if( b == 0x68 )
+			{
+				memset(m_bSingleRxBuf, 0, sizeof(m_bSingleRxBuf));
+				m_bSingleRxBuf[0] = b;
+				wRxPtr = 1;
+				nRxStep = 1;
+				nRxCnt = 2;		//之后是长度域(2BYTE,控制域1BYTE，地址长度)
+			}
+			else
+			{
+				wRxPtr = 0;
+				nRxStep = 0;	
+			}
+			break;
+		case 1:
+			m_bSingleRxBuf[wRxPtr++] = b;
+			nRxCnt--;
+			if (nRxCnt == 0)
+			{
+				WORD wRxFrmLen = ((WORD)(m_bSingleRxBuf[2]&0x3f)<<8) | m_bSingleRxBuf[1];
+				if (wRxFrmLen < sizeof(m_bSingleRxBuf))
+				{
+					nRxCnt = wRxFrmLen-1; //帧长度是去掉起始0x68和结束0x16之后的字节
+					nRxStep = 2;
+				}
+			}
+			break;
+		case 2:
+			m_bSingleRxBuf[wRxPtr++] = b;
+			nRxCnt--;
+			if( nRxCnt == 0)
+			{
+				nRxStep = 0;
+				if (m_bSingleRxBuf[wRxPtr-1] == 0x16)	//控制域
+				{
+					memcpy(m_bRxBuf, m_bSingleRxBuf, i+1);	//更新到RcvBlock函数中成员变量和状态机
+					m_nRxStep = 0;
+
+					if (VeryFrm() > 0)
+						return i+1;
+				}
+			}
+			break;
+
+		default:
+			nRxStep = 0;
+			break;
+		} //switch (nRxStep) 
+	}	
+
+	return -wLen;
+}
+
+
+
 int CFaProto::ProRecordToApduInfo(BYTE *pbApdu, TApduInfo *pApduInfo)
 {
 	BYTE *pbApdu0 = pbApdu;
@@ -230,9 +303,15 @@ bool CFaProto::AddrCheck()
 	char szSvrAddr[TSA_LEN]={0};
 	char szCliAddr[TSA_LEN]={0};
 
+	m_LnkComm.bLogicAddr = (m_bRxBuf[4]>>4)&0x03;	//逻辑地址
 	m_LnkComm.bAddrType = (m_bRxBuf[4]>>6)&0x03;	//地址类别标志
 	m_LnkComm.bCliAddrLen = (m_bRxBuf[4]&0x0f) + 1;	//地址长度
 	memcpy(m_LnkComm.bCliAddrs, &m_bRxBuf[5], m_LnkComm.bCliAddrLen);
+
+	if(m_LnkComm.bLogicAddr != 0)//协议一致性测试，判断逻辑地址
+		return false;
+
+
 	if (m_LnkComm.bAddrType==ADDR_TYPE_SINGLE || m_LnkComm.bAddrType==ADDR_TYPE_GROUP)
 	{
 		if (m_pFaProPara->ProPara.fLocal) //本地维护口
@@ -280,8 +359,10 @@ bool CFaProto::AddrCheck()
 					DTRACE(DB_FAPROTO,("AddrCheck: Universal-Addr check failed, bSvrAddr:%s, bCliAddr:%s !\r\n", \
 						HexToStr(m_LnkComm.bSvrAddr, m_LnkComm.bSvrAddLen, szSvrAddr), \
 						HexToStr(m_LnkComm.bCliAddrs, m_LnkComm.bCliAddrLen, szCliAddr)));
+					return false;
 				}
 			}
+			return true;
 		}
 	}
 	else	//广播地址
@@ -305,6 +386,14 @@ int  CFaProto::VeryFrm()
 	m_LnkComm.fIsSegSend = ((m_bRxBuf[3]&0x20) != 0);		//链路层是否有分帧
 	m_LnkComm.bFrmHeaderLen = m_LnkComm.bCliAddrLen+6;	//0x68+Len(2byte)+C(1byte)+AF(1byte)+SA(SvrLen)+CA(1byte)
 	
+	BYTE DIR = m_bRxBuf[3]&0x80;
+	if((1 != m_LnkComm.bFunCode && 3 != m_LnkComm.bFunCode) || (m_bRxBuf[3]&0x80) != 0 || ((m_bRxBuf[3]&0x40) != 0 && (m_bRxBuf[3]&0x80) != 0))//控制域检查，最高位为0表示此帧由主站发出，功能码目前仅1和3使用，其他保留
+	{
+		DTRACE(DB_FAPROTO,("VeryFrm: FunCode error, m_LnkComm.bFunCode=0x%02x!\r\n", m_LnkComm.bFunCode));
+		return -4;
+	}
+
+
 	//HCS检验	
 	WORD wCrc = CheckCrc16(&m_bRxBuf[1], m_LnkComm.bFrmHeaderLen-1); //帧头校验是除起始字符和HCS外的所有字节的校验
 	WORD wCrc1 = ((WORD)m_bRxBuf[m_LnkComm.bFrmHeaderLen+1]<<8) | m_bRxBuf[m_LnkComm.bFrmHeaderLen];
@@ -1113,7 +1202,7 @@ int CFaProto::Get_response(BYTE* pApdu)
 			NewAppServer();
 			m_AppComm.bServerMod = GET_NORMAL;
 			m_AppComm.pbAskStart = pApdu;
-			m_AppComm.pbAskEnd = pApdu + m_LnkComm.wAPDULen-4;//4; 只要OAD+扩展协议数据
+			m_AppComm.pbAskEnd = pApdu + m_LnkComm.wAPDULen-3;////减去bGetCmd， bAnsCmdMod， bPIID
 			
 			wLen = m_AppComm.pbAskEnd - m_AppComm.pbAskStart;
 			memcpy(m_AppComm.bAskBuf, m_AppComm.pbAskStart, wLen);
@@ -1228,6 +1317,10 @@ int CFaProto::Get_request_normal()
 	WORD wMaxRxLen,wLen;
 	int nRet;
 
+	TTime tm;
+	TTimeInterv Ti;
+	TTime t;
+
 	memset((BYTE*)&tApduInfo, 0, sizeof(tApduInfo));
 	tApduInfo.wOI = OoOiToWord(pbAskStart);
 	pbAskStart += 2;
@@ -1247,6 +1340,26 @@ int CFaProto::Get_request_normal()
 	else
 	{
 		nRet = OoProReadAttr(tApduInfo.wOI, tApduInfo.bAttr, tApduInfo.bIndex, pRxPtr, wMaxRxLen, &m_AppComm.iStep);
+		GetCurTime( &t );
+		DTRACE(DB_FAPROTO, ("Get_request_normal CurTime time %02d/%02d/%02d %02d::%02d::%02d.\r\n", t.nYear, t.nMonth, t.nDay, t.nHour, t.nMinute, t.nSecond));
+
+		if((wLen >= 11) && (*pbAskStart == 0x01))//带时间标签，需判断时效性
+		{
+			memset((BYTE*)&tm, 0, sizeof(tm));
+			tm.nYear = (*(pbAskStart+1))*256 +*(pbAskStart+2);
+			tm.nMonth = *(pbAskStart+3);
+			tm.nDay = *(pbAskStart+4);
+			tm.nHour = *(pbAskStart+5);
+			tm.nMinute = *(pbAskStart+6);
+			tm.nSecond = *(pbAskStart+7);
+
+			Ti.bUnit = *(pbAskStart+8);					
+			Ti.wVal = OoLongUnsignedToWord(pbAskStart+9);
+
+			DTRACE(DB_FAPROTO, ("Get_request_normal GetCurTime %d, %d,.\r\n", GetCurTime(),TimeToSeconds(tm),TiToSecondes(&Ti)));
+			if((TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti))) || GetCurTime() < TimeToSeconds(tm))//传输延时时间大于零,判断时效性
+				nRet = -5;
+		}
 	}
 	if (nRet <= 0)
 	{
@@ -1459,6 +1572,7 @@ int CFaProto::Get_request_normal_list()
 int CFaProto::Get_request_record()
 {
 	TApduInfo tApduInfo;
+	const ToaMap* pOI;
 	WORD wRetNum=0;
 	WORD wRxMaxLen;
 	BYTE *pbRxPtr;
@@ -1549,7 +1663,7 @@ GOTO_RSD10:	//方法10比较特殊
 		nRet = ReadRecord(tApduInfo.pbOAD, tApduInfo.pbRSD, tApduInfo.pbRCSD, &m_AppComm.iTabIdx, &m_AppComm.iStep, pbRxPtr, wRxMaxLen, &wRetNum);
 	}
 
-	if (nRet <= 0)
+	if (nRet < 0)
 	{
 		*pApdu++ = GET_RECORD;
 		*pApdu++ = m_AppComm.bPIID;
@@ -1580,6 +1694,7 @@ GOTO_RSD10:	//方法10比较特殊
 				//*pApdu++ = 0x00;	//DAR
 				//*pApdu++ = GetErrOfGet(nRet);	//对象不存在
 				*pApdu++ = 0x01;	//Data
+				*pApdu++ = 0x01;	//记录条数
 				*pApdu++ = 0x00;	//对象不存在
 			}
 		}
@@ -1587,10 +1702,30 @@ GOTO_RSD10:	//方法10比较特殊
 		{
 			memcpy(pApdu, tApduInfo.pbRCSD, tApduInfo.wRCSDLen);	
 			pApdu += tApduInfo.wRCSDLen;
-			//*pApdu++ = 0x00;				//DAR
-			//*pApdu++ = GetErrOfGet(nRet);	//对象不存在
-			*pApdu++ = 0x01;	//Data
-			*pApdu++ = 0x00;	//对象不存在
+	
+			DWORD dwOAD;
+			dwOAD = OoOadToDWord(tApduInfo.pbOAD);
+			pOI = GetOIMap(dwOAD);
+			if (pOI == NULL) //未定义的记录型对象属性
+			{
+			*pApdu++ = 0x00;				//DAR
+			*pApdu++ = GetErrOfGet(nRet);	//对象不存在
+			}
+			else
+			{
+				*pApdu++ = 0x01;	//Data
+				if(nRet!=-2)
+				{
+					*pApdu++ = 0x01;	//记录条数
+					for (int i=0; i<tApduInfo.pbRCSD[0]; i++) //CSD个数
+					{
+						*pApdu++ = 0x00;	//对象不存在
+					}
+				}
+                else{
+                    *pApdu++ = 0x00;
+                }
+			}
 		}
 
 	}
@@ -1644,7 +1779,39 @@ GOTO_RSD10:	//方法10比较特殊
 		{
 			memcpy(pApdu, tApduInfo.pbRCSD, tApduInfo.wRCSDLen);	
 			pApdu += tApduInfo.wRCSDLen;
-			*pApdu++ = 0x01;	//Data
+			bool fErr = false;
+			if (bMethod == 2)
+			{
+				DWORD dwOAD;
+				dwOAD = OoOadToDWord(&tApduInfo.pbRSD[1]); //对象属性描述符OAD
+				pOI = GetOIMap(dwOAD);
+				if (pOI!=NULL && pOI->pFmt!=NULL && pOI->pFmt[0]==DT_DATE_TIME_S)
+				{
+					TTime tmStart, tmEnd;
+					OoDateTimeSToTime(&tApduInfo.pbRSD[6], &tmStart);
+					OoDateTimeSToTime(&tApduInfo.pbRSD[14], &tmEnd);
+					if (SecondsPast(tmStart, tmEnd) == 0) //tmEnd <= tmStart
+						fErr = true;
+				} 
+			}
+            
+            if (fErr)
+            {
+    			*pApdu++ = 0x00;				//DAR
+    			*pApdu++ = GetErrOfGet(nRet);	//对象不存在
+            }
+            else
+            {
+                *pApdu++ = 0x01;	//Data
+                if(nRet==0)
+                {
+        		    *pApdu++ = 0x01;	//记录条数
+        		    for (int i=0; i<tApduInfo.pbRCSD[0]; i++) //CSD个数
+        		    {
+        		        *pApdu++ = 0x00;	//数据为NULL
+        		    }
+                }
+            }
 		}
 
 		if (wRetNum != 0)
@@ -1728,6 +1895,7 @@ int CFaProto::Get_request_record_list()
 	static const int iApdu1Offset = 128;
 	static const int iApdu2Offset = 128;
 	TApduInfo tApduInfo;
+	const ToaMap* pOI;
 	int iBakStep;
 	WORD wRetNum;
 	WORD wRxMaxLen;
@@ -1804,19 +1972,44 @@ int CFaProto::Get_request_record_list()
 						dwOAD = dwOAD + 0x00010000;	//如0x60140200 + 0x00010000 = 0x60150200
 						pApdu2 += OoDWordToOad(dwOAD, pApdu2);
 						//*pApdu++ = 0x00;	//DAR
-						//*pApdu++ = GetErrOfGet(nRet);	//对象不存在
+						pOI = GetOIMap(dwOAD);
+						if (pOI==NULL || pOI->wMode!=MAP_TASKDB) //未定义的记录型对象属性 || 非记录型对象属性
+						{
+							*pApdu2++ = 0x00;				//DAR
+							*pApdu2++ = GetErrOfGet(nRet);	//对象不存在
+						}
+						else
+						{
 						*pApdu2++ = 0x01;	//Data
+							*pApdu2++ = 0x01;	//记录条数
+							for (int i=0; i<tApduInfo.pbRCSD[0]; i++) //CSD个数
+							{
 						*pApdu2++ = 0x00;	//对象不存在
+							}
+						}
 					}
 				}
 				else
 				{
 					memcpy(pApdu2, tApduInfo.pbRCSD, tApduInfo.wRCSDLen);	
 					pApdu2 += tApduInfo.wRCSDLen;
-					//*pApdu++ = 0x00;				//DAR
-					//*pApdu++ = GetErrOfGet(nRet);	//对象不存在
+					DWORD dwOAD;
+					dwOAD = OoOadToDWord(tApduInfo.pbOAD);
+					pOI = GetOIMap(dwOAD);
+					if (pOI==NULL || pOI->wMode!=MAP_TASKDB) //未定义的记录型对象属性 || 非记录型对象属性
+					{
+						*pApdu2++ = 0x00;				//DAR
+						*pApdu2++ = GetErrOfGet(nRet);	//对象不存在
+					}
+					else
+					{
 					*pApdu2++ = 0x01;	//Data
+						*pApdu2++ = 0x01;	//记录条数
+						for (int i=0; i<tApduInfo.pbRCSD[0]; i++) //CSD个数
+						{
 					*pApdu2++ = 0x00;	//对象不存在
+						}
+					}
 				}
 				bGetNum++;
 			}
@@ -1915,6 +2108,8 @@ int CFaProto::Get_request_record_list()
 	*pApdu1++ = GetTimeFlg();
 
 	m_TxAPdu.wLen = pApdu1 - pApdu0;
+
+	memcpy(m_TxAPdu.bBuf, pApdu0, m_TxAPdu.wLen);
 
 	return ToSecurityLayer(); //ToLnkLayer();
 }
@@ -2079,7 +2274,9 @@ int CFaProto::Set_Request_Normal_List()
 		if (iDataLen < 0)	//数据长度出错，后面的OAD不再设置，直接退出，防止异常
 		{
 			DTRACE(DB_FAPROTO, ("Set_Request_Normal_List:: OoGetDataLen() error, OAD=0x%08x.\n"));
-			break;
+			iRet = OoGetDataTypeLen(pApdu);//扫描设置失败后的OAD后面的参数的长度				
+			pbAskStart += iRet;
+			//break;
 		}
 		else
 		{
@@ -2097,7 +2294,8 @@ int CFaProto::Set_Request_Normal_List()
 			if (iRet < 0)	//设置失败，后面的OAD不再设置，后面OAD的计算需要本次OAD的长度才能计算，所以这里直接退出，防止异常
 			{
 				*pApdu++ = GetErrOfSet(iRet);
-				break;
+				iRet = OoGetDataTypeLen(pbAskStart);//扫描设置失败后的OAD后面的参数的长度
+				//break;
 			}
 			else
 			{	
@@ -2160,10 +2358,11 @@ int CFaProto::Set_Then_Get_Request_Normal_List(BYTE *pApdu, WORD wApduLen)
 		pTxApdu += 4;
 		iDataLen = OoGetDataLen(DT_OAD, pApdu);
 		pApdu += 4;	//OAD
-		if (iDataLen < 0)
+		if (iDataLen <= 0)
 		{
 			*pTxApdu++ = GetErrOfGet(iDataLen);
-			break;	//无法获取长度，防止后续数据异常，直接退出
+			iRet = OoGetDataTypeLen(pApdu);//扫描设置失败后的OAD后面的参数的长度				
+			//break;	//无法获取长度，防止后续数据异常，直接退出
 		}
 		else
 		{
@@ -2171,8 +2370,9 @@ int CFaProto::Set_Then_Get_Request_Normal_List(BYTE *pApdu, WORD wApduLen)
 			if (iRet < 0)
 			{
 				DTRACE(DB_FAPROTO, ("Set_Then_Get_Request_Normal_List(): OoProWriteAttr OAD=0x%08x error.\n", (wOI<<16)|(bAttr<<8)|(bIndex)));
-				*pTxApdu++ = GetErrOfGet(iDataLen);
-				break;
+				*pTxApdu++ = GetErrOfGet(iDataLen);				
+				iRet = OoGetDataTypeLen(pApdu);//扫描设置失败后的OAD后面的参数的长度				
+				//break;
 			}
 			else
 			{
@@ -2375,6 +2575,8 @@ int CFaProto::Act_Response_List()
 				*pApdu++ = GetErrOfAct(iRet);	//对象不存在
 				*pApdu++ = 0;
 				DTRACE(DB_FAPROTO, ("Act_response-Act-list failed, dwOMD:0x%08x DoObjMethod failed !\r\n", dwOMD));
+				iRetParaLen = OoGetDataTypeLen(pbAskStart);//扫描设置失败后的OAD后面的参数的长度	
+
 				//break;
 			}
 		}
@@ -2400,10 +2602,10 @@ int CFaProto::Act_Response_List()
 //描述：Act命令-list-read模式的响应
 int CFaProto::Act_Then_Rd_List()
 {
-	DWORD dwSetOMD, dwGetOAD;
+		DWORD dwSetOMD, dwGetOAD;
 	BYTE bDlyTime;
 	const TOmMap* pOmMap = NULL;
-	int iRet, iRetParaLen;
+	int iRet = -1, iRetParaLen;
 	WORD wNum, wSetLen;
 	BYTE *pApdu0 = m_TxAPdu.bBuf;
 	BYTE *pApdu = pApdu0;
@@ -2422,7 +2624,7 @@ int CFaProto::Act_Then_Rd_List()
 	pbAskStart = m_AppComm.pbAskStart;
 	pbAskEnd = m_AppComm.pbAskEnd;
 	wNum = 0;
-	while (wNum < m_AppComm.bAskItemNum)
+	while (wNum < m_AppComm.bAskMethodNum)
 	{
 		dwSetOMD = OoOadToDWord(pbAskStart);
 		pbAskStart += 4;
@@ -2431,28 +2633,32 @@ int CFaProto::Act_Then_Rd_List()
 		{
 			pbRxBuf = pApdu + 16;
 			iRet = DoObjMethod(pOmMap->dwOM>>16, pOmMap->dwOM>>8, pOmMap->dwOM, pbAskStart, &iRetParaLen, NULL, pbRxBuf);
-			if (iRet > 0)
+			if (iRet >= 0)
 			{
 				pApdu += OoDWordToOad(dwSetOMD, pApdu);
 				*pApdu++ = DR_ERROK;	//DAR--ok
-				*pApdu++ = 0x01;	//data
+				*pApdu++ = 0x00;	//data
 				memcpy(pApdu, pbRxBuf, iRet);
 				pApdu += iRet;
 			}
 			else
 			{
 				pApdu += OoDWordToOad(dwSetOMD, pApdu);
-				*pApdu++ = GetErrOfAct(iRet);	//对象不存在
+				*pApdu++ = GetErrOfAct(iRet);//GetErrOfGet(iRet);	//对象不存在
+				*pApdu++ = 0x00;	//data
 				DTRACE(DB_FAPROTO, ("Act_Then_Rd_List failed, dwOMD:0x%08x DoObjMethod failed !\r\n", dwSetOMD));
-				break;
+				iRetParaLen =OoGetDataTypeLen(pbAskStart);//扫描设置失败后的OAD后面的参数的长度 	
+				//break;
 			}
 		}
 		else
 		{
 			pApdu += OoDWordToOad(dwSetOMD, pApdu);
-			*pApdu++ = GetErrOfAct(iRet);	//对象不存在
+			*pApdu++ = GetErrOfAct(iRet);//GetErrOfGet(iRet);	//对象不存在
+			*pApdu++ = 0x00;	//data
 			DTRACE(DB_FAPROTO, ("Act_Then_Rd_List failed, dwOMD:0x%08x GetOmMap failed !\r\n", dwSetOMD));
-			break;
+			iRetParaLen = OoGetDataTypeLen(pbAskStart);//扫描设置失败后的OAD后面的参数的长度		
+			//break;
 		}
 		
 		pbAskStart += iRetParaLen;
@@ -2470,8 +2676,8 @@ int CFaProto::Act_Then_Rd_List()
 		{
 			pApdu += OoDWordToOad(dwGetOAD, pApdu);
 			*pApdu++ = 0x00;				//DAR
-			*pApdu++ = GetErrOfAct(iRet);	//对象不存在
-			break;
+			*pApdu++ = GetErrOfAct(iRet);//GetErrOfGet(iRet);	//对象不存在
+			//break;
 		}
 		else
 		{
@@ -2584,7 +2790,7 @@ int CFaProto::ToSecurityLayer(void)
 		return ToLnkLayer();
 	}
 
-	if (m_LnkComm.bAddrType == ADDR_TYPE_BROADCAST)	//广播地址无需回确认帧
+	if (m_LnkComm.bAddrType == ADDR_TYPE_BROADCAST || m_LnkComm.bAddrType == ADDR_TYPE_GROUP)	//广播地址和组地址无需回确认帧
 		return 1;
 
 	//原APDU先放到buf里面
@@ -3122,8 +3328,23 @@ int CFaProto::ProxyGetRequestRecord()
 
 	wOneSeqLen = m_LnkComm.wAPDULen - (pApdu-&m_RxDPool.bBuf[0]) - 1;	//-1:时间标签
 	int iRet = DirAskMtrData(5, 3, bTsa, bAddrL, pApdu, wOneSeqLen, wTimeOut, pTxApdu);
+	if (iRet <= 0)  //协议一致性
+	{
+		memcpy(pTxApdu, pApdu, 4);
+		pTxApdu += 4;
+		pApdu += 6; //跳过OAD和RSD
+		memcpy(pTxApdu, pApdu, wOneSeqLen-6);
+		pTxApdu += wOneSeqLen-6;
+		*pTxApdu++ = DAR;	//错误信息
+		*pTxApdu++ = DAR_REQ_TIMEOUT;
+	}
+	else
+	{
+		pTxApdu += iRet;	
+	}
+	//pApdu += 4;
 	pApdu += wOneSeqLen;
-	pTxApdu += iRet;
+	//pTxApdu += iRet;
 
 	*pTxApdu++ = 0;	//时间标签
 	*pTxApdu++ = 0;	//上报标识
@@ -3152,9 +3373,168 @@ int CFaProto::ProxyActionThenGetRequestList()
 	return ProxyResponse(PROXY_ACT_THEN_GET_REQ_LIST);
 }
 
+int CFaProto::ProxyTimeoutDealSetThenGetReqList(BYTE * pbTx, BYTE *pbData)
+{
+	BYTE bNum = 0;
+	BYTE *pApdu = 0;
+	BYTE *pbData0 = pbData;
+	bNum = *pbTx++;
+	*pbData++ = bNum;
+	int iRet = 0, iLen=0;
+	WORD wLen=0;
+	BYTE bType1=0;
+	pApdu = pbTx;
+	
+	DTRACE(DB_FAPROTO, ("ProxyTimeoutDealSetThenGetReqList bNum=%d.\n", bNum));
+	
+	for (BYTE i=0; i<bNum; i++)
+	{
+		memcpy(pbData, pApdu, 4);
+		pbData += 4;
+
+		const ToaMap* pOI = GetOIMap(OoOadToDWord(pApdu));
+		if (pOI == NULL)
+		{
+				iLen = OoGetDataTypeLen(pApdu+4);
+				DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_REQ_LIST Can`t support, dwOAD=%08x, datalen=%d.\n", OoOadToDWord(pApdu), iLen));
+		}
+		else
+		iLen = OoScanData(pApdu+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType1);
+
+		if (iLen < 0)
+		{
+			DTRACE(DB_FAPROTO, ("ProxyTimeoutDealSetThenGetReqList OoScanData error, dwOAD=%08x.\n", OoOadToDWord(pApdu)));
+			break;
+		}
+		pApdu += 4;
+		*pbData++ = DAR_REQ_TIMEOUT; //645表不支持，设置、操作，直接回“拒绝读写”
+		pApdu += iLen;
+
+
+		memcpy(pbData, pApdu, 4);
+		pbData += 4;
+
+		pApdu += 4;
+		*pbData++ = 0; //645表不支持，设置、操作，直接回“拒绝读写”
+
+		pApdu++;	//跳过“延时读取时间”
+	}
+	iRet = pbData - pbData0;
+	pbData = pbData0;
+		
+	return iRet;
+}
+
+
+int CFaProto::ProxyTimeoutDealActReqList(BYTE * pbTx, BYTE *pbData)
+{
+	BYTE bNum = 0;
+	BYTE *pApdu = 0;
+	BYTE *pbData0 = pbData;
+	bNum = *pbTx++;
+	*pbData++ = bNum;
+	int iRet = 0, iLen=0;
+	WORD wLen=0;
+	BYTE bType1=0;
+	pApdu = pbTx;
+	
+	DTRACE(DB_FAPROTO, ("ProxyTimeoutDealActThenGetReqList bNum=%d.\n", bNum));
+	
+	for (BYTE i=0; i<bNum; i++)
+	{
+		memcpy(pbData, pApdu, 4);
+		pbData += 4;
+
+		const TOmMap* pOI = GetOmMap(OoOadToDWord(pApdu));
+		if (pOI == NULL)
+		{
+				iLen = OoGetDataTypeLen(pApdu+4);
+				DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_REQ_LIST Can`t support, dwOAD=%08x, datalen=%d.\n", OoOadToDWord(pApdu), iLen));
+		}
+		else
+		iLen = OoScanData(pApdu+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType1);
+		
+
+		if (iLen < 0)
+		{
+			DTRACE(DB_FAPROTO, ("ProxyTimeoutDealActThenGetReqList OoScanData error, dwOAD=%08x.\n", OoOadToDWord(pApdu)));
+			break;
+		}
+		pApdu += 4;
+		*pbData++ = DAR_REQ_TIMEOUT; //  DAR
+		*pbData++ = 0;    //data option
+		pApdu += iLen;
+
+	}
+	iRet = pbData - pbData0;
+	pbData = pbData0;
+		
+	return iRet;
+}
+
+
+
+int CFaProto::ProxyTimeoutDealActThenGetReqList(BYTE * pbTx, BYTE *pbData)
+{
+	BYTE bNum = 0;
+	BYTE *pApdu = 0;
+	BYTE *pbData0 = pbData;
+	bNum = *pbTx++;
+	*pbData++ = bNum;
+	int iRet = 0, iLen=0;
+	WORD wLen=0;
+	BYTE bType1=0;
+	pApdu = pbTx;
+	
+	DTRACE(DB_FAPROTO, ("ProxyTimeoutDealActThenGetReqList bNum=%d.\n", bNum));
+	
+	for (BYTE i=0; i<bNum; i++)
+	{
+		memcpy(pbData, pApdu, 4);
+		pbData += 4;
+
+		const TOmMap* pOI = GetOmMap(OoOadToDWord(pApdu));
+		if (pOI == NULL)
+		{
+				iLen = OoGetDataTypeLen(pApdu+4);
+				DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_REQ_LIST Can`t support, dwOAD=%08x, datalen=%d.\n", OoOadToDWord(pApdu), iLen));
+		}
+		else
+		iLen = OoScanData(pApdu+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType1);
+		
+
+		if (iLen < 0)
+		{
+			DTRACE(DB_FAPROTO, ("ProxyTimeoutDealActThenGetReqList OoScanData error, dwOAD=%08x.\n", OoOadToDWord(pApdu)));
+			break;
+		}
+		pApdu += 4;
+		*pbData++ = DAR_REQ_TIMEOUT; //  DAR
+		*pbData++ = 0;    //data option
+		pApdu += iLen;
+
+
+		memcpy(pbData, pApdu, 4);
+		pbData += 4;
+
+		pApdu += 4;
+		*pbData++ = 0; //Get-Result  choice
+		*pbData++ = DAR_OTHER;
+
+		pApdu++;	//跳过“延时读取时间”
+	}
+	iRet = pbData - pbData0;
+	pbData = pbData0;
+		
+	return iRet;
+}
+
+
+
+
 int CFaProto::ProxyTransCommandRequest()
 {
-	int iLen;
+		int iLen;
 	BYTE bSopBitArry[] = {ONESTOPBIT, TWOSTOPBITS};
 	BYTE *pTxApdu = m_TxAPdu.bBuf;
 	BYTE bTsa[TSA_LEN] = {0};
@@ -3163,6 +3543,11 @@ int CFaProto::ProxyTransCommandRequest()
 	TCommPara CommPara;
 	BYTE *pApdu = &m_RxDPool.bBuf[3];
 	WORD wFrmTimeOut, wByteTimeOut;
+	BYTE bStreamCtr = 0;
+	int iRet = 0;
+	DWORD dwSendLen;
+	BYTE bOffsetLen = 8;
+	BYTE *pTmpTxApdu  = NULL;
 
 	*pTxApdu++ = 0x89;//Proxy
 	*pTxApdu++ = 0x07;//TransCommandResponse
@@ -3187,18 +3572,22 @@ int CFaProto::ProxyTransCommandRequest()
 	CommPara.bParity = *pApdu++;
 	CommPara.bByteSize = *pApdu++;
 	CommPara.bStopBits = bSopBitArry[*pApdu++ - 1];
-	pApdu++; //流控
+	bStreamCtr = *pApdu++; //流控
+	//pApdu++; //流控
 	wFrmTimeOut = (WORD )(pApdu[0]<<8) + pApdu[1];
 	pApdu += 2;
 	wByteTimeOut = (WORD )(pApdu[0]<<8) + pApdu[1];
 	pApdu += 2;
+	if (bStreamCtr < 2)  // 流控合法，才发送， 过台体会检测这项  whr 20170707
+	{
+		iLen = DecodeLength(pApdu, &dwSendLen);
+		pApdu += iLen;
+		pTmpTxApdu = pTxApdu+bOffsetLen;
+		iRet = MtrDoFwd(CommPara, pApdu, dwSendLen, pTmpTxApdu, sizeof(m_TxAPdu.bBuf)-(pTmpTxApdu-m_TxAPdu.bBuf)-bOffsetLen, wFrmTimeOut, wByteTimeOut);
+	}
+	else
+		iRet = 0;
 
-	 DWORD dwSendLen;
-	iLen = DecodeLength(pApdu, &dwSendLen);
-	pApdu += iLen;
-	static const BYTE bOffsetLen = 8;
-	BYTE *pTmpTxApdu = pTxApdu+bOffsetLen;
-	int iRet = MtrDoFwd(CommPara, pApdu, dwSendLen, pTmpTxApdu, sizeof(m_TxAPdu.bBuf)-(pTmpTxApdu-m_TxAPdu.bBuf)-bOffsetLen, wFrmTimeOut, wByteTimeOut);
 	if (iRet > 0)
 	{
 		BYTE bTmpBuf[8] = {0};
@@ -3224,7 +3613,7 @@ int CFaProto::ProxyTransCommandRequest()
 
 int CFaProto::ProxyResponse(BYTE bPoxyType)
 {
-	BYTE *pTxApdu = m_TxAPdu.bBuf;
+		BYTE *pTxApdu = m_TxAPdu.bBuf;
 	BYTE *pbOADNum = NULL;
 	BYTE bAddrL, bTsa[TSA_LEN];
 	BYTE bApdu[128];
@@ -3233,10 +3622,13 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 	BYTE bSerObNum, bObDscNum;
 	WORD wPtr = 0, wOneSeqLen, wTmpLen;
 	BYTE *pbRx = &m_RxDPool.bBuf[3];
+	BYTE *pbRxNum = NULL;
 	WORD wTimeOut, wOneTimeOut;
 	DWORD dwLastTime;
 	int iTypeLen;
-	int iRet;
+	int iRet=0, iLen=0;
+	WORD wLen=0;
+	BYTE bType=0;
 
 	dwLastTime = GetCurTime();
 	wTimeOut = OoOiToWord(pbRx);
@@ -3265,6 +3657,7 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 		if (wOneTimeOut == 0)
 			wOneTimeOut = wTimeOut;
 		pbRx += 2;
+		pbRxNum = pbRx;
 		bObDscNum = *pbRx++;
 		switch(bPoxyType)
 		{
@@ -3302,28 +3695,30 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 			}
 			break;
 		case PROXY_SET_REQ_LIST:
-		case PROXY_ACT_REQ_LIST:
 			//*pbTx++ = bObDscNum;
 			memset(bApdu, 0, sizeof(bApdu));
 			pbApdu = bApdu;
 			*pbApdu++ = bObDscNum;
 			for (BYTE k=0; k<bObDscNum; k++)
 			{
-				int iLen;
-				WORD wLen;
-				BYTE bType;
+			
 
 				memcpy(pbApdu, pbRx, 4);
 				const ToaMap* pOI = GetOIMap(OoOadToDWord(pbRx));
 				if (pOI == NULL)
 				{
 					DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_REQ_LIST Can`t support, dwOAD=%08x.\n", OoOadToDWord(pbRx)));
-					return -1;
+					//return -1;
+					//协议一致性
+					pbApdu += 4;
+					pbRx += 4;
+					*pbApdu++ = NULL;
+					break; 		
 				}
 				iLen = OoScanData(pbRx+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType);
 				if (iLen < 0)
 				{
-					DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_REQ_LIST Can`t support, dwOAD=%08x.\n", OoOadToDWord(pbRx)));
+					DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_SET_REQ_LIST Can`t support, dwOAD=%08x.\n", OoOadToDWord(pbRx)));
 					return -1;
 				}
 				pbApdu += 4;
@@ -3334,10 +3729,8 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 			}
 
 			*pbApdu++ = 0x00;	//时间标签
-			if (bPoxyType == PROXY_SET_REQ_LIST)
-				iRet = DirAskMtrData(6, 2, bTsa, bAddrL, bApdu, pbApdu-bApdu, wOneTimeOut, pTxApdu);
-			else
-				iRet = DirAskMtrData(7, 2, bTsa, bAddrL, bApdu, pbApdu-bApdu, wOneTimeOut, pTxApdu);
+			iRet = DirAskMtrData(6, 2, bTsa, bAddrL, bApdu, pbApdu-bApdu, wOneTimeOut, pTxApdu);
+
 
 			if (iRet <= 0)
 			{
@@ -3355,12 +3748,57 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 			if (GetCurTime() - dwLastTime > wTimeOut)
 				goto ProxyResponse_ret;
 			break;
-		case PROXY_SET_THEN_GET_REQ_LIST:
-		case PROXY_ACT_THEN_GET_REQ_LIST:
-			int iLen;
-			WORD wLen;
-			BYTE bType;
+		case PROXY_ACT_REQ_LIST:
+			//*pbTx++ = bObDscNum;
+			memset(bApdu, 0, sizeof(bApdu));
+			pbApdu = bApdu;
+			*pbApdu++ = bObDscNum;
+			for (BYTE k=0; k<bObDscNum; k++)
+			{
+			
 
+				memcpy(pbApdu, pbRx, 4);
+				const TOmMap* pOI = GetOmMap(OoOadToDWord(pbRx));
+				if (pOI == NULL)
+				{
+					iLen = OoGetDataTypeLen(pbRx+4);
+					DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_THEN_GET_REQ_LIST Can`t support, dwOAD=%08x, datalen=%d.\n", OoOadToDWord(pbRx), iLen));
+				}
+				else
+				{
+					iLen = OoScanData(pbRx+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType);
+				}
+				if (iLen < 0)
+				{
+					DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_REQ_LIST Can`t support, dwOAD=%08x.\n", OoOadToDWord(pbRx)));
+					return -1;
+				}
+				pbApdu += 4;
+				pbRx += 4;
+				memcpy(pbApdu, pbRx, iLen);
+				pbApdu += iLen;
+				pbRx += iLen;
+			}
+
+			*pbApdu++ = 0x00;	//时间标签
+			iRet = DirAskMtrData(7, 2, bTsa, bAddrL, bApdu, pbApdu-bApdu, wOneTimeOut, pTxApdu);
+
+			if (iRet <= 0)
+			{
+				iRet = ProxyTimeoutDealActReqList(pbRxNum, pTxApdu);
+				pTxApdu += iRet;
+				DTRACE(DB_FAPROTO, ("ProxyTimeoutDealActReqList after iRet=%d\r\n", iRet));
+			}
+			else
+			{
+				//pbTx += (iRet-2);	//由于抄读时，数据返回(2字节)： FllowReport + 时间标签
+				pTxApdu += iRet;
+			}
+
+			if (GetCurTime() - dwLastTime > wTimeOut)
+				goto ProxyResponse_ret;
+			break;
+		case PROXY_SET_THEN_GET_REQ_LIST:
 			//*pbTx++ = bObDscNum;
 			memset(bApdu, 0, sizeof(bApdu));
 			pbApdu = bApdu;
@@ -3373,10 +3811,12 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 				const ToaMap* pOI = GetOIMap(OoOadToDWord(pbRx));
 				if (pOI == NULL)
 				{
-					DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_REQ_LIST Can`t support, dwOAD=%08x.\n", OoOadToDWord(pbRx)));
-					return -1;
+					iLen = OoGetDataTypeLen(pbRx+4);
+					DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_REQ_LIST Can`t support, dwOAD=%08x, datalen=%d.\n", OoOadToDWord(pbRx), iLen));
 				}
+				else
 				iLen = OoScanData(pbRx+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType);
+
 				if (iLen < 0)
 				{
 					DTRACE(DB_FAPROTO, ("ProxyResponse()1: PROXY_SET_THEN_GET_REQ_LIST Can`t support, dwOAD=%08x.\n", OoOadToDWord(pbRx)));
@@ -3398,31 +3838,86 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 			}
 
 			//时间标签
-			*pbApdu++ = 0x00;	
-			if (bPoxyType == PROXY_SET_THEN_GET_REQ_LIST)
-				iRet = DirAskMtrData(6, 3, bTsa, bAddrL, bApdu, pbApdu-bApdu, wOneTimeOut, pTxApdu+1);
-			else
-				iRet = DirAskMtrData(7, 3, bTsa, bAddrL, bApdu, pbApdu-bApdu, wOneTimeOut, pTxApdu+1);
+			*pbApdu++ = 0x00;
+			
+			iRet = DirAskMtrData(6, 3, bTsa, bAddrL, bApdu, pbApdu-bApdu, wOneTimeOut, pTxApdu);
 
+			DTRACE(DB_FAPROTO, ("DirAskMtrData after iRet=%d\r\n", iRet));
 			if (iRet <= 0)
 			{
-				memcpy(pTxApdu, bApdu, 4);
-				pTxApdu += 4;
-				*pTxApdu++ = DAR;
-				*pTxApdu++ = DAR_OTHER;
-				memcpy(pTxApdu, &bApdu[4+iTypeLen], 4);
-				*pTxApdu++ = DAR;
-				*pTxApdu++ = DAR_OTHER;
+				iRet = ProxyTimeoutDealSetThenGetReqList(pbRxNum, pTxApdu);
+				pTxApdu += iRet;
+				DTRACE(DB_FAPROTO, ("ProxyTimeoutDealSetThenGetReqList after iRet=%d\r\n", iRet));
 			}
 			else
 			{
-				*pTxApdu++ = 0x01;
 				pTxApdu += iRet;
 			}
 			if (GetCurTime() - dwLastTime > wTimeOut)
 				goto ProxyResponse_ret;
 
 			break;
+	  case PROXY_ACT_THEN_GET_REQ_LIST:
+	  		int iLen;
+			WORD wLen;
+			BYTE bType;
+
+			//*pbTx++ = bObDscNum;
+			memset(bApdu, 0, sizeof(bApdu));
+			pbApdu = bApdu;
+			*pbApdu++ = bObDscNum;
+
+			for (BYTE k=0; k<bObDscNum; k++)
+			{
+				//设置的对象属性描述符
+				memcpy(pbApdu, pbRx, 4);
+				const TOmMap* pOI = GetOmMap(OoOadToDWord(pbRx));
+				if (pOI == NULL)
+				{
+					iLen = OoGetDataTypeLen(pbRx+4);
+					DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_THEN_GET_REQ_LIST Can`t support, dwOAD=%08x, datalen=%d.\n", OoOadToDWord(pbRx), iLen));
+				}
+				else
+				iLen = OoScanData(pbRx+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType);
+
+				if (iLen < 0)
+				{
+					DTRACE(DB_FAPROTO, ("ProxyResponse()1: PROXY_ACT_THEN_GET_REQ_LIST Can`t support, dwOAD=%08x.\n", OoOadToDWord(pbRx)));
+					return -1;
+				}
+				pbApdu += 4;
+				pbRx += 4;
+				memcpy(pbApdu, pbRx, iLen);
+				pbApdu += iLen;
+				pbRx += iLen;
+
+				//读取的对象属性描述符
+				memcpy(pbApdu, pbRx, 4);	
+				pbApdu += 4;
+				pbRx += 4;
+
+				//及其延时读取时间
+				*pbApdu++ = *pbRx++;
+			}
+
+			//时间标签
+			*pbApdu++ = 0x00;
+					
+			iRet = DirAskMtrData(7, 3, bTsa, bAddrL, bApdu, pbApdu-bApdu, wOneTimeOut, pTxApdu);
+			DTRACE(DB_FAPROTO, ("DirAskMtrData after iRet=%d\r\n", iRet));
+			if (iRet <= 0)
+			{
+				iRet = ProxyTimeoutDealActThenGetReqList(pbRxNum, pTxApdu);
+				pTxApdu += iRet;
+				DTRACE(DB_FAPROTO, ("ProxyTimeoutDealActThenGetReqList after iRet=%d\r\n", iRet));
+			}
+			else
+			{
+				pTxApdu += iRet;
+			}
+			if (GetCurTime() - dwLastTime > wTimeOut)
+				goto ProxyResponse_ret;
+	  	break;
 		}
 	}
 
@@ -3549,8 +4044,11 @@ int CFaProto::MakeFrm(BYTE *pbBuf, WORD wLen)
 	m_bTxBuf[11+m_LnkComm.bSvrAddLen+wLen-1] = 0x16;
 	
 	m_wTxPtr = 12+m_LnkComm.bSvrAddLen+wLen-1;
-	Send( m_bTxBuf, m_wTxPtr);//send函数返回的是bool
-	return m_wTxPtr;//本函数要求返回的是发送的帧长度
+
+	if (Send( m_bTxBuf, m_wTxPtr))//send函数返回的是bool
+		return m_wTxPtr;//本函数要求返回的是发送的帧长度
+	else
+		return -1;
 }
 
 int CFaProto::MakeAutoFrm(bool fFinal)
@@ -3636,7 +4134,7 @@ int CFaProto::ToLnkLayer()
 	TAPdu *pTxApdu = &m_TxAPdu;
 	BYTE *pbApdu = pTxApdu->bBuf;
 
-	if (m_LnkComm.bAddrType == ADDR_TYPE_BROADCAST)	//广播地址无需回确认帧
+	if (m_LnkComm.bAddrType == ADDR_TYPE_BROADCAST || m_LnkComm.bAddrType == ADDR_TYPE_GROUP)	//广播地址组地址无需回确认帧
 		return 1;
 
 	WORD wSigFrmSize = m_LnkComm.tTxTrsPara.tConnPara.wSenFrmMaxLen;
@@ -4413,6 +4911,8 @@ int CFaProto::ZJReadDataEx(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf, bool f
 	*pbTx++ = *pbRx++;
 	*pbTx++ = *pbRx++;  //扩展控制码
 
+	wRxDataLen -= 1;  // 减去一个时间标签的字节，自己组态发帧不会带时间标签 
+
 	WORD wPn;
 	if (fWordPn)
 	{
@@ -4713,7 +5213,7 @@ bool CFaProto::AutoSend()
 //任务上报处理
 void CFaProto::TaskRpt(BYTE * pbNSend)
 {
-	DWORD dwSecsNow = GetCurTime();
+		DWORD dwSecsNow = GetCurTime();
 	BYTE i;	
 	bool fIsRestC3TxCnt = false;
 	TFapRptMsg *pMsg;
@@ -4746,14 +5246,23 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 	BYTE bMethod;
 
 	if (*pbNSend >= RPTMAXFRM_EVERYSEND)
+	{
+		DTRACE(DB_FAPROTO, ("CFaProto::TaskRpt NeedSend = %ld, no space!!! m_dwCnOAD=%04x.\n", *pbNSend, m_dwCnOAD));
 		return;
+	}
 
 	//如果待确认区满了，则不在处理常规队列，以防还有待确认帧无处可存
 	if (WaitQueGetNum() >= WaitQueGetSize())
+	{
+		DTRACE(DB_FAPROTO, ("CFaProto::TaskRpt WaitQueGetNum = %ld >= %ld, no space!!! m_dwCnOAD=%04x.\n", WaitQueGetNum(), WaitQueGetSize(), m_dwCnOAD));
 		return;
+	}
 	
 	if ( m_pFaProPara->ProPara.fAutoSend == false)//本通道不具备上报功能测退出
+	{
+		DTRACE(DB_FAPROTO, ("CFaProto::TaskRpt m_dwCnOAD=%04x fAutoSend is false.\n", m_dwCnOAD));
 		return;
+	}
 
 	if (m_wCurTaskId >= TASK_ID_NUM)
 	{
@@ -4769,8 +5278,7 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 			m_iStart = -1;
 			m_iRdPn = 0;
 		}
-		
-		
+
 		if (GetTaskCfg(m_wCurTaskId, &tTaskCfg) && (tTaskCfg.bSchType == SCH_TYPE_REPORT))
 		{
 			if (GetTaskCurExeTime(&tTaskCfg, &dwCurSec, &dwStartSec, &dwEndSec) != 0)
@@ -4802,9 +5310,10 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 				{
 					//判断方案通道里是否包括了自身线程通道，是则往下执行
 					BYTE n;
+					DWORD dwCn = 0;
 					for (n=0; n<pbTaskCSD[1]; n++)
 					{
-						DWORD dwCn = OoOadToDWord(&pbTaskCSD[3+n*5]);
+						dwCn = OoOadToDWord(&pbTaskCSD[3+n*5]);
 						//if (dwCn == m_dwCnOAD)
 #ifndef SYS_WIN
 						if ((dwCn&0xfff00000) == m_dwCnOAD)
@@ -4815,7 +5324,9 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 					}
 					if (n >= pbTaskCSD[1])
 					{
-						DTRACE(DB_FAPROTO, ("###TaskRpt dwCn ERR, wTaskId=%d.\n", m_wCurTaskId));
+						DTRACE(DB_FAPROTO, ("###TaskRpt dwCn = %04x, m_dwCnOAD=%04x ERR, wTaskId=%d.\n", dwCn, m_dwCnOAD, m_wCurTaskId));
+						//TraceBuf(DB_FAPROTO, "pbTaskCSD-->", pbTaskCSD, 7);
+
 						m_iStart = -1;
 						continue;
 					}
@@ -4911,6 +5422,7 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 								WaitQue(GB_DATACLASS1, bTxCnt, dwCycTime, m_wCurTaskId, m_bTxBuf, ret);
 								
 								*pbNSend = *pbNSend + 1;
+								Sleep(50);
 								if (*pbNSend >= RPTMAXFRM_EVERYSEND)
 									return;
 							}
@@ -5196,6 +5708,7 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 								WaitQue(GB_DATACLASS2, bTxCnt, dwCycTime, m_wCurTaskId, m_bTxBuf, ret);
 								
 								*pbNSend = *pbNSend + 1;
+								Sleep(50);
 								if (*pbNSend >= RPTMAXFRM_EVERYSEND)
 									return;
 								return;
@@ -5206,7 +5719,6 @@ NEXT_PN:
 						break;
 NEXT_TASK:
 						;
-
 					}
 				}
 			}

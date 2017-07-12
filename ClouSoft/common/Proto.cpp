@@ -196,7 +196,7 @@ WORD CProto::Receive(BYTE* pbRxBuf, WORD wBufSize)
 
 	
 //接收并处理帧
-bool CProto::RcvFrm()
+bool CProto::RcvFrm(bool fSingleMode)
 {
 	bool fRet = false;
 	if (m_pIf == NULL)
@@ -204,6 +204,7 @@ bool CProto::RcvFrm()
 
 	WORD len = 0;
 	BYTE  bBuf[PRO_FRM_SIZE];
+	int i = 0;
 	
 	len = Receive(bBuf, PRO_FRM_SIZE-10);
 	if (len > 0) 
@@ -235,7 +236,7 @@ bool CProto::RcvFrm()
 			len = RxFromLoopBuf(bBuf, PRO_FRM_SIZE-10);		
 			if (len > 0) 				
 			{
-				DTRACE(DB_FAPROTO, ("RcvFrm: rx from loopbuf len=%d\n", len));
+				//DTRACE(DB_FAPROTO, ("RcvFrm: rx from loopbuf len=%d\n", len));
 			}
 		}
 			
@@ -260,10 +261,47 @@ bool CProto::RcvFrm()
 			}
 			else if (nScanLen < 0)   //不全的报文
 			{
-				if (m_pProPara->fUseLoopBuf)
-					DeleteFromLoopBuf(-nScanLen); //删除已经扫描的数据
+				while(len > 0)
+				{
+					nScanLen = SingleRcvBlock(&bBuf[i], len);	//尝试单帧解析
+					if (nScanLen > 0)   //成功组成一帧
+					{
+						DTRACE(DB_FAPROTO, ("SingleRcvBlock: nScanLen=%d succeed.\n", nScanLen));
+						HandleFrm();   //帧处理
 					
-				break;
+						if (m_pProPara->fUseLoopBuf)
+						{
+							DeleteFromLoopBuf(nScanLen); //删除已经扫描的数据
+						}
+						else
+						{
+							len = len - nScanLen;
+						}
+
+						m_pIf->OnRcvFrm(); //在通信协议收到正确帧时调用,主要更新链路状态,比如心跳等
+						fRet = true;
+						m_dwRcvClick = GetClick();
+						if (fSingleMode)	//单帧模式，处理完一帧后立即退出
+							return true;
+					}
+					else
+					{
+						nScanLen = 0;
+						i = i + 1;
+						len = len - 1;
+						while(bBuf[i] != 0x68 && len > 0)//扫除前面不是以0x68开始的内容，重新解析以0x68开始后面的数据
+						{
+							i ++;
+							nScanLen ++;
+							len --;
+						}
+
+						if (m_pProPara->fUseLoopBuf)
+							DeleteFromLoopBuf(nScanLen); //删除已经扫描的数据
+
+						//break;
+					}
+				}
 			}
 		}
 		else

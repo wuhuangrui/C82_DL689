@@ -118,6 +118,19 @@ BYTE gbMeterTypeString[] = {DT_VIS_STR, 32, RLV};
 
 
 //终端广播校时参数
+BYTE bCascadeCommParam[] = {DT_STRUCT, 0x08,
+DT_BOOL,	// 级联标志
+DT_OAD,	// 级联通信端口号
+DT_LONG_U, // 总等待超时时间 10ms
+DT_LONG_U, // 字节超时时间 10ms
+DT_UNSIGN,  // 重发次数
+DT_UNSIGN,  // 巡测周期
+DT_UNSIGN,  // 级联(被)端口数
+DT_ARRAY, 20, DT_TSA  // 级联(被)终端地址
+};
+
+
+//终端广播校时参数
 BYTE bTermBroadTime[] = {DT_STRUCT, 2,
 DT_TIME,	//终端广播校时启动时间
 DT_BOOL,	//是否启用
@@ -125,8 +138,7 @@ DT_BOOL,	//是否启用
 
 //终端单地址广播校时参数
 BYTE bSigAddrBroadTime[] = {DT_STRUCT, 3,
-//DT_INT,	//时钟误差阈值 
-DT_UNSIGN,	//时钟误差阈值 
+DT_INT,	//时钟误差阈值 
 DT_TIME,	//终端广播校时启动时间
 DT_BOOL,	//是否启用
 };
@@ -147,6 +159,65 @@ BYTE g_bRptFlowFlg[] = {DT_BOOL};	//电气设备——允许跟随上报
 BYTE g_bRptFlg[] = {DT_BOOL};	//电气设备——允许主动上报
 BYTE g_bMastCall[] = {DT_BOOL};	//电气设备——允许与主站通话
 BYTE g_bMasRptCn[] = {DT_ARRAY, CN_RPT_NUM, DT_OAD};	//电气设备——上报通道，hyl目前0x430a的空间是按CN_RPT_NUM开的，为17个字节
+
+
+BYTE g_bApplyConnectObList[] = {DT_ARRAY,0x04,
+    DT_STRUCT,0x02,
+            DT_OI,
+            DT_STRUCT, 0x02, 
+                DT_ARRAY, 0x01, 
+                    DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,
+                DT_ARRAY, 0x01, 
+                    DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,                    
+    DT_STRUCT,0x02,
+            DT_OI,
+            DT_STRUCT, 0x02, 
+                DT_ARRAY, 0x01, 
+                    DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,
+                DT_ARRAY, 0x01, 
+                    DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,      
+     DT_STRUCT,0x02,
+            DT_OI,
+            DT_STRUCT, 0x02, 
+                DT_ARRAY, 0x01, 
+                    DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,
+                DT_ARRAY, 0x01, 
+                    DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,                    
+    DT_STRUCT,0x02,
+                DT_OI,
+                DT_STRUCT, 0x02, 
+                    DT_ARRAY, 0x01, 
+                        DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,
+                    DT_ARRAY, 0x01, 
+                        DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL, 
+
+/*  DT_STRUCT,0x02,DT_OI,
+            DT_STRUCT, 0x02, 
+            DT_ARRAY, 0x04, DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,
+            DT_ARRAY, 0x04, DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,
+    DT_STRUCT,0x02,DT_OI,
+            DT_STRUCT, 0x02,  
+            DT_ARRAY, 0x04, DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,
+            DT_ARRAY, 0x04, DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,
+     DT_STRUCT,0x02,DT_OI,
+            DT_STRUCT, 0x02,  
+            DT_ARRAY, 0x04, DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,
+            DT_ARRAY, 0x04, DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,
+ */}; 
+
+BYTE g_bApplyConnectContext[] = {DT_STRUCT,0x07,
+    DT_LONG_U,
+    DT_LONG_U,
+    DT_LONG_U,
+    DT_LONG_U, 
+    DT_BIT_STR, 64, RLF,
+    DT_BIT_STR, 128, RLF,
+    DT_DB_LONG_U};  // 应用语境信息
+BYTE g_bApplyConnectClientAddr[] = {DT_UNSIGN}; //当前连接的客户机地址
+BYTE g_bApplyConnectAuthmech[] = {DT_ENUM}; // 连接认证机制
+BYTE g_bAuthenticationKey[] = {DT_VIS_STR, 127,RLV}; // 认证密码
+
+
 
 BYTE g_bSimCCID[] = {DT_VIS_STR, 0x14, RLV};	//SIM卡的ICCID
 BYTE g_bIMSI[] = {DT_VIS_STR, 0x0F, RLV};	//IMSI
@@ -237,7 +308,9 @@ BYTE g_bEvtBitStrFmt[] = {DT_BIT_STR, 0x08, RLF};
 BYTE g_bEvtIntFmt[] = {DT_INT};		
 BYTE g_bEvtYKCtrlPEFmt[] = {DT_ARRAY, 8, DT_LONG64};		
 BYTE g_bEvtMtrClkTimeFmt[] = {DT_DATE_TIME_S};		
-BYTE g_bEvtMtrClkErrFmt[] = {DT_INT};		
+BYTE g_bEvtMtrClkErrFmt[] = {DT_INT};	
+BYTE g_bBCTimeTimeFmt[] = {DT_DATE_TIME_S};	
+
 
 
 BYTE g_bEvtYXParamFmt[] = {DT_ARRAY, 0x10,
@@ -403,7 +476,8 @@ DT_VIS_STR, 0x20, RLV,	//PPPoE密码
 };
 
 //MAC地址
-BYTE g_bEthMacCfg[] = {DT_MAC, 0x06, RLV};	
+BYTE g_bEthMacCfg[] = {DT_OCT_STR, 0x06, RLV};
+
 
 
 BYTE g_bMastCommPara[] = {DT_ARRAY, MAX_MAINIP_NUM,	//最多2个主站地址
@@ -2970,6 +3044,7 @@ ToaMap g_OIConvertClass[] =
 	{0x41130200,	8,		MAP_SYSDB,		0x4113, 	PN0,   0,		g_bBitStringTypeFmt,		sizeof(g_bBitStringTypeFmt),	NULL},	//无功组合方式1特征字
 	{0x41140200,	8,		MAP_SYSDB,		0x4114, 	PN0,   0,		g_bBitStringTypeFmt,		sizeof(g_bBitStringTypeFmt),	NULL},	//无功组合方式2特征字
 	{0x41160200,	8, 		MAP_SYSDB,		0x4116, 	PN0,   0,		g_bBalanceDayFmt,			sizeof(g_bBalanceDayFmt),		NULL},	//结算日参数
+	{0x42020200,    8,      MAP_SYSDB,      0x4202,     PN0,   0,       bCascadeCommParam,             sizeof(bCascadeCommParam),         NULL},  //终端级联通信参数
 	{0x42040200,	8,		MAP_SYSDB,		0x4204,		PN0,   0,		bTermBroadTime,				sizeof(bTermBroadTime),			NULL},  //终端广播校时参数
 	{0x42040300,	8,		MAP_SYSDB,		0x4205,		PN0,   0,		bSigAddrBroadTime,			sizeof(bSigAddrBroadTime),		NULL},  //终端单地址广播校时参数
 
@@ -2984,6 +3059,16 @@ ToaMap g_OIConvertClass[] =
 	{0x43000800,	9,		MAP_SYSDB,		0x4308,	  PN0,   0,		g_bRptFlg,			sizeof(g_bRptFlg),					NULL},	//电气设备——允许主动上报
 	{0x43000900,	9,		MAP_SYSDB,		0x4309,	  PN0,   0,		g_bMastCall,		sizeof(g_bMastCall),				NULL},	//电气设备——允许与主动通话
 	{0x43000a00,	9,		MAP_SYSDB,		0x430a,	  PN0,   0,		g_bMasRptCn,			sizeof(g_bMasRptCn),					NULL},	//电气设备——上报通道
+
+
+    {0x44000200,    20,    MAP_SYSDB,      0x4402,   PN0,   0,     g_bApplyConnectObList,          sizeof(g_bApplyConnectObList),           NULL},  // 应用连接属性2 对象列表
+    {0x44000300,    20,    MAP_SYSDB,      0x4403,   PN0,   0,     g_bApplyConnectContext,            sizeof(g_bApplyConnectContext),                    NULL},  // 应用连接属性3 应用语境信息
+    {0x44000400,    20,    MAP_SYSDB,      0x4404,   PN0,   0,     g_bApplyConnectClientAddr,            sizeof(g_bApplyConnectClientAddr),                    NULL},  // 应用连接属性4 当前连接客户机地址
+    {0x44000500,    20,    MAP_SYSDB,      0x4405,   PN0,   0,     g_bApplyConnectAuthmech,            sizeof(g_bApplyConnectAuthmech),                    NULL},  // 应用连接属性5 身份验证机制
+
+    // 认证密码
+    {0x44010200,   8,     MAP_SYSDB,       0x4401,      PN0,   0,     g_bAuthenticationKey,  sizeof(g_bAuthenticationKey),  NULL}, // 认证密码
+
 
 	//公网通信模块1
 	{0x45000200,	25,		MAP_SYSDB,		0x4500,	  PN0,   0,		g_bGprsCommCfg,		sizeof(g_bGprsCommCfg),				NULL},	//通讯配置
@@ -3114,6 +3199,7 @@ ToaMap g_OIConvertClass[] =
 	{0x60028100,	11,		MAP_SYSDB,		0x600B,	  PN0,   0,		NULL,												0},	//清空跨台区搜表结果
 
 	{0x60120200,	1,		MAP_TASKDB,		0x6012,	  PN0,   0,		g_bTskUnitFmtDesc/*g_bTskUnitFmtDesc+2*/,	sizeof(g_bTskUnitFmtDesc)/*sizeof(g_bTskUnitFmtDesc)-2*/},
+	{0x60120300,	1,		MAP_TASKDB, 	0,		  PN0,	 0, 	NULL,												0},
 	{0x60140200,	1,		MAP_TASKDB,		0x6014,	  PN0,   0,		g_bCommFmtDesc+2,		sizeof(g_bCommFmtDesc)-2},
 	{0x60160200,	1,		MAP_TASKDB,		0x6016,	  PN0,   0,		g_bEvtFmtDesc+2,		sizeof(g_bEvtFmtDesc)-2},
 	{0x60180200,	1,		MAP_TASKDB,		0x6018,	  PN0,   0,		g_bTranFmtDesc+2,		sizeof(g_bTranFmtDesc)-2},
@@ -3836,6 +3922,11 @@ TOmMap g_OmMap[] =
 	{0x32230400,	7,		g_bOADCfgFmt,	sizeof(g_bOADCfgFmt),						DoTermEvtMethod4,			NULL},	//添加一个事件关联对象属性
 	{0x32230500,	7,		g_bOADCfgFmt,	sizeof(g_bOADCfgFmt),						DoTermEvtMethod5,			NULL},	//删除一个事件关联对象属性
 
+	{0x40007f00,	8,	  g_bBCTimeTimeFmt,    sizeof(g_bBCTimeTimeFmt),		DoClass8BroadcastTimeMethod127, 		 NULL}, // 广播校时
+	{0x40067f00,    8,	 NULL,		 NULL,						 DoClass8ClockSourceMethod127,			NULL},	// 启用时钟源
+	{0x40068000,    8,	 NULL,		 NULL,						 DoClass8ClockSourceMethod128,			NULL},	// 停用时钟源
+
+
 	{0x43000100,	19,				NULL,		NULL,						DoDevInterfaceClass19,			NULL},	//复位
 	{0x43000200,	19,				NULL,		NULL,						DoDevInterfaceClass19,			NULL},	//执行
 	{0x43000300,	19,				NULL,		NULL,						DoDevInterfaceClass19,			NULL},	//数据初始化
@@ -4335,6 +4426,32 @@ int DelGrpCfgMethod5(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPa
 	return -1;
 }
 
+
+int DoClass8BroadcastTimeMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
+{
+    TTime Time;
+	BYTE* pb = pbPara;
+	pb++;
+
+	if(!OoDateTimeSToTime(pb, &Time))
+    {
+        return -1;
+    }   
+    // 发执行广播校时信号
+    return 0;
+}
+
+int DoClass8ClockSourceMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
+{
+	return 0;
+}
+
+int DoClass8ClockSourceMethod128(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
+{
+	return 0;
+}
+
+
 int DoDevInterfaceClass19(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	DWORD dwOMD = (wOI<<16) + (bMethod<<8) + bOpMode;
@@ -4435,6 +4552,13 @@ int DoClass11Method127_AddMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 	memset(bBuf, 0, sizeof(bBuf));
 	bBuf[0] = iParaLen;
 	memcpy(bBuf+1, pbPara, iParaLen);
+	if(IsValidMtrInfo(bBuf)<0)
+	{
+	    bDar = 1; // wqs 协议一致性，数据非法回异常
+        goto Do_ExMethod_Fail;
+	}
+
+	
 	DTRACE(DB_FAPROTO, ("DoClass11Method127_AddMeter: wPn=%ld, bBuf[0]=0x%02x, bBuf[1]=0x%02x.\n", wPn, bBuf[0], bBuf[1]));
 	iRet = WriteItemEx(BN0, wPn, 0x6000, bBuf);
 	if (iRet > 0)
@@ -4630,17 +4754,19 @@ int DoClass11Method131_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 	wMtrSn = OoLongUnsignedToWord(pbPara);
 	pbPara += 2;
 	wPn = MtrSnToPn(wMtrSn);
-	if (wPn == 0)
-		return -1;
-	memset(bBuf, 0, sizeof(bBuf));
-	WriteItemEx(BN0, wPn, 0x6000, bBuf);
+	if (wPn != 0)  
+	{
+		memset(bBuf, 0, sizeof(bBuf));
+		WriteItemEx(BN0, wPn, 0x6000, bBuf);
+		SetMtrSnToPn(wPn, 0);	//清除映射
 
-	TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
+		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
 
-	DTRACE(DB_FAPROTO, ("Delete meter successful.\n"));
-	SetDelayInfo(INFO_MTR_UPDATE);
-
-	pbRes[0] = DAR_SUCC;
+		DTRACE(DB_FAPROTO, ("Delete meter successful.\n"));
+		SetDelayInfo(INFO_MTR_UPDATE);
+	}
+	//wqs, 协议一致性，删除不存在的表号也需要返回成功
+	pbRes[0] = DAR_SUCC; 
 	return 1;
 }
 
@@ -4801,6 +4927,9 @@ int DoClass11Method134_DelAllMtr(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbP
 	BYTE bBuf[MTR_PARA_LEN];
 	bool fDelMtrFlg = false;
 
+	if(*pbPara != 0)//协议一致性判断入参
+		return -1;
+
 	for (wPn=0; wPn<POINT_NUM; wPn++)
 	{
 		if (IsPnValid(wPn))
@@ -4948,7 +5077,7 @@ int DelCommonMethod128(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 		if ((fd=TdbOpenTable(pszTabName, O_RDWR|O_BINARY)) < 0)
 		{
 			TdbCloseTable(fd);
-			return -1;
+			// return -1; 、、不存在也返回成功
 		}
 		else	
 		{
@@ -5709,7 +5838,7 @@ int UpdateRptFlgMethod130(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, in
 		if (schID<0	|| SchCtrl.wRecsFound==0)
 		{
 			TdbCloseTable(fd);
-			return -1;
+			//return -1;  // wqs 不需返回， 协议一致性
 		}
 		else	
 		{

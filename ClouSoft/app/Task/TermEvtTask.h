@@ -170,6 +170,12 @@
 
 #define PWR_OFF_RUN_CNT				8								//停电事件发生或恢复时保持的循环次数
 
+//当前事件状态定义pEvtCtrl->pEvtBase[bItem].bJudgeState
+#define EVT_JS_FORCE_END			0								//强制结束状态
+#define EVT_JS_HP					1								//事件自然发生状态
+#define EVT_JS_END					2								//事件自然结束状态
+
+
 //事件状态机定义
 #define EVT_S_BF_HP					1								//发生前。注，上电初始化后除了全失压事件重新获取掉电变量的状态机，其它都默认为0，即发生前
 #define EVT_S_AFT_HP				2								//发生后

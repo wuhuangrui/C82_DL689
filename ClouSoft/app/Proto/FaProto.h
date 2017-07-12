@@ -341,7 +341,7 @@ enum TActionResult
 	AR_DBlkUnavailable = 14,       //无效块             
 	AR_LongActAborted = 15,        //太长的方法操作服务退出 
 	AR_NoLongAct = 16,             //不应再操作方法了       
-	AR_Other = 250                 //其它错误
+	AR_Other = 255                 //其它错误
 };                                        
   
 //AARE的协商结果
@@ -506,6 +506,7 @@ typedef struct
 	BYTE bFrmHeaderLen;	//帧头长度
 	WORD wRFrmLen;		//接收帧全长
 	BYTE bFunCode;		//接收帧的功能码
+	BYTE bLogicAddr;	//逻辑地址
 	BYTE bAddrType;		//接收地址类型
 	BYTE bCliAddr;		//客户机地址
 	BYTE bSvrAddLen;	//服务器地址长度
@@ -722,6 +723,7 @@ public:
 	virtual void DoProRelated();	//做一些协议相关的非标准的事情
 ////////////////////////////LINK layer ////////////////////////////////////////////
 	int  RcvBlock(BYTE *pbBuf,int wLen);//检测有效帧
+	int  SingleRcvBlock(BYTE *pbBuf,int wLen);//单帧检测有效帧
 
 	CQueue 	m_TrsQueue;  //转发的报文消息队列
 	void DoNoComuTimeout();
@@ -786,6 +788,7 @@ private:
 	BYTE	m_bRxBuf[MAXFRMSIZE];//接收帧的缓存区
 	BYTE	m_nRxStep;
 	WORD	m_wRxPtr,m_nRxCnt;
+	BYTE	m_bSingleRxBuf[PRO_FRM_SIZE];//接收帧的缓存区
 
 	BYTE	m_bTxBuf[MAXFRMSIZE];//发送帧的缓存区
 	WORD	m_wTxPtr;
@@ -976,6 +979,11 @@ private:
 	int ZJLoadParaFile(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf);
 	int ZJAutoTest(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf);
 	int ZJDealTestCmd(BYTE* pbRxBuf, WORD wRxDataLen, BYTE* pbTxBuf);
+
+	
+	int ProxyTimeoutDealSetThenGetReqList(BYTE * pbTx, BYTE *pbData);
+	int ProxyTimeoutDealActThenGetReqList(BYTE * pbTx, BYTE *pbData);
+	int ProxyTimeoutDealActReqList(BYTE * pbTx, BYTE *pbData);
 };//end class CFaProto;
 
 #endif  //FAPROTO_H

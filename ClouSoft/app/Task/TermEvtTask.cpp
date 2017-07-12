@@ -1536,25 +1536,25 @@ bool InitEvt(struct TEvtCtrl* pEvtCtrl)
 	iLen = OoReadAttr(wOI, pEvtAttr->bMaxRecNum, bBuf, NULL, NULL);
 	if (iLen <= 0)
 	{	
-		//DTRACE(DB_INMTR, ("InitEvt: wOI=%u Init fail because Read wMaxNum fail.\r\n", wOI));
+		DTRACE(DB_INMTR, ("InitEvt: wOI=%u Init fail because Read wMaxNum fail.\r\n", wOI));
 		return false;
 	}
 	wMaxNum = OoLongUnsignedToWord(bBuf+1);	
-	//DTRACE(DB_INMTR, ("InitEvt: wOI=%u & wMaxNum=%u.\r\n", wOI, wMaxNum));
+	DTRACE(DB_INMTR, ("InitEvt: wOI=%u & wMaxNum=%u.\r\n", wOI, wMaxNum));
 	if (wMaxNum == 0)	//最大记录数为0，初始化失败
 		return false;
 
 	//获取固定字段和数据字段
 	if (GetEvtFieldParser(pEvtCtrl, &tFixFields, &tDataFields, bBuf, sizeof(bBuf)) == false)
 	{	
-		//DTRACE(DB_INMTR, ("InitEvt: wOI=%u GetEvtFieldParser() fail.\r\n", wOI));
+		DTRACE(DB_INMTR, ("InitEvt: wOI=%u GetEvtFieldParser() fail.\r\n", wOI));
 		return false;
 	}
 
 	//给数据字段申请整笔/临时空间
 	if (InitTmpMem(pEvtCtrl, &tDataFields) == false)
 	{	
-		//DTRACE(DB_INMTR, ("InitEvt: wOI=%u InitTmpMem() fail.\r\n", wOI));
+		DTRACE(DB_INMTR, ("InitEvt: wOI=%u InitTmpMem() fail.\r\n", wOI));
 		return false;
 	}
 
@@ -1566,7 +1566,7 @@ bool InitEvt(struct TEvtCtrl* pEvtCtrl)
 		iLen = CreateTable(pOaMap->pszTableName, &tFixFields, &tDataFields, (DWORD)wMaxNum);
 		if (iLen <= 0)	
 		{	
-			//DTRACE(DB_INMTR, ("InitEvt: wOI=%u bItem=%d CreateTable fail.\r\n", wOI, bItem));
+			DTRACE(DB_INMTR, ("InitEvt: wOI=%u bItem=%d CreateTable fail.\r\n", wOI, bItem));
 			return false;
 		}
 		//置初始化标识
@@ -1580,7 +1580,7 @@ bool InitEvt(struct TEvtCtrl* pEvtCtrl)
 	UpdateRecMem(pEvtCtrl, 1);
 	UpdateItemMem(pEvtCtrl, 1);
 	
-	//DTRACE(DB_INMTR, ("InitEvt: wOI=%u Init sucess.\r\n", wOI));
+	DTRACE(DB_INMTR, ("InitEvt: wOI=%u Init sucess.\r\n", wOI));
 	return true;
 }
 
@@ -1676,7 +1676,7 @@ int VLossJudge(struct TEvtCtrl* pEvtCtrl)
 		return -1;
 	
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
-		pEvtCtrl->pEvtBase[bItem].bJudgeState = 0;
+		pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -1689,7 +1689,7 @@ int VLossJudge(struct TEvtCtrl* pEvtCtrl)
 	pAllVLossEvtCtrl = GetTermEvtCtrl(MTR_ALLVLOSS);
 	if (pAllVLossEvtCtrl == NULL)
 		return 0;	
-	if  (pAllVLossEvtCtrl->pEvtBase[0].fExcValid== true)
+	if  (pAllVLossEvtCtrl->pEvtBase[0].fExcValid)
 	{
 		DTRACE(DB_INMTR, ("VLossJudge: AllVLoss is valid.\r\n"));
 		return 0;
@@ -1762,33 +1762,33 @@ int VLossJudge(struct TEvtCtrl* pEvtCtrl)
 #if 0	//调试使用								
 		if ((g_TestFlag == 1)&&(bItem == 0))	
 		{	if ((wVol[bItem]<tPara.wVUp) && (labs(iIval[bItem])> labs(tPara.iIDown)))			
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 			else if ((wVol[bItem]>=tPara.wVDown) || labs(iIval[bItem])<= labs(tPara.iIDown))	
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 		}	
 		else if ((g_TestFlag == 2)&&(bItem == 1))	
 		{	if ((wVol[bItem]<tPara.wVUp) && (labs(iIval[bItem])> labs(tPara.iIDown)))			
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 			else if ((wVol[bItem]>=tPara.wVDown) || labs(iIval[bItem])<= labs(tPara.iIDown))	
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 		}	
 		else if ((g_TestFlag == 3)&&(bItem == 2))	
 		{	if ((wVol[bItem]<tPara.wVUp) && (labs(iIval[bItem])> labs(tPara.iIDown)))			
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 			else if ((wVol[bItem]>=tPara.wVDown) || labs(iIval[bItem])<= labs(tPara.iIDown))	
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 		}
 		else
 		{	if ((wVol[bItem]<tPara.wVUp) && (labs(iIval[bItem])> labs(tPara.iIDown)))			
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 			else if ((wVol[bItem]>=tPara.wVDown) || labs(iIval[bItem])<= labs(tPara.iIDown))	
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 		}
 #else
 		if ((wVol[bItem]<tPara.wVUp) && (labs(iIval[bItem])> labs(tPara.iIDown)))			
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 		else if ((wVol[bItem]>=tPara.wVDown) || labs(iIval[bItem])<= labs(tPara.iIDown))	
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 #endif	
 		//DTRACE(DB_INMTR, ("************************VLossJudge: wVol=%u, tPara.wVUp=%u, tPara.wVDown=%u,iIval=%u, tPara.iIDown=%u, bItem=%d, bJudgeState=%d.\r\n",  wVol[bItem], tPara.wVUp, tPara.wVDown, iIval[bItem], tPara.iIDown, bItem, pEvtCtrl->pEvtBase[bItem].bJudgeState));	
 
@@ -1821,7 +1821,7 @@ int VLessJudge(struct TEvtCtrl* pEvtCtrl)
 		return -1;
 	
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
-		pEvtCtrl->pEvtBase[bItem].bJudgeState = 0;
+		pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -1887,36 +1887,36 @@ int VLessJudge(struct TEvtCtrl* pEvtCtrl)
 		if ((g_TestFlag == 1)&&(bItem == 0))	
 		{	
 			if (wVol[bItem]<tPara.wVUp)		
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 			else
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 		}	
 		else if ((g_TestFlag == 2)&&(bItem == 1))	
 		{	
 			if (wVol[bItem]<tPara.wVUp)		
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 			else
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 		}	
 		else if ((g_TestFlag == 3)&&(bItem == 2))	
 		{	
 			if (wVol[bItem]<tPara.wVUp)		
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 			else
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 		}
 		else
 		{
 			if (wVol[bItem]<tPara.wVUp)		
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 			else
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 		}
 #else
 		if (wVol[bItem]<tPara.wVUp)		
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 #endif	
 		
 		//DTRACE(DB_INMTR, ("************************VLessJudge: wVol=%u, tPara.wVUp=%u, bItem=%d, bJudgeState=%d.\r\n",  wVol[bItem], tPara.wVUp, bItem, pEvtCtrl->pEvtBase[bItem].bJudgeState));	
@@ -1951,7 +1951,7 @@ int VOverJudge(struct TEvtCtrl* pEvtCtrl)
 		return -1;
 
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
-		pEvtCtrl->pEvtBase[bItem].bJudgeState = 0;
+		pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -2014,9 +2014,9 @@ int VOverJudge(struct TEvtCtrl* pEvtCtrl)
 		if ((bPhase==2) && (bItem==1))
 			continue;		
 		if (wVol[bItem]>tPara.wVDown)		
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 		//DTRACE(DB_INMTR, ("************************VOverJudge: wVol=%u, tPara.wVDown=%u, bItem=%d, bJudgeState=%d.\r\n",  wVol[bItem], tPara.wVDown, bItem, pEvtCtrl->pEvtBase[bItem].bJudgeState));	
 	}
 	
@@ -2052,7 +2052,7 @@ int VBreakJudge(struct TEvtCtrl* pEvtCtrl)
 		return -1;
 	
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
-		pEvtCtrl->pEvtBase[bItem].bJudgeState = 0;
+		pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -2125,9 +2125,9 @@ int VBreakJudge(struct TEvtCtrl* pEvtCtrl)
 		if ((bPhase==2) && (bItem==1))
 			continue;		
 		if ((wVol[bItem]<tPara.wVUp) && (labs(iIval[bItem])<labs(tPara.iIUp)))			
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 		//DTRACE(DB_INMTR, ("************************VBreakJudge: wVol=%u, tPara.wVUp=%u, iIval=%u, tPara.iIUp=%u, bItem=%d, bJudgeState=%d.\r\n",  wVol[bItem], tPara.wVUp, iIval[bItem], tPara.iIUp, bItem, pEvtCtrl->pEvtBase[bItem].bJudgeState));	
 	}
 	
@@ -2166,7 +2166,7 @@ int ILossJudge(struct TEvtCtrl* pEvtCtrl)
 		return -1;
 	
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
-		pEvtCtrl->pEvtBase[bItem].bJudgeState = 0;
+		pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -2243,17 +2243,17 @@ int ILossJudge(struct TEvtCtrl* pEvtCtrl)
 		{
 			if (((labs(iIval[0])>labs(tPara.iIDown))||(labs(iIval[2])>labs(tPara.iIDown))) 
 				&& (wVol[bItem]>tPara.wVDowm) && (labs(iIval[bItem])<labs(tPara.iIUp)))	
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 			else
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 		}
 		else if (bPhase==3)
 		{
 			if (((labs(iIval[0])>labs(tPara.iIDown))||(labs(iIval[1])>labs(tPara.iIDown))||(labs(iIval[2])>labs(tPara.iIDown))) 
 				&& (wVol[bItem]>tPara.wVDowm) && (labs(iIval[bItem])<labs(tPara.iIUp)))	
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 			else
-				pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 		}
 	}
 	
@@ -2285,7 +2285,7 @@ int IOverJudge(struct TEvtCtrl* pEvtCtrl)
 		return -1;
 	
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
-		pEvtCtrl->pEvtBase[bItem].bJudgeState = 0;
+		pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -2348,9 +2348,9 @@ int IOverJudge(struct TEvtCtrl* pEvtCtrl)
 		if ((bPhase==2) && (bItem==1))
 			continue;	
 		if (labs(iIval[bItem])>labs(tPara.iDown))	
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 		//DTRACE(DB_INMTR, ("************************IOverJudge: iIval=%u,  iDown=%u, bItem=%d, bJudgeState=%d.\r\n",iIval[bItem],  tPara.iDown, bItem, pEvtCtrl->pEvtBase[bItem].bJudgeState));	
 	}
 	
@@ -2386,7 +2386,7 @@ int IBreakJudge(struct TEvtCtrl* pEvtCtrl)
 		return -1;
 	
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
-		pEvtCtrl->pEvtBase[bItem].bJudgeState = 0;
+		pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -2459,9 +2459,9 @@ int IBreakJudge(struct TEvtCtrl* pEvtCtrl)
 		if ((bPhase==2) && (bItem==1))
 			continue;	
 		if ((wVol[bItem]>tPara.wVDowm) && (labs(iIval[bItem])<labs(tPara.iIUp)))		
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 		//DTRACE(DB_INMTR, ("************************IBreakJudge: wVol=%u, tPara.wVDowm=%u, iIval=%u, tPara.iIUp=%u, bItem=%d, bJudgeState=%d.\r\n",  wVol[bItem], tPara.wVDowm, iIval[bItem], tPara.iIUp, bItem, pEvtCtrl->pEvtBase[bItem].bJudgeState));	
 	}
 	
@@ -2494,7 +2494,7 @@ int PReverseJudge(struct TEvtCtrl* pEvtCtrl)
 		return -1;
 	
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
-		pEvtCtrl->pEvtBase[bItem].bJudgeState = 0;
+		pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -2557,9 +2557,9 @@ int PReverseJudge(struct TEvtCtrl* pEvtCtrl)
 		if ((bPhase==2) && (bItem==1))
 			continue;	
 		if ((iPow[bItem+1]<0) && (labs(iPow[bItem+1])>labs(tPara.iPowDown)))	
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 	}
 	
 	return pEvtCtrl->pEvtBase[bItem].bJudgeState;
@@ -2590,7 +2590,7 @@ int POverJudge(struct TEvtCtrl* pEvtCtrl)
 		return -1;
 	
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
-		pEvtCtrl->pEvtBase[bItem].bJudgeState = 0;
+		pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -2653,9 +2653,9 @@ int POverJudge(struct TEvtCtrl* pEvtCtrl)
 		if ((bPhase==2) && (bItem==1))
 			continue;	
 		if (labs(iPow[bItem+1]) > labs(tPara.iPowDown))	
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 	}
 	
 	return pEvtCtrl->pEvtBase[bItem].bJudgeState;
@@ -2684,7 +2684,7 @@ int PDmdOverJudge(struct TEvtCtrl* pEvtCtrl)
 	if (pEvtCtrl->wOI != MTR_PDMDOVER)	
 		return -1;
 	
-	pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -2740,9 +2740,9 @@ int PDmdOverJudge(struct TEvtCtrl* pEvtCtrl)
 
 	//状态判断
 	if (dwDmd > tPara.dwDown)
-		pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 	else
-		pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 
 	DTRACE(DB_INMTR, ("************************PDmdOverJudge: dwDmd=%x,  dwDown=%x, bJudgeState=%d.\r\n",dwDmd, tPara.dwDown, pEvtCtrl->pEvtBase[0].bJudgeState));	
 	
@@ -2771,7 +2771,7 @@ int RPDmdOverJudge(struct TEvtCtrl* pEvtCtrl)
 	if (pEvtCtrl->wOI != MTR_RPDMDOVER)	
 		return -1;
 	
-	pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -2827,9 +2827,9 @@ int RPDmdOverJudge(struct TEvtCtrl* pEvtCtrl)
 
 	//状态判断
 	if (dwDmd > tPara.dwDown)
-		pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 	else
-		pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 
 	DTRACE(DB_INMTR, ("************************RPDmdOverJudge: dwDmd=%x,  dwDown=%x, bJudgeState=%d.\r\n",dwDmd, tPara.dwDown, pEvtCtrl->pEvtBase[0].bJudgeState));	
 
@@ -2860,7 +2860,7 @@ int QDmdOverJudge(struct TEvtCtrl* pEvtCtrl)
 		return -1;
 		
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
-		pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -2921,9 +2921,9 @@ int QDmdOverJudge(struct TEvtCtrl* pEvtCtrl)
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)	
 	{	
 		if (dwDmd[bItem] > tPara.dwDown)
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[bItem].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[bItem].bJudgeState = EVT_JS_END;
 
 		DTRACE(DB_INMTR, ("************************QDmdOverJudge: dwDmd[%d]=%x,  dwDown=%x, bJudgeState=%d.\r\n",bItem, dwDmd[bItem], tPara.dwDown, pEvtCtrl->pEvtBase[0].bJudgeState));
 	}
@@ -2958,7 +2958,7 @@ int PfUnderJudge(struct TEvtCtrl* pEvtCtrl)
 	if (pEvtCtrl->wOI != MTR_PFUNDER)	
 		return -1;
 	
-	pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -3029,16 +3029,16 @@ int PfUnderJudge(struct TEvtCtrl* pEvtCtrl)
 	if (bPhase == 2)
 	{
 		if ((iPf<tPara.iDown) && ((labs(iIval[0])>dwIb)||(labs(iIval[2])>dwIb)))
-			pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 	}
 	else if(bPhase == 3)
 	{
 		if ((iPf<tPara.iDown) && ((labs(iIval[0])>dwIb)||(labs(iIval[1])>dwIb)||(labs(iIval[2])>dwIb)))
-			pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 	}
 	//DTRACE(DB_INMTR, ("************************PfUnderJudge: iPf=%04x, tPara.iDown=%04x, iIval=%u-%u-%u,  dwIb=%u, bJudgeState=%d.\r\n",iPf, tPara.iDown, iIval[0], iIval[1], iIval[2], dwIb, pEvtCtrl->pEvtBase[0].bJudgeState));	
 	
@@ -3066,7 +3066,7 @@ int AVLossJudge(struct TEvtCtrl* pEvtCtrl)
 	if (pEvtCtrl->wOI != MTR_ALLVLOSS)	
 		return -1;
 	
-	pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -3130,16 +3130,16 @@ int AVLossJudge(struct TEvtCtrl* pEvtCtrl)
 	if (bPhase == 2)
 	{
 		if ((wVol[0]<wUn) && (wVol[2]<wUn) && ((labs(iIval[0])>dwIb)||(labs(iIval[2])>dwIb)))
-			pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 	}
 	else if(bPhase == 3)
 	{
 		if ((wVol[0]<wUn) && (wVol[1]<wUn) && (wVol[2]<wUn) && ((labs(iIval[0])>dwIb)||(labs(iIval[1])>dwIb)||(labs(iIval[2])>dwIb)))
-			pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 	}
 	//DTRACE(DB_INMTR, ("************************AVLossJudge: wVol=%u-%u-%u, wUn=%u,  iIval=%u-%u-%u, dwIb=%u, bJudgeState=%d.\r\n",wVol[0], wVol[1], wVol[2], wUn,  iIval[0], iIval[1], iIval[2], dwIb, pEvtCtrl->pEvtBase[0].bJudgeState));	
 	
@@ -3170,7 +3170,7 @@ int DisOrderJudge(struct TEvtCtrl* pEvtCtrl)
 	if ((pEvtCtrl->wOI!=MTR_VDISORDER) && (pEvtCtrl->wOI!=MTR_IDISORDER))
 		return -1;
 	
-	pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -3246,16 +3246,16 @@ int DisOrderJudge(struct TEvtCtrl* pEvtCtrl)
 		if (bPhase == 2)
 		{
 			if ((bPolar==1) && (wVol[0]>wUn) && (wVol[2]>wUn))
-				pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 			else
-				pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 		}
 		else if(bPhase == 3)
 		{
 			if ((bPolar==1) && (wVol[0]>wUn) && (wVol[1]>wUn) && (wVol[2]>wUn))
-				pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 			else
-				pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 		}
 		//DTRACE(DB_INMTR, ("************************UDisOrderJudge: bPolar=%d,  wVol=%u-%u-%u, wUn=%u, bJudgeState=%d.\r\n",bPolar,  wVol[0], wVol[1],wVol[2],wUn, pEvtCtrl->pEvtBase[0].bJudgeState));	
 	
@@ -3265,16 +3265,16 @@ int DisOrderJudge(struct TEvtCtrl* pEvtCtrl)
 		if (bPhase == 2)
 		{
 			if ((bPolar==2) && (wVol[0]>wUn) && (wVol[2]>wUn) && (labs(iIval[0])>dwIb) && (labs(iIval[2])>dwIb))
-				pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 			else
-				pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 		}
 		else if(bPhase == 3)
 		{
 			if ((bPolar==2) && (wVol[0]>wUn) && (wVol[1]>wUn) && (wVol[2]>wUn) && (labs(iIval[0])>dwIb) && (labs(iIval[1])>dwIb) && (labs(iIval[2])>dwIb))
-				pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 			else
-				pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+				pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 		}
 		//DTRACE(DB_INMTR, ("************************iDisOrderJudge: bPolar=%d,  wVol=%u-%u-%u, iIval=%u, wVol=%u-%u-%u, dwIb=%u, bJudgeState=%d.\r\n",bPolar,  wVol[0], wVol[1],wVol[2],wUn, iIval[0], iIval[1],iIval[2],dwIb, pEvtCtrl->pEvtBase[0].bJudgeState));	
 	}
@@ -3326,7 +3326,7 @@ int VUnBalanceJudge(struct TEvtCtrl* pEvtCtrl)
 	if (pEvtCtrl->wOI!=MTR_VUNBALANCE)
 		return -1;
 	
-	pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -3398,16 +3398,16 @@ int VUnBalanceJudge(struct TEvtCtrl* pEvtCtrl)
 	if (bPhase == 2)
 	{
 		if ((wRate>labs(tPara.iRate)) && ((wVol[0]>wUn)||(wVol[2]>wUn)))
-			pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 	}
 	else if (bPhase == 3)
 	{
 		if ((wRate>labs(tPara.iRate)) && ((wVol[0]>wUn)||(wVol[1]>wUn)||(wVol[2]>wUn)))
-			pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 	}
 
 	DTRACE(DB_INMTR, ("************************VUnBalanceJudge: wRate=%u,  tPara.iRate=%u, wVol=%u-%u-%u, wUn=%u, bJudgeState=%d.\r\n",wRate, tPara.iRate, wVol[0], wVol[1], wVol[2], wUn, pEvtCtrl->pEvtBase[0].bJudgeState));	
@@ -3441,7 +3441,7 @@ int IUnBalanceJudge(struct TEvtCtrl* pEvtCtrl)
 	if ((pEvtCtrl->wOI!=MTR_IUNBALANCE) && (pEvtCtrl->wOI!=MTR_ISUNBALANCE))
 		return -1;
 	
-	pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -3513,16 +3513,16 @@ int IUnBalanceJudge(struct TEvtCtrl* pEvtCtrl)
 	if (bPhase == 2)
 	{
 		if ((wRate>labs(tPara.iRate)) &&((labs(iIval[0])>dwIb)||(labs(iIval[2])>dwIb)))
-			pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 	}
 	else if(bPhase == 3)
 	{
 		if ((wRate>labs(tPara.iRate)) && ((labs(iIval[0])>dwIb)||(labs(iIval[1])>dwIb)||(labs(iIval[2])>dwIb)))
-			pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 	}
 
 	//DTRACE(DB_INMTR, ("************************IUnBalanceJudge:  wOI=%04x,  wRate=%u,  tPara.iRate=%u, iIval=%u-%u-%u, dwIb=%u, bJudgeState=%d.\r\n", pEvtCtrl->wOI, wRate, tPara.iRate, iIval[0], iIval[1], iIval[2], dwIb, pEvtCtrl->pEvtBase[0].bJudgeState));	
@@ -3548,7 +3548,7 @@ int TermErrJudge(struct TEvtCtrl* pEvtCtrl)
 	if ((pEvtCtrl->wOI!=MTR_CLKERR) && (pEvtCtrl->wOI!=MTR_MTRCHIPERR))
 		return -1;
 	
-	pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -3595,9 +3595,9 @@ int TermErrJudge(struct TEvtCtrl* pEvtCtrl)
 
 	//状态判断
 	if(bErr)	
-		pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 	else
-		pEvtCtrl->pEvtBase[0].bJudgeState = 2;		
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;		
 
 	//DTRACE(DB_INMTR, ("************************TermErrJudge:  wOI=%04x,  bErr=%d, bJudgeState=%d.\r\n", pEvtCtrl->wOI, bErr, pEvtCtrl->pEvtBase[0].bJudgeState));	
 
@@ -4377,7 +4377,7 @@ void UpdateState(struct TEvtCtrl* pEvtCtrl)
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
 		pEvtBase = &pEvtCtrl->pEvtBase[bItem];
-		if (pEvtBase->fInitOk == false)	//未初始化
+		if (!pEvtBase->fInitOk)	//未初始化
 			continue;
 
 		if (pEvtCtrl->pEvtBase[bItem].wTrigEvtDelaySec != 0)
@@ -4386,13 +4386,13 @@ void UpdateState(struct TEvtCtrl* pEvtCtrl)
 		//状态机的变化流程必须是如下：发生前--->发生后--->结束前--->结束后--->发生前
 		if (pEvtBase->bState == EVT_S_BF_HP)
 		{	
-			if (pEvtBase->bJudgeState == 1)	//发生前到发生需要滤波延时
+			if (pEvtBase->bJudgeState == EVT_JS_HP)	//发生前到发生需要滤波延时
 			{
 				pEvtBase->dwRecvClick = 0;
 				if (wDelaySec == 0)
 				{
 					pEvtBase->dwEstClick = GetClick();
-					if (pEvtBase->fExcValid == false)   //新产生一条事件
+					if (!pEvtBase->fExcValid)   //新产生一条事件
 					{
 						pEvtBase->bState = EVT_S_AFT_HP;	
 						pEvtBase->fExcValid = true;
@@ -4411,7 +4411,7 @@ void UpdateState(struct TEvtCtrl* pEvtCtrl)
 					{
 						if (GetClick()-pEvtBase->dwEstClick < wDelaySec) 
 							continue;
-						if (pEvtBase->fExcValid == false)   //新产生一条事件
+						if (!pEvtBase->fExcValid)   //新产生一条事件
 						{
 							GetCurTime(&time);
 							DTRACE(DB_METER_EXC, ("UpdateState-EVT_S_AFT_HP-s time= %02d %02d:%02d:%02d, pEvtCtrl->wOI=0x%02x, bItem=%d, pEvtBase->dwEstClick=%ld, GetClick()=%ld.\r\n", time.nDay, time.nHour, time.nMinute, time.nSecond, pEvtCtrl->wOI, bItem, pEvtBase->dwEstClick, GetClick()));	
@@ -4427,9 +4427,9 @@ void UpdateState(struct TEvtCtrl* pEvtCtrl)
 		{	
 			pEvtBase->bState = EVT_S_BF_END;
 			fUpDataFlag = true;
-			if (pEvtBase->bJudgeState == 0)	//掉电等情况会引起强制结束
+			if (pEvtBase->bJudgeState == EVT_JS_FORCE_END)	//掉电等情况会引起强制结束
 			{
-				if (pEvtBase->fExcValid == true)
+				if (pEvtBase->fExcValid)
 				{	
 					pEvtBase->bState = EVT_S_AFT_END;	
 					pEvtBase->fExcValid = false;
@@ -4438,16 +4438,16 @@ void UpdateState(struct TEvtCtrl* pEvtCtrl)
 		}
 		else if (pEvtBase->bState == EVT_S_BF_END)
 		{
-			if (pEvtBase->bJudgeState == 0)	//掉电等情况会引起强制结束
+			if (pEvtBase->bJudgeState == EVT_JS_FORCE_END)	//掉电等情况会引起强制结束
 			{
-				if (pEvtBase->fExcValid == true)
+				if (pEvtBase->fExcValid)
 				{	
 					pEvtBase->bState = EVT_S_AFT_END;	
 					pEvtBase->fExcValid = false;
 					fUpDataFlag = true;
 				}
 			}
-			else if (pEvtBase->bJudgeState == 2)	//正常运行中结束前到结束需要滤波延时
+			else if (pEvtBase->bJudgeState == EVT_JS_END)	//正常运行中结束前到结束需要滤波延时
 			{
 				pEvtBase->dwEstClick = 0;
 				if (wDelaySec == 0)
@@ -4473,7 +4473,7 @@ void UpdateState(struct TEvtCtrl* pEvtCtrl)
 						if (GetClick()-pEvtBase->dwRecvClick < wDelaySec) 
 							continue;
 
-						if (pEvtBase->fExcValid == true)  //一条事件恢复了
+						if (pEvtBase->fExcValid)  //一条事件恢复了
 						{
 							GetCurTime(&time);
 							DTRACE(DB_METER_EXC, ("UpdateState-EVT_S_AFT_END-s time= %02d %02d:%02d:%02d, pEvtCtrl->wOI=0x%02x, bItem=%d, pEvtBase->dwEstClick=%ld, GetClick()=%ld.\r\n", time.nDay, time.nHour, time.nMinute, time.nSecond, pEvtCtrl->wOI, bItem, pEvtBase->dwEstClick, GetClick()));	
@@ -4490,7 +4490,10 @@ void UpdateState(struct TEvtCtrl* pEvtCtrl)
 			pEvtBase->bState = EVT_S_BF_HP;
 			fUpDataFlag = true;
 		}
-		else continue;		
+		else 	
+		{
+			pEvtBase->fInitOk = false;	//数据不正确重新初始化。
+		}		
 	}
 
 	 if (fUpDataFlag)
@@ -4535,7 +4538,7 @@ void UpdateRecMem(struct TEvtCtrl* pEvtCtrl, BYTE bSaveType)
 	{
 		pbRec = bRecMemBuf;
 		pEvtBase = &pEvtCtrl->pEvtBase[bItem];
-		if (pEvtBase->fInitOk == false)	//未初始化
+		if (!pEvtBase->fInitOk)	//未初始化
 			{bAttrTab++;continue;}
 		if (pEvtBase->bMemType != MEM_TYPE_TERM_EVTREC)	//未申请临时空间直接退出
 			{bAttrTab++;continue;}
@@ -4618,7 +4621,7 @@ void UpdateItemMem(struct TEvtCtrl* pEvtCtrl, BYTE bSaveType)
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
 		pEvtBase = &pEvtCtrl->pEvtBase[bItem];
-		if (pEvtBase->fInitOk == false)	//未初始化
+		if (!pEvtBase->fInitOk)	//未初始化
 			{bAttrTab++;continue;}
 		if (pEvtBase->bMemType != MEM_TYPE_TERM_EVTITEM)	//未申请临时空间直接退出
 			{bAttrTab++;continue;}
@@ -4702,7 +4705,7 @@ bool UpdateEvtStaData(struct TEvtCtrl* pEvtCtrl)
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
 		pEvtBase = &pEvtCtrl->pEvtBase[bItem];
-		if (pEvtBase->fInitOk == false)	//未初始化
+		if (!pEvtBase->fInitOk)	//未初始化
 			continue;
 		bState = pEvtBase->bState;
 		bItemNo = bItem;
@@ -4796,7 +4799,7 @@ bool UpdateEvtStaData(struct TEvtCtrl* pEvtCtrl)
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
 		pEvtBase = &pEvtCtrl->pEvtBase[bItem];
-		if (pEvtBase->fInitOk == false)	//未初始化
+		if (!pEvtBase->fInitOk)	//未初始化
 			continue;
 		bState = pEvtBase->bState;
 		bItemNo = bItem;
@@ -4855,7 +4858,7 @@ void UpdateVLossPriv(struct TEvtCtrl* pEvtCtrl)
 
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
-		if (pEvtCtrl->pEvtBase[bItem].fInitOk == false)	//未初始化
+		if (!pEvtCtrl->pEvtBase[bItem].fInitOk)	//未初始化
 			continue;
 
 		//私有变量实时维护
@@ -4938,7 +4941,7 @@ void UpdateDmdPriv(struct TEvtCtrl* pEvtCtrl)
 	wDmdID = wDmdID0;
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
-		if (pEvtCtrl->pEvtBase[bItem].fInitOk == false) //未初始化
+		if (!pEvtCtrl->pEvtBase[bItem].fInitOk) //未初始化
 			{wDmdID++;continue;}
 		if (pEvtCtrl->pEvtBase[bItem].bState == EVT_S_BF_HP)	//未发生事件不需要刷新
 		{	
@@ -4968,7 +4971,7 @@ void UpdateDmdPriv(struct TEvtCtrl* pEvtCtrl)
 	wDmdID = wDmdID0;
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
-		if (pEvtCtrl->pEvtBase[bItem].fInitOk == false) //未初始化
+		if (!pEvtCtrl->pEvtBase[bItem].fInitOk) //未初始化
 			{wDmdID++;continue;}
 		if (pEvtCtrl->pEvtBase[bItem].bState <= EVT_S_AFT_HP)	//未发生事件不需要刷新
 			{wDmdID++;continue;}
@@ -5048,6 +5051,7 @@ bool SaveTermEvtRec(struct TEvtCtrl* pEvtCtrl)
 	//记录
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
+		bSendRptFlag = EVT_STAGE_UNCARE;
 		pbRec = bRecBuf;	
 		bState = pEvtCtrl->pEvtBase[bItem].bState;
 		if ((bState!=EVT_S_AFT_HP) && (bState!=EVT_S_AFT_END ))	//只有发生和结束时才需要记录
@@ -5487,7 +5491,7 @@ bool DoNullEvt(struct TEvtCtrl* pEvtCtrl)
 	//重初始化
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
-		if (pEvtCtrl->pEvtBase[bItem].fInitOk == false)
+		if (!pEvtCtrl->pEvtBase[bItem].fInitOk)
 		{	
 			DTRACE(DB_INMTR, ("DoNullEvt: wOI=%u at Click=%d.\r\n", pEvtCtrl->wOI, GetClick()));
 			pEvtCtrl->pfnInitEvt(pEvtCtrl);
@@ -5496,7 +5500,7 @@ bool DoNullEvt(struct TEvtCtrl* pEvtCtrl)
 	//重初始化后仍有失败项，直接返回
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
-		if (pEvtCtrl->pEvtBase[bItem].fInitOk == false)
+		if (!pEvtCtrl->pEvtBase[bItem].fInitOk)
 			return false;
 	}
 
@@ -5541,7 +5545,7 @@ bool DoEvt(struct TEvtCtrl* pEvtCtrl)
 	//重初始化
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
-		if (pEvtCtrl->pEvtBase[bItem].fInitOk == false)
+		if (!pEvtCtrl->pEvtBase[bItem].fInitOk)
 		{	
 			DTRACE(DB_INMTR, ("DoEvt: wOI=%u at Click=%d.\r\n", pEvtCtrl->wOI, GetClick()));
 			pEvtCtrl->pfnInitEvt(pEvtCtrl);
@@ -5550,7 +5554,7 @@ bool DoEvt(struct TEvtCtrl* pEvtCtrl)
 	//重初始化后仍有失败项，直接返回
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
-		if (pEvtCtrl->pEvtBase[bItem].fInitOk == false)
+		if (!pEvtCtrl->pEvtBase[bItem].fInitOk)
 			return false;
 	}
 
@@ -5594,7 +5598,7 @@ bool DoVLoss(struct TEvtCtrl* pEvtCtrl)
 	//重初始化
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
-		if (pEvtCtrl->pEvtBase[bItem].fInitOk == false)
+		if (!pEvtCtrl->pEvtBase[bItem].fInitOk)
 		{	
 			DTRACE(DB_INMTR, ("DoVLoss: wOI=%u at Click=%d.\r\n", pEvtCtrl->wOI, GetClick()));
 			pEvtCtrl->pfnInitEvt(pEvtCtrl);
@@ -5603,7 +5607,7 @@ bool DoVLoss(struct TEvtCtrl* pEvtCtrl)
 	//重初始化后仍有失败项，直接返回
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
-		if (pEvtCtrl->pEvtBase[bItem].fInitOk == false)
+		if (!pEvtCtrl->pEvtBase[bItem].fInitOk)
 			return false;
 	}
 	
@@ -5651,7 +5655,7 @@ bool DoDmd(struct TEvtCtrl* pEvtCtrl)
 	//重初始化
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
-		if (pEvtCtrl->pEvtBase[bItem].fInitOk == false)
+		if (!pEvtCtrl->pEvtBase[bItem].fInitOk)
 		{	
 			DTRACE(DB_INMTR, ("DoDmd: wOI=%u at Click=%d.\r\n", pEvtCtrl->wOI, GetClick()));
 			pEvtCtrl->pfnInitEvt(pEvtCtrl);
@@ -5660,7 +5664,7 @@ bool DoDmd(struct TEvtCtrl* pEvtCtrl)
 	//重初始化后仍有失败项，直接返回
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
-		if (pEvtCtrl->pEvtBase[bItem].fInitOk == false)
+		if (!pEvtCtrl->pEvtBase[bItem].fInitOk)
 			return false;
 	}
 
@@ -5708,7 +5712,7 @@ bool DoAVLoss(struct TEvtCtrl* pEvtCtrl)
 	//重初始化
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
-		if (pEvtCtrl->pEvtBase[bItem].fInitOk == false)
+		if (!pEvtCtrl->pEvtBase[bItem].fInitOk)
 		{	
 			DTRACE(DB_INMTR, ("DoAVLoss: wOI=%u at Click=%d.\r\n", pEvtCtrl->wOI, GetClick()));
 			pEvtCtrl->pfnInitEvt(pEvtCtrl);
@@ -5717,7 +5721,7 @@ bool DoAVLoss(struct TEvtCtrl* pEvtCtrl)
 	//重初始化后仍有失败项，直接返回
 	for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 	{
-		if (pEvtCtrl->pEvtBase[bItem].fInitOk == false)
+		if (!pEvtCtrl->pEvtBase[bItem].fInitOk)
 			return false;
 	}
 
@@ -5925,7 +5929,7 @@ bool RecordSpecTrigerEvt(struct TEvtCtrl* pEvtCtrl)
 		//重初始化
 		for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 		{
-			if (pEvtCtrl->pEvtBase[bItem].fInitOk == false)
+			if (!pEvtCtrl->pEvtBase[bItem].fInitOk)
 			{	
 				DTRACE(DB_INMTR, ("RecordSpecTrigerEvt: wOI=%u at Click=%d.\r\n", pEvtCtrl->wOI, GetClick()));
 				pEvtCtrl->pfnInitEvt(pEvtCtrl);
@@ -5934,7 +5938,7 @@ bool RecordSpecTrigerEvt(struct TEvtCtrl* pEvtCtrl)
 		//重初始化后仍有失败项，直接返回
 		for(bItem=0; bItem<pEvtCtrl->bItemNum; bItem++)
 		{
-			if (pEvtCtrl->pEvtBase[bItem].fInitOk == false)
+			if (!pEvtCtrl->pEvtBase[bItem].fInitOk)
 				return false;
 		}
 			
@@ -6045,7 +6049,7 @@ void GetEvtClearOMD(WORD wOI, BYTE bMethod, BYTE bOpMode)
 	{
 		if (bMethod != EVT_RESET)	//事件分项清零
 		{	
-			if (wOI!=MTR_EVTCLEAR && bMethod!=EVT_TRIG_ID)
+			if (wOI!=MTR_EVTCLEAR)
 				return;
 		}
 		//获取事件控制结构
@@ -7278,9 +7282,9 @@ int DoYXChgJudge(struct TEvtCtrl* pEvtCtrl)
 	pCtrl->bStaByte = bStaByte;
 
     if (bChgByte != 0)
-       pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+       pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 	else
-		pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 
     return pEvtCtrl->pEvtBase[0].bJudgeState;
 }
@@ -7463,7 +7467,7 @@ int FluxOverJudge(struct TEvtCtrl* pEvtCtrl)
 	DWORD dwMonthFluxLimit = 0;
 	DWORD dwCurMonthFlux = 0;
 
-	pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 
 	memset(bBuf, 0, sizeof(bBuf));
 	if (OoReadAttr(pEvtCtrl->wOI, IC7_VALIDFLAG, bBuf, NULL, NULL) > 0)		//有效标志
@@ -7494,9 +7498,9 @@ int FluxOverJudge(struct TEvtCtrl* pEvtCtrl)
 	if (dwMonthFluxLimit != 0)	//不为0参数才有效
 	{
 		if (dwCurMonthFlux > dwMonthFluxLimit)
-			pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 		else
-			pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 	}
 
     return pEvtCtrl->pEvtBase[0].bJudgeState;
@@ -7567,7 +7571,7 @@ int UnKnMtrJudge(struct TEvtCtrl* pEvtCtrl)
 	if (pEvtCtrl->wOI != TERM_UNKNOWNMTR)	
 		return -1;
 	
-	pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -7591,13 +7595,13 @@ int UnKnMtrJudge(struct TEvtCtrl* pEvtCtrl)
 	{	
 		if (IsNeedSaveShMtrEvt(pEvtPriv->bShMtrFlag, pEvtPriv->bSaveFlag))	//维护bShMtrFlag和bSaveFlag
 		{	
-			pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 			pEvtPriv->bRunStep = 1;
 		}
 	}
 	else
 	{
-		pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 		pEvtPriv->bRunStep++;
 		if (pEvtPriv->bRunStep > 6)	//多几轮没关系
 			pEvtPriv->bRunStep = 0;
@@ -7619,7 +7623,7 @@ int StepAreaJudge(struct TEvtCtrl* pEvtCtrl)
 	if (pEvtCtrl->wOI != TERM_STEPAREA)	
 		return -1;
 	
-	pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -7644,13 +7648,13 @@ int StepAreaJudge(struct TEvtCtrl* pEvtCtrl)
 		//台区搜表还不知道陈亮接口,后面再单独做
 		//if (IsNeedSaveShMtrEvt(pEvtPriv->bShMtrFlag, pEvtPriv->bSaveFlag, SCH_MTR_SAVE_LEN, STEP_AREA_SAVE_REC_NUM))	//维护bShMtrFlag和bSaveFlag
 		//{	
-		//	pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+		//	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 		//	pEvtPriv->bRunStep = 1;
 		//}
 	}
 	else
 	{
-		pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 		pEvtPriv->bRunStep++;
 		if (pEvtPriv->bRunStep > 6)	//多几轮没关系
 			pEvtPriv->bRunStep = 0;
@@ -7688,7 +7692,7 @@ int EpOverJudge(struct TEvtCtrl* pEvtCtrl)
 	if (pEvtCtrl->wOI != TERM_EPOVER)	
 		return -1;
 	
-	pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 	
 	//掉电
 	if (IsPowerOff())
@@ -7737,11 +7741,11 @@ int EpOverJudge(struct TEvtCtrl* pEvtCtrl)
 	//	给g_EpOver.bReferEng赋值
 	//	给g_EpOver.bRelaErr赋值
 	//	给g_EpOver.bAbsoErr赋值
-	//	pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+	//	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 	//}
 	//else if(未产生差动事件)
 	//{
-	//	pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+	//	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 	//}
 
 //#if 1	//差动事件调试使用
@@ -7751,7 +7755,7 @@ int EpOverJudge(struct TEvtCtrl* pEvtCtrl)
 	BYTE bBuf3[] = {DT_INT, 0x03,};
 	BYTE bBuf4[] = {DT_LONG64, 4,2,3,4,5,6,7,8};
 
-	pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 	if (bEpOverTestFlag)
 	{
 		//bEpOverTestFlag = 0;
@@ -7759,7 +7763,7 @@ int EpOverJudge(struct TEvtCtrl* pEvtCtrl)
 		memcpy(&g_EpOver.bReferEng[0], bBuf2, 9);
 		memcpy(&g_EpOver.bRelaErr[0], bBuf3, 2);
 		memcpy(&g_EpOver.bAbsoErr[0], bBuf4, 9);
-		pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 	}
 #endif
 
@@ -7831,7 +7835,7 @@ int OnInfoTrigerEvtJudge(struct TEvtCtrl* pEvtCtrl, BYTE bInfoType)
 	BYTE bBuf[10];
 	TDeviceErr* pEvtPriv = NULL;
 
-	pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 
 	memset(bBuf, 0, sizeof(bBuf));
 	if (OoReadAttr(pEvtCtrl->wOI, IC7_VALIDFLAG, bBuf, NULL, NULL) > 0)		//有效标志
@@ -7867,11 +7871,11 @@ int OnInfoTrigerEvtJudge(struct TEvtCtrl* pEvtCtrl, BYTE bInfoType)
 		if ((pEvtCtrl->wOI==TERM_YXCHG) || (pEvtCtrl->wOI==TERM_POWCTRLBREAK)) 
 			pEvtCtrl->bDelaySec = 130;	//特殊处理，遥控和功控需要做控后2分钟数据，延时130秒再结束事件
 			
-		pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 	}
 	else
 	{
-		pEvtCtrl->pEvtBase[0].bJudgeState = 2;
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 	}
 
     return pEvtCtrl->pEvtBase[0].bJudgeState;
@@ -8259,7 +8263,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 	//*GW5*上电后，若未配置电表，待判断完后做上电记录。
 	//*GW6*各条记录上报与否与配置的上报参数有关。
 
-	pEvtCtrl->pEvtBase[0].bJudgeState = 2;		//默认正常结束
+	pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;		//默认正常结束
 
 	//获取私有变量
 	TPowOff* pCtrl = (TPowOff* )pEvtCtrl->pEvtPriv;
@@ -8290,7 +8294,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 	iLen = OoReadAttr(wOI, ATTR6, bBuf, NULL, NULL); 	//读取属性6配置参数-停电数据采集配置参数
 	if (iLen<=0 || bBuf[0]!=DT_STRUCT)		//配置参数有异常直接退出，强制结束事件
 	{	
-		pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 		return 0;
 	}
 
@@ -8323,7 +8327,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 			{
 				pCtrl->bAttr = 0x80;	//正常无效停电事件
 				pCtrl->bEvtSrcEnum = 0;		//停电事件
-				pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 				pCtrl->bStep = 1;		//第一笔停电事件发生状态
 				pCtrl->bRptFlag = 1;	//需要上报发生	
 				DTRACE(DB_METER_EXC, ("PowOffJudge: Init save powoff event ########## Terminal __Bat Break__ is power off.\r\n"));	//不带电池的停电事件
@@ -8395,7 +8399,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 			{
 				pCtrl->bAttr = 0x80;	//正常无效停电事件
 				pCtrl->bEvtSrcEnum = 0;		//停电事件
-				pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 				pCtrl->bStep = 1;		//第一笔停电事件发生状态
 				pCtrl->bRptFlag = 1;	//需要上报发生	
 				DTRACE(DB_METER_EXC, ("PowOffJudge: RunTask save powoff event  ########## Terminal is power off. \r\n"));	
@@ -8414,7 +8418,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 			if (!bValidFlag)	//事件无效不判断了,强制结束
 			{
 				DTRACE(DB_METER_EXC, ("PowOffJudge: RunTask ValidFlag=0.\r\n"));
-				pEvtCtrl->pEvtBase[0].bJudgeState = 0;
+				pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_FORCE_END;
 				return pEvtCtrl->pEvtBase[0].bJudgeState;
 			}
 			
@@ -8425,7 +8429,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 			{	
 				pCtrl->bAttr = 0x80;	//浙江要求，上电后立即上报正常无效的上电事件
 				pCtrl->bEvtSrcEnum = 0x01;		//上电事件
-				pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+				pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 				pCtrl->bStep = 1;
 				pCtrl->bRptFlag = 2;	//需要上报恢复
 		
@@ -8565,7 +8569,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 		{
 			DTRACE(DB_METER_EXC, ("PowOffJudge1: RunTask pCtrl->bAttr = %d.\r\n", pCtrl->bAttr));
 			pCtrl->bEvtSrcEnum = 0;		//停电事件
-			pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 			pCtrl->bStep = 1;		//第一笔停电事件发生状态
 			pCtrl->bRptFlag = 1;	//需要上报发生
 			DTRACE(DB_METER_EXC, ("PowOffJudge: RunTask save powoff event  ########## Terminal __Bat Break__ is power off.\r\n"));
@@ -8597,7 +8601,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 #endif	
 		{
 			pCtrl->bEvtSrcEnum = 0x01;		//上电事件
-			pEvtCtrl->pEvtBase[0].bJudgeState = 1;
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 			pCtrl->bStep = 1;		//第一笔停电事件发生状态
 			pCtrl->bRptFlag = 2;	//需要上报上电恢复事件
 		}

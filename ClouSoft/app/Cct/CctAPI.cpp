@@ -295,6 +295,104 @@ bool GetMeterInfo(BYTE *pbTsa, BYTE bTsaLen, TOobMtrInfo *pTMtrInfo)
 }
 
 
+// 是否合法的表计档案信息
+int IsValidMtrInfo(BYTE *pMtrInfoBuf)
+{
+    TOobMtrInfo TMtrInfo;
+    TOobMtrInfo *pTMtrInfo = &TMtrInfo;
+    BYTE bTsaLen;
+    BYTE* pbBuf = pMtrInfoBuf;
+	
+    pbBuf++;	//0x6000的第一个字节为电表档案的有效长度，跳过
+	if (*pbBuf++ != DT_STRUCT)	//struct
+	    return -1;
+    pbBuf++;	//struct 成员个数
+
+    if (*pbBuf++ != DT_LONG_U)	//long-unsigned
+        return -1;
+    pTMtrInfo->wMtrSn = OoOiToWord(pbBuf);	
+ 
+    pbBuf += 2;		
+    if (*pbBuf++ != DT_STRUCT)	//struct
+        return -1;
+    pbBuf++;	//struct 成员个数
+    if (*pbBuf++ != DT_TSA)	//TSA
+        return -1;
+    pbBuf++;	//TSA长度
+    pTMtrInfo->bTsaLen = *pbBuf++ + 1;	//TSA内部octet数据长度， 表地址长度+1=表地址有效长度
+    if (TMtrInfo.bTsaLen > 0)	//TSA len
+			bTsaLen = pTMtrInfo->bTsaLen;
+    memcpy(pTMtrInfo->bTsa, pbBuf, bTsaLen);	pbBuf += bTsaLen;	//TSA Addr
+    if (*pbBuf++ != DT_ENUM)	//enum
+			return -1;
+    pTMtrInfo->bBps = *pbBuf++;	//bps
+    if(pTMtrInfo->bBps>10 && pTMtrInfo->bBps!=255)
+    {
+        return -1;  // 波特率异常
+    }
+    if (*pbBuf++ != DT_ENUM)	//enum	//protocol type
+			return -1;
+    pTMtrInfo->bProType = *pbBuf++;
+    if(pTMtrInfo->bProType>4)
+    {
+        return -1;  // 协议异常
+    }
+    if (*pbBuf++ != DT_OAD)	//OAD
+        return -1;
+    pTMtrInfo->dwPortOAD = OoOadToDWord(pbBuf);	pbBuf += 4;	//PORT
+    if (*pbBuf++ != DT_OCT_STR)	//octet-string
+        return -1;
+    pTMtrInfo->bCodeLen = *pbBuf++;	//code len
+    memcpy(pTMtrInfo->bCode, pbBuf, pTMtrInfo->bCodeLen);	
+    pbBuf += pTMtrInfo->bCodeLen;	//code
+    if (*pbBuf++ != DT_UNSIGN)	//unsigned 
+        return -1;
+    pTMtrInfo->bRate = *pbBuf++;	//rate
+    if (*pbBuf++ != DT_UNSIGN)	//unsigned
+	    return -1;
+    pTMtrInfo->bUserType = *pbBuf++;	//user type
+    if (*pbBuf++ != DT_ENUM)	//enum
+        return -1;
+    pTMtrInfo->bLine = *pbBuf++;	//connect line
+    if(pTMtrInfo->bLine>3)
+    {
+        return -1; // 接线方式异常
+    }
+
+    if (*pbBuf++ != DT_LONG_U)
+        return -1;
+    pTMtrInfo->wRateVol = OoLongUnsignedToWord(pbBuf);	pbBuf += 2;
+    if (*pbBuf++ != DT_LONG_U)
+        return -1;
+    pTMtrInfo->wRateCurr = OoLongUnsignedToWord(pbBuf);	pbBuf += 2;
+
+    if (*pbBuf++ != DT_STRUCT)	//struct
+        return -1;
+    pbBuf++;	//struct 成员个数
+    if (*pbBuf++ != DT_TSA)	//TSA
+        return -1;
+    pbBuf++;
+    pTMtrInfo->bAcqTsaLen = *pbBuf++ + 1;	//TSA Len
+    bTsaLen = 0;
+    if (pTMtrInfo->bAcqTsaLen >= 0)	//TSA len
+        bTsaLen = pTMtrInfo->bAcqTsaLen;
+    memcpy(pTMtrInfo->bAcqTsa, pbBuf, bTsaLen);	
+    pbBuf += bTsaLen;	//TSA
+    if (*pbBuf++ != DT_OCT_STR)	//octet-string
+        return -1;
+    pTMtrInfo->bAssetLen = *pbBuf++;	//assert Len
+    memcpy(pTMtrInfo->bAsset, pbBuf, pTMtrInfo->bAssetLen);	
+    pbBuf += pTMtrInfo->bAssetLen;	//assert
+    if (*pbBuf++ != DT_LONG_U)	//PT
+        return -1;
+    pTMtrInfo->wPT = OoLongUnsignedToWord(pbBuf);	pbBuf += 2;	//PT
+    if (*pbBuf++ != DT_LONG_U)	//CT
+        return -1;
+    pTMtrInfo->wCT = OoLongUnsignedToWord(pbBuf);	pbBuf += 2;	//CT
+
+    return 0; 
+}
+
 //描述：获取电表信息（通过测量点）
 //参数：@wPn 电表测量点号
 //		@tTMtrInfo 电表配置单元信息
@@ -1161,6 +1259,7 @@ int GetTaskCurExeTime(TTaskCfg* pTaskCfg, DWORD* pdwCurSec, DWORD* pdwStartSec, 
 	TTimeInterv tiExe = pTaskCfg->tiExe;
 	DWORD dwDelaySec = TiToSecondes((TTimeInterv*)&pTaskCfg->tiDelay);
 	DWORD dwCurSec, dwIntervSec;
+	int nInterv = 0;
 
 	if (pTaskCfg->bState == 2)
 		return -1;
@@ -1184,6 +1283,9 @@ int GetTaskCurExeTime(TTaskCfg* pTaskCfg, DWORD* pdwCurSec, DWORD* pdwStartSec, 
 		break;
 	case TIME_UNIT_HOUR:
 		dwIntervSec = tiExe.wVal*60*60;
+		if (tiExe.wVal > 1)
+			tDayStartTime.nHour = pTaskCfg->tmStart.nHour;
+		
 		tDayStartTime.nMinute = pTaskCfg->tmStart.nMinute;
 		tDayStartTime.nSecond = pTaskCfg->tmStart.nSecond;
 		break;
@@ -1194,34 +1296,36 @@ int GetTaskCurExeTime(TTaskCfg* pTaskCfg, DWORD* pdwCurSec, DWORD* pdwStartSec, 
 		tDayStartTime.nSecond = pTaskCfg->tmStart.nSecond;
 		break;
 	case TIME_UNIT_MONTH:
-		tStartTime.nDay = 1;	tStartTime.nHour = 0;
-		tStartTime.nMinute = 0;	tStartTime.nSecond = 1;
-		if (tNowTime.nMonth==2)
-		{
-			if (((tNowTime.nYear%4==0 && tNowTime.nYear%100!=0) || tNowTime.nYear%400==0))	//闰年
-				tEndTime.nDay = 29;
-			else 
-				tEndTime.nDay = 28;
-		}
-		else if (tNowTime.nMonth==4 || tNowTime.nMonth==6 || tNowTime.nMonth==9 || tNowTime.nMonth==11)
-		{
-			tEndTime.nDay = 30;
-		}
-		else
-		{
-			tEndTime.nDay = 31;
-		}
-		tEndTime.nHour = 23;
-		tEndTime.nMinute = 59;
-		tEndTime.nSecond = 59;
+		tStartTime = pTaskCfg->tmStart;
+		nInterv = IntervsPast(tStartTime, tNowTime, TIME_UNIT_MONTH, tiExe.wVal);
+		if (nInterv > 0)
+			AddIntervs(tStartTime, TIME_UNIT_MONTH, nInterv*tiExe.wVal);	//起始时间按间隔归整
+
+		if (tStartTime.nDay > DaysOfMonth(tStartTime))
+			tStartTime.nDay = DaysOfMonth(tStartTime);
+
+		tEndTime = tStartTime;
+		AddIntervs(tEndTime, TIME_UNIT_MONTH, tiExe.wVal);
+		if (tEndTime.nDay > DaysOfMonth(tEndTime))
+			tEndTime.nDay = DaysOfMonth(tEndTime);
+
 		tDayStartTime = tStartTime;
 		break;
 
 	case TIME_UNIT_YEAR:
-		tStartTime.nMonth = 1;	tStartTime.nDay = 1;	tStartTime.nHour = 0;	
-		tStartTime.nMinute = 0;	tStartTime.nSecond = 1;
-		tEndTime.nMonth = 12;	tEndTime.nDay = 31;		tEndTime.nHour = 23;	
-		tEndTime.nMinute = 59;	tEndTime.nSecond = 59;
+		tStartTime = pTaskCfg->tmStart;
+		nInterv = IntervsPast(tStartTime, tNowTime, TIME_UNIT_MONTH, tiExe.wVal*12);
+		if (nInterv > 0)
+			AddIntervs(tStartTime, TIME_UNIT_MONTH, nInterv*tiExe.wVal*12);	//起始时间按间隔归整
+
+		if (tStartTime.nDay > DaysOfMonth(tStartTime))
+			tStartTime.nDay = DaysOfMonth(tStartTime);
+
+		tEndTime = tStartTime;
+		AddIntervs(tEndTime, TIME_UNIT_MONTH, tiExe.wVal*12);
+		if (tEndTime.nDay > DaysOfMonth(tEndTime))
+			tEndTime.nDay = DaysOfMonth(tEndTime);		
+
 		tDayStartTime = tStartTime;
 		break;
 	default:
@@ -1241,6 +1345,12 @@ int GetTaskCurExeTime(TTaskCfg* pTaskCfg, DWORD* pdwCurSec, DWORD* pdwStartSec, 
 		*pdwCurSec = dwCurSec/dwIntervSec * dwIntervSec;	//间隔起始时间
 		*pdwStartSec = *pdwCurSec + dwDelaySec;	//间隔起始时间+延时时间
 		*pdwEndSec = *pdwCurSec + dwIntervSec;	//间隔结束时间
+
+		if (tiExe.bUnit==TIME_UNIT_HOUR && tiExe.wVal>1)	//间隔单位为小时且间隔大于1时，间隔起始和结束时间需把基准时间里的小时加上
+		{
+			*pdwStartSec += (tDayStartTime.nHour*60*60+tDayStartTime.nMinute*60+tDayStartTime.nSecond);
+			*pdwEndSec  += (tDayStartTime.nHour*60*60+tDayStartTime.nMinute*60+tDayStartTime.nSecond);
+		}
 	}
 	else
 	{

@@ -33,7 +33,7 @@ bool Mtr69845Init(struct TMtrPro* pMtrPro, BYTE bThrId)
 
 	pMtrPro->pbTxBuf = &m_MtrTxBuf[bThrId][0];
 	pMtrPro->pbRxBuf = &m_MtrRxBuf[bThrId][0];
-	memset(pMtrPro->pbRxBuf, 0, MTR_FRM_SIZE); 
+	memset(pMtrPro->pbTxBuf, 0, MTR_FRM_SIZE); 
 	memset(pMtrPro->pbRxBuf, 0, MTR_FRM_SIZE); 	
 	return true;
 }
@@ -112,6 +112,13 @@ int DL69845AskItem(struct TMtrPro* pMtrPro, BYTE bRespType, DWORD dwOAD,  BYTE* 
 		memcpy(pbData, pMtrPara->bAddr, iRet);
 		return iRet;
 	}
+
+	if (dwOAD==0x60400200 || dwOAD==0x60410200 || dwOAD==0x60420200)
+    {
+        TTime time;
+        GetCurTime(&time);        
+        return OoTimeToDateTimeS(&time, pbData);
+    }
 
 	if (bRespType == 1)
 		wAPDULen = GetRequestNormal(dwOAD, pbTxBuf+bFrmHead);	

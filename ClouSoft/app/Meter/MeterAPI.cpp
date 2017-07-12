@@ -208,6 +208,8 @@ void InitMtrCacheCtrl()
 	BYTE bLen, bTsa[17];
 	BYTE bCacheCnt = 0;
 
+	WaitSemaphore(g_semMtrCacheCtrl);
+
 	memset(g_MtrCacheCtrl, 0, sizeof(g_MtrCacheCtrl));
 
 	for (WORD wPn=1; wPn<POINT_NUM; wPn++)
@@ -227,6 +229,9 @@ void InitMtrCacheCtrl()
 				break;
 		}
 	}
+
+	SignalSemaphore(g_semMtrCacheCtrl);
+	
 }
 
 //更新电表缓存控制结构
@@ -358,7 +363,8 @@ void InitMtrRdCtrl(WORD wPn, BYTE* pbTsa, TMtrRdCtrl* pMtrRdCtrl)
 
 void DoMangerMtrCacheCtrl()
 {
-	WaitSemaphore(g_semMtrCtrl);
+	//WaitSemaphore(g_semMtrCtrl);
+	WaitSemaphore(g_semMtrCacheCtrl);
 	//遍历抄表控制结构
 	for (BYTE bIndex=0; bIndex<MTR_CACHE_NUM; bIndex++)	
 	{
@@ -373,7 +379,8 @@ void DoMangerMtrCacheCtrl()
 			DTRACE(DB_METER, ("DoMangerMtrCacheCtrl: wPn=%d, bIndex=%d.\n", g_MtrCacheCtrl[bIndex].wPn, bIndex));
 		}
 	}
-	SignalSemaphore(g_semMtrCtrl);
+	//SignalSemaphore(g_semMtrCtrl);
+	SignalSemaphore(g_semMtrCacheCtrl);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -393,10 +400,12 @@ void DoMangerMtrCacheCtrl()
 //返回:如果成功则返回对应表地址的电表抄读控制结构的指针，否则返回NULL
 TMtrRdCtrl* GetMtrRdCtrl(WORD wPn, BYTE*pbTsa)
 {
-	int i;
+		int i;
 	int iLastInx = -1;
 	BYTE bAddL = pbTsa[0]+1;
 	DWORD dwLastAcessTime = 0xffffffff;
+
+	WaitSemaphore(g_semMtrCacheCtrl);
 
 	//先内存中查找
 	for (i=0; i<MTR_CACHE_NUM; i++)
@@ -409,16 +418,20 @@ TMtrRdCtrl* GetMtrRdCtrl(WORD wPn, BYTE*pbTsa)
 				{
 					g_MtrCacheCtrl[i].bStatus = CACHE_STATUS_INUSE;
 					g_MtrCacheCtrl[i].dwLastAcessTime = GetCurTime();
+
+					SignalSemaphore(g_semMtrCacheCtrl);
 					return &g_MtrCacheCtrl[i].mtrRdCtrl;
 				}
 				else
 				{
+					SignalSemaphore(g_semMtrCacheCtrl);
 					return NULL;
 				}
 			}
 			else
 			{
 				memset((BYTE *)&g_MtrCacheCtrl[i], 0, sizeof(TMtrCacheCtrl));
+				DTRACE(DB_METER, ("GetMtrRdCtrl():  i=%d, wPn=%d.\n", i, wPn));
 				g_MtrCacheCtrl[i].bStatus = CACHE_STATUS_INUSE;
 				g_MtrCacheCtrl[i].wPn = wPn;
 				g_MtrCacheCtrl[i].dwCacheTime = GetCurTime();
@@ -426,9 +439,12 @@ TMtrRdCtrl* GetMtrRdCtrl(WORD wPn, BYTE*pbTsa)
 				g_MtrCacheCtrl[i].fDirty = false;
 				g_MtrCacheCtrl[i].fTrigerSave = false;
 				InitMtrRdCtrl(wPn, pbTsa, &g_MtrCacheCtrl[i].mtrRdCtrl);
+
+				SignalSemaphore(g_semMtrCacheCtrl);
 				return &g_MtrCacheCtrl[i].mtrRdCtrl;
 			}
 		}
+
 		if (g_MtrCacheCtrl[i].dwLastAcessTime<dwLastAcessTime && g_MtrCacheCtrl[i].bStatus==CACHE_STATUS_IDLE)
 		{
 			dwLastAcessTime = g_MtrCacheCtrl[i].dwLastAcessTime;
@@ -449,6 +465,8 @@ TMtrRdCtrl* GetMtrRdCtrl(WORD wPn, BYTE*pbTsa)
 				g_MtrCacheCtrl[i].dwLastAcessTime = GetCurTime();
 				g_MtrCacheCtrl[i].fDirty = false;
 				g_MtrCacheCtrl[i].fTrigerSave = false;
+
+				SignalSemaphore(g_semMtrCacheCtrl);
 				return &g_MtrCacheCtrl[i].mtrRdCtrl;
 			}
 			else
@@ -461,6 +479,8 @@ TMtrRdCtrl* GetMtrRdCtrl(WORD wPn, BYTE*pbTsa)
 				g_MtrCacheCtrl[i].fDirty = false;
 				g_MtrCacheCtrl[i].fTrigerSave = false;
 				InitMtrRdCtrl(wPn, pbTsa, &g_MtrCacheCtrl[i].mtrRdCtrl);
+
+				SignalSemaphore(g_semMtrCacheCtrl);
 				return &g_MtrCacheCtrl[i].mtrRdCtrl;
 			}
 		}
@@ -479,6 +499,8 @@ TMtrRdCtrl* GetMtrRdCtrl(WORD wPn, BYTE*pbTsa)
 			g_MtrCacheCtrl[iLastInx].dwLastAcessTime = GetCurTime();
 			g_MtrCacheCtrl[iLastInx].fDirty = false;
 			g_MtrCacheCtrl[iLastInx].fTrigerSave = false;
+
+			SignalSemaphore(g_semMtrCacheCtrl);
 			return &g_MtrCacheCtrl[iLastInx].mtrRdCtrl;
 		}
 		else
@@ -491,10 +513,13 @@ TMtrRdCtrl* GetMtrRdCtrl(WORD wPn, BYTE*pbTsa)
 			g_MtrCacheCtrl[iLastInx].fDirty = false;
 			g_MtrCacheCtrl[iLastInx].fTrigerSave = false;
 			InitMtrRdCtrl(wPn, pbTsa, &g_MtrCacheCtrl[iLastInx].mtrRdCtrl);
+
+			SignalSemaphore(g_semMtrCacheCtrl);
 			return &g_MtrCacheCtrl[iLastInx].mtrRdCtrl;
 		}
 	}
 
+	SignalSemaphore(g_semMtrCacheCtrl);
 	return NULL;
 }
 
@@ -508,6 +533,8 @@ void PutMtrRdCtrl(WORD wPn, BYTE* pbTsa, bool fModify)
 {
 	int i;
 	BYTE bAddL = pbTsa[0]+1;
+
+	WaitSemaphore(g_semMtrCacheCtrl);
 
 	//先内存中查找
 	for (i=0; i<MTR_CACHE_NUM; i++)
@@ -525,6 +552,8 @@ void PutMtrRdCtrl(WORD wPn, BYTE* pbTsa, bool fModify)
 			}
 		}
 	}
+
+	SignalSemaphore(g_semMtrCacheCtrl);
 }
 
 //下面两个函数电表缓存管理内部使用

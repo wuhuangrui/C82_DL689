@@ -1120,7 +1120,12 @@ void LoadGPRSCommPara(TSocketPara* pPara)
 		pPara->wBeatTestTimes, pPara->dwBeatTimeouts, pPara->dwBeatSeconds));
 
 	//pPara->IfPara.dwDormanInterv = 300;//休眠时间间隔, 单位秒, ,0表示禁止休眠模式
-	pPara->IfPara.dwDormanInterv = 10;//休眠时间间隔, 单位秒, ,0表示禁止休眠模式
+	pPara->IfPara.dwDormanInterv = 180;//休眠时间间隔, 单位秒, ,0表示禁止休眠模式
+	if (ReadItemEx(BN1, PN0, 0x2110, bBuf) > 0)
+	{
+		pPara->IfPara.dwDormanInterv = (WORD ) BcdToDWORD(bBuf, 2);
+		DTRACE(DB_FAPROTO,("LoadGPRSCommPara: dwDormanInterv = %d.\n ", pPara->IfPara.dwDormanInterv));
+	}
 	pPara->IfPara.wReTryNum = 2;
 	pPara->fEnableFluxStat = true; //是否允许流量控制,只有本socket用的是GPRS通道时才支持
 	pPara->wDisConnectByPeerNum = 3;	//被对方断开连接，切换到休眠状态的次数
