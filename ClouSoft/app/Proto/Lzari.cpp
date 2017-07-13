@@ -24,7 +24,7 @@
 #include "stdafx.h"
 #include "syscfg.h"
 
-#ifdef 0
+#if 0
 //#include "StdAfx.h"
 //#include <stdio.h>
 //#include <stdlib.h>

@@ -1093,7 +1093,7 @@ TItemDesc g_ParaDesc[] =   //参变量类对象
 
 	{0x4200, 	1, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//路由表，属性2，方法127、128、129、134
 	{0x4201, 	1, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//路由信息单元，属性2
-	{0x4202, 	1, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//级联通信参数，属性2
+	{0x4202, 	95, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//级联通信参数，属性2
 	{0x4204, 	8, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//终端广播校时，属性2
 	{0x4205,   10, 		DI_HIGH_PERM, DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//终端单地址广播校时参数，属性3
 	
