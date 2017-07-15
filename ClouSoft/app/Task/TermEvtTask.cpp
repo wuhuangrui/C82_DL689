@@ -957,6 +957,7 @@ void SetTermEvtOadDefCfg(struct TEvtCtrl* pEvtCtrl)
 			OoWriteAttr(wOI, pEvtAttr->bValidFlg, bINValidBuf);
 			OoWriteAttr(wOI, pEvtAttr->bMaxRecNum, bINValidMaxNumBuf);
 		}
+
 #if FA_TYPE == FA_TYPE_D82
 		if (wOI==TERM_POWOFF || wOI==TERM_DEVICEERR || wOI==TERM_CLOCKPRG || wOI==TERM_CURCIRC || wOI==TERM_MTRCLKPRG)
 		{
@@ -1618,7 +1619,8 @@ bool InitAVLoss(struct TEvtCtrl* pEvtCtrl)
 		return false;
 	if (InitEvt(pEvtCtrl) == false)
 		return false;
-	memcpy((BYTE*)&pEvtCtrl->pEvtBase[0]+1, (BYTE*)pEvtPriv+1, sizeof(TAllVLoss)-1);	//为掉电变量，不更改初始化标识
+	if (pEvtPriv->tEvtBase.fInitOk)
+		memcpy((BYTE*)&pEvtCtrl->pEvtBase[0]+1, (BYTE*)pEvtPriv+1, sizeof(TAllVLoss)-1);	//为掉电变量，不更改初始化标识
 	return true;
 }
 
@@ -4453,7 +4455,7 @@ void UpdateState(struct TEvtCtrl* pEvtCtrl)
 				if (wDelaySec == 0)
 				{
 					pEvtBase->dwRecvClick = GetClick();
-					if (pEvtBase->fExcValid == true)  //一条事件恢复了
+					if (pEvtBase->fExcValid)  //一条事件恢复了
 					{
 						pEvtBase->bState = EVT_S_AFT_END;	
 						pEvtBase->fExcValid = false;
@@ -4490,10 +4492,10 @@ void UpdateState(struct TEvtCtrl* pEvtCtrl)
 			pEvtBase->bState = EVT_S_BF_HP;
 			fUpDataFlag = true;
 		}
-		else 	
+		else
 		{
 			pEvtBase->fInitOk = false;	//数据不正确重新初始化。
-		}		
+		}
 	}
 
 	 if (fUpDataFlag)
@@ -5054,7 +5056,7 @@ bool SaveTermEvtRec(struct TEvtCtrl* pEvtCtrl)
 		bSendRptFlag = EVT_STAGE_UNCARE;
 		pbRec = bRecBuf;	
 		bState = pEvtCtrl->pEvtBase[bItem].bState;
-		if ((bState!=EVT_S_AFT_HP) && (bState!=EVT_S_AFT_END ))	//只有发生和结束时才需要记录
+		if ((bState!=EVT_S_AFT_HP) && (bState!=EVT_S_AFT_END))	//只有发生和结束时才需要记录
 			{bAttrTab++;continue;}
 		
 		dwROAD = GetOAD(wOI, bAttrTab, 0);
@@ -5126,8 +5128,8 @@ bool SaveTermEvtRec(struct TEvtCtrl* pEvtCtrl)
 		{	
 			//DTRACE(DB_FAPROTO, ("SaveTermEvtRec: wOI = %04x evt happen!\r\n", wOI));
 			SaveRecord(pOaMap->pszTableName, bRecBuf);	
-			TrigerSaveBank(BN0, SECT3, -1);
-			TrigerSaveBank(BN0, SECT16, -1);
+			//TrigerSaveBank(BN0, SECT3, -1);
+			//TrigerSaveBank(BN0, SECT16, -1);
 		}
 		else if (bState == EVT_S_AFT_END)
 		{	
@@ -5143,8 +5145,8 @@ bool SaveTermEvtRec(struct TEvtCtrl* pEvtCtrl)
 				memset(bRecBuf+bOffset, 0, sizeof(bRecBuf)-bOffset);
 				EvtWriteItemMem(dwROAD, &g_TermMem, bRecBuf);
 			}
-			TrigerSaveBank(BN0, SECT3, -1);
-			TrigerSaveBank(BN0, SECT16, -1);
+			//TrigerSaveBank(BN0, SECT3, -1);
+			//TrigerSaveBank(BN0, SECT16, -1);
 		}
 		else 
 			return false;
@@ -5762,13 +5764,42 @@ bool DoAVLoss(struct TEvtCtrl* pEvtCtrl)
 
 
 //描述：事件接口函数执行
-void DoTermEvt()
+/*void DoTermEvt()
 {
-	WaitSemaphore(g_semTermEvt);
- 	for(BYTE i=0; i<EVT_NUM; i++)
- 		g_EvtCtrl[i].pfnDoEvt(&g_EvtCtrl[i]);
-	SignalSemaphore(g_semTermEvt);
+	static DWORD dwLastClick = GetClick();
+
+	if (GetClick() - dwLastClick > 10)
+	{
+		dwLastClick = GetClick();
+
+		WaitSemaphore(g_semTermEvt);
+		for(BYTE i=0; i<EVT_NUM; i++)
+			g_EvtCtrl[i].pfnDoEvt(&g_EvtCtrl[i]);
+		SignalSemaphore(g_semTermEvt);
+	}	
+}*/
+
+TThreadRet  DoTermEvt(void* pvPara)
+{
+	int iMonitorID = ReqThreadMonitorID("DoTermEvt-thrd", 60*60);	//申请线程监控ID,更新间隔为60秒
+	DTRACE(DB_CRITICAL, ("DoTermEvt : started!\n"));
+
+	while(1)
+	{
+		WaitSemaphore(g_semTermEvt);
+		
+	 	for(BYTE i=0; i<EVT_NUM; i++)
+	 		g_EvtCtrl[i].pfnDoEvt(&g_EvtCtrl[i]);
+		
+		SignalSemaphore(g_semTermEvt);
+
+		Sleep(100);
+		UpdThreadRunClick(iMonitorID);
+	}
+
+	ReleaseThreadMonitorID(iMonitorID);
 }
+
 
 //**************************事件清零功能*********************************************
 //描述：清统计数据，包括当前记录数和当前值记录表
@@ -5982,7 +6013,7 @@ void DealSpecTrigerEvt(WORD wOI)
 	if (pEvtCtrl->bClass != IC7)	//仅IC7有触发类	
 		return;
 
-	WaitSemaphore(g_semTermEvt);
+	//WaitSemaphore(g_semTermEvt);
 	//电表清零/事件清零
 	if ((wOI==MTR_MTRCLEAR) ||(wOI==MTR_EVTCLEAR))
 	{
@@ -6009,7 +6040,7 @@ void DealSpecTrigerEvt(WORD wOI)
 		case MTR_EVTCLEAR:		//事件清零
 			SetInfo(INFO_EVT_EVTCLR);
 			GetEvtClearOMD(0x4300, 0x05, 0x00);
-			SignalSemaphore(g_semTermEvt);
+			//SignalSemaphore(g_semTermEvt);
 			return;
 		case TERM_INIT:		//终端初始化
 			SetInfo(INFO_TERM_INIT);
@@ -6021,12 +6052,12 @@ void DealSpecTrigerEvt(WORD wOI)
 			SetInfo(INFO_TERM_PROG);
 			break;	
 		default:
-			SignalSemaphore(g_semTermEvt);
+			//SignalSemaphore(g_semTermEvt);
 			return;
 	}
 
 	RecordSpecTrigerEvt(pEvtCtrl);
-	SignalSemaphore(g_semTermEvt);
+	//SignalSemaphore(g_semTermEvt);
 }
 
 
@@ -6939,9 +6970,9 @@ bool SendEvtMsg(DWORD dwCnOAD, DWORD dwEvtOAD,WORD wRecIdx, BYTE bStage, BYTE bS
 		else
 		{
 			return false;
-		}	
+		}
 	}
-	else 
+	else
 		return false;
 
 	memset(&tEvtMsg, 0, sizeof(tEvtMsg));
@@ -7184,14 +7215,24 @@ bool UpdateEvtRptState(DWORD dwCnOAD, TEvtMsg* pEvtMsg, BYTE bRptState)
 				bCnNum = *(pbRec+1);
 				if (bCnNum >= CN_RPT_NUM)
 					bCnNum = CN_RPT_NUM;
-
 				for(i=0; i<bCnNum; i++)
 				{	
 					dwRecCnOAD = OoDoubleLongUnsignedToDWord(pbRec+5+i*9);
-
-					dwRecCnOAD &= 0xffff0000;
-					dwCnOAD &= 0xffff0000;
-
+					if ((dwCnOAD&0xfff00000) == 0x45000000)	//要与函数SendEvtMsg()相匹配
+					{
+						dwRecCnOAD &=0xfff00000;
+						dwCnOAD &=0xfff00000;
+					}
+					else if	((dwCnOAD&0xfff00000) == 0x45100000)
+					{	
+						dwRecCnOAD &=0xfff00000;
+						dwCnOAD &=0xfff00000;
+					}
+					else
+					{	
+						dwRecCnOAD &=0xffff0000;
+						dwCnOAD &=0xffff0000;
+					}
 					if (dwCnOAD == dwRecCnOAD)
 						*(pbRec+10+i*9) |= bRptState;
 				}
@@ -7258,15 +7299,16 @@ int DoYXChgJudge(struct TEvtCtrl* pEvtCtrl)
 		return 0;
 	}
 
-
-
-    int nRead = ReadItemEx(BN2, PN0, 0x1100, &bStaByte);
+//#if FA_TYPE == FA_TYPE_K32
+	int nRead = ReadItemEx(BN2, PN0, 0x1100, &bStaByte);
     if (nRead <= 0)
     	return -1;
 
 	#ifdef VER_ZJ
 	bStaByte <<= 7;
 	#endif
+
+
     	
     //bStaByte >>= 4; //取遥信状态（高四位）；
 
@@ -7868,13 +7910,16 @@ int OnInfoTrigerEvtJudge(struct TEvtCtrl* pEvtCtrl, BYTE bInfoType)
 			pEvtPriv->bEvtSrcEnum = 5;	//载波通道故障
 		}
 
-		if ((pEvtCtrl->wOI==TERM_YXCHG) || (pEvtCtrl->wOI==TERM_POWCTRLBREAK)) 
-			pEvtCtrl->bDelaySec = 130;	//特殊处理，遥控和功控需要做控后2分钟数据，延时130秒再结束事件
+		if ((pEvtCtrl->wOI==TERM_YKCTRLBREAK) || (pEvtCtrl->wOI==TERM_POWCTRLBREAK)) 
+			pEvtCtrl->bDelaySec = 0;	//特殊处理，遥控和功控需要做控后2分钟数据，延时130秒再结束事件
 			
 		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
 	}
 	else
 	{
+		if ((pEvtCtrl->wOI==TERM_YKCTRLBREAK) || (pEvtCtrl->wOI==TERM_POWCTRLBREAK)) 
+			pEvtCtrl->bDelaySec = 130;	//特殊处理，遥控和功控需要做控后2分钟数据，延时130秒再结束事件
+
 		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
 	}
 
@@ -8319,10 +8364,10 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 
 		if (!g_PowerOffTmp.fAlrPowerOff && (SecondsPast(g_PowerOffTmp.tPoweroff, g_tPowerOn) > 60))	//停电时没有做过停电记录，上电时补上
 		{
-#if TERM_VER == TERM_STD
+#ifdef VER_ZJ
+			if (bValidFlag)	//浙江，不受采集标志影响，停电固定上报.	//*ZJ2*上电时，若停电没正常记录停电事件，那么上电即补做停电记录。			
+#else
 			if (bValidFlag && (bBuf[6]&0x80)==0x00)		//国网标准，采集标志无效时，停电不上报 	//*GW3*上电时，若停电时需要做停电记录但未来的及做，那么上电即补做停电记录。
-#elif TERM_VER == TERM_ZJ
-			if (bValidFlag)	//浙江，不受采集标志影响，停电固定上报.	//*ZJ2*上电时，若停电没正常记录停电事件，那么上电即补做停电记录。
 #endif		
 			{
 				pCtrl->bAttr = 0x80;	//正常无效停电事件
@@ -8349,11 +8394,14 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 	//停上电消抖处理，获取当前停上电状态
 	if (fPowerOff)
 	{
-		pCtrl->wRecvCnt = 0;
-		pCtrl->wEstbCnt++;			//异常成立的去抖	
-		if (pCtrl->wEstbCnt > 3)	//第一次检测到,要连续两次检测到才认为成立
+		pCtrl->wLastPwrOnClick = 0;
+		if(pCtrl->wLastPwrOffClick == 0)
 		{
-			pCtrl->wEstbCnt = 3;   //固定在2,不要往上增了
+			pCtrl->wLastPwrOffClick = GetClick();
+			return pEvtCtrl->pEvtBase[0].bJudgeState;
+		}
+		else if(GetClick() - pCtrl->wLastPwrOffClick >= 5)////持续停电5秒以上才报
+		{
 			pCtrl->fPowerOff = true;
 		}
 		else
@@ -8363,17 +8411,20 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 	}
 	else
 	{
-		pCtrl->wEstbCnt = 0;
-		pCtrl->wRecvCnt++;			//异常恢复的去抖	
-		if (pCtrl->wRecvCnt > 3)    //第一次检测到,要连续两次检测到才认为成立
+		pCtrl->wLastPwrOffClick = 0;
+		if(pCtrl->wLastPwrOnClick == 0)
 		{
-			pCtrl->wRecvCnt = 3;   //固定在2,不要往上增了
+			pCtrl->wLastPwrOnClick = GetClick();
+			return pEvtCtrl->pEvtBase[0].bJudgeState;
+		}
+		else if(GetClick() - pCtrl->wLastPwrOnClick >= 5)////持续上电5秒以上才报
+		{
 			pCtrl->fPowerOff = false;
 		}
 		else
 		{
 			return pEvtCtrl->pEvtBase[0].bJudgeState;
-		}
+		}		
 	}
 
 	if (pCtrl->bStep < PWR_OFF_RUN_CNT)	//空跑使能正常存储
@@ -8391,10 +8442,10 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 
 		if (pCtrl->fPowerOff)   //终端停电
 		{
-#if TERM_VER == TERM_STD
-			if (bValidFlag && (bBuf[6]&0x80)==0x00)		//国网标准，采集标志无效时，停电不上报	//*GW1*停电时，若配置电表，不需要做停电记录。//*GW2*停电时，若未配置电表，需要做停电记录。
-#elif TERM_VER == TERM_ZJ
+#ifdef VER_ZJ
 			if (bValidFlag)	//浙江，不受采集标志影响，停电固定上报.	//*ZJ1*停电即记录停电事件。
+#else
+			if (bValidFlag && (bBuf[6]&0x80)==0x00)		//国网标准，采集标志无效时，停电不上报	//*GW1*停电时，若配置电表，不需要做停电记录。//*GW2*停电时，若未配置电表，需要做停电记录。
 #endif
 			{
 				pCtrl->bAttr = 0x80;	//正常无效停电事件
@@ -8408,9 +8459,13 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 			memcpy(&g_PowerOffTmp.tPoweroff, &time,sizeof(time)); 
 			SavePoweroffTmp();
 
+			TrigerSaveBank(BN0, SECT3, -1);
+			TrigerSaveBank(BN0, SECT16, -1);	//停电前保存一下事件相关数据
+
 			pCtrl->fIsUp = false;	
 			pCtrl->fIsUpRec = false;	
 			pCtrl->fMtrOrTerm = false;
+			SetInfo(INFO_PWROFF);
 		}
 		else if (!pCtrl->fPowerOff)		//终端来电
 		{
@@ -8424,7 +8479,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 			
 			pCtrl->fIsUp = true;	//上电
 	
-#if TERM_VER == TERM_ZJ
+#ifdef VER_ZJ
 			if (bValidFlag)		//*ZJ3*上电后，立即上报第1条上电。若配置电表，抄到表数据做判断后视情况做第2条上电记录。
 			{	
 				pCtrl->bAttr = 0x80;	//浙江要求，上电后立即上报正常无效的上电事件
@@ -8447,9 +8502,9 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 		//////////////////////////事件有效性的判断↓////////////////////////////////////
 		if (g_PowerOffTmp.fAlrPowerOff)
 		{
-			if (!IsInvalidTime(time) && !IsInvalidTime(g_PowerOffTmp.tPoweroff))
+			if (!IsInvalidTime(g_tPowerOn) && !IsInvalidTime(g_PowerOffTmp.tPoweroff))
 			{
-				if(TimeToSeconds(time) > TimeToSeconds(g_PowerOffTmp.tPoweroff))
+				if(TimeToSeconds(g_tPowerOn) > TimeToSeconds(g_PowerOffTmp.tPoweroff))
 				{
 					DTRACE(DB_METER_EXC, ("PowOffJudge1: RunTask fPwrOffValid = %d.\r\n", fPwrOffValid));
 					wBaseOffset = 0;
@@ -8467,7 +8522,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 
 					wMinSec = OoLongUnsignedToWord(bBuf+wBaseOffset) * 60;	//换算成秒
 					wMaxSec = OoLongUnsignedToWord(bBuf+wBaseOffset+3) * 60;	//换算成秒
-					dwPwrOffSec = TimeToSeconds(time) - TimeToSeconds(g_PowerOffTmp.tPoweroff);		//来电时间 - 停电时间
+					dwPwrOffSec = TimeToSeconds(g_tPowerOn) - TimeToSeconds(g_PowerOffTmp.tPoweroff);		//来电时间 - 停电时间
 
 					if(dwPwrOffSec>wMaxSec || dwPwrOffSec<wMinSec)
 						fPwrOffValid = false;	//超过了甄别值
@@ -8525,7 +8580,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 						continue;
 
 					memset(bPnPwrOff, 0, sizeof(bPnPwrOff));
-					if (IsMtrPwrOff(wPn, dwPwrOffSec, bPnPwrOff, time, &fMtrOrTerm) && fMtrOrTerm)
+					if (IsMtrPwrOff(wPn, dwPwrOffSec, bPnPwrOff, g_tPowerOn, &fMtrOrTerm) && fMtrOrTerm)
 						break;
 				}
 			}
@@ -8534,17 +8589,17 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 				DTRACE(DB_METER_EXC, ("PowOffJudge: RunTask MtrRead--random sample.\r\n"));
 				for(i=0,wCnt=0; i<POINT_NUM; i++)
 				{
+					if (i == 0)
+						DTRACE(DB_METER_EXC, ("PowOffJudge: RunTask MtrRead--step33333.\r\n"));
+
 					if (!IsPnValid(i))
 						continue;
 
 					if(wCnt>=3)
 						break;
 
-					if (i == 0)
-						DTRACE(DB_METER_EXC, ("PowOffJudge: RunTask MtrRead--step33333.\r\n"));
-
 					memset(bPnPwrOff, 0x00, sizeof(bPnPwrOff));	
-					if(IsMtrPwrOff(i, dwPwrOffSec, bPnPwrOff, time, &fMtrOrTerm))
+					if(IsMtrPwrOff(i, dwPwrOffSec, bPnPwrOff, g_tPowerOn, &fMtrOrTerm))
 						wCnt++;
 
 					if (fMtrOrTerm)
@@ -8563,7 +8618,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 		else
 			pCtrl->bAttr = 0x00;
 
-#if TERM_VER == TERM_STD
+#ifndef VER_ZJ
 		//产生停电事件
 		if (g_PowerOffTmp.fAlrPowerOff && (bBuf[6]&0x80))		//采集标志不判断
 		{
@@ -8594,10 +8649,8 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 		else
 			DTRACE(DB_METER_EXC, ("PowOffJudge: RunTask--step5 fMtrOrTerm=false, invalid event, pCtrl->bAttr=%02x.\r\n", pCtrl->bAttr));
 
-#if TERM_VER == TERM_STD
-
-#elif TERM_VER == TERM_ZJ
-		if ((pCtrl->bAttr&0xc0) == 0x3)	//浙江正常且有效事件，才上报
+#ifdef VER_ZJ
+		if ((pCtrl->bAttr&0xc0) == 0xc0)	//浙江正常且有效事件，才上报
 #endif	
 		{
 			pCtrl->bEvtSrcEnum = 0x01;		//上电事件

@@ -2566,101 +2566,6 @@ static int ReadOneOADFromMeter07(struct TMtrPro* pMtrPro,  BYTE* pbTx, WORD wTxL
 	return iRet;
 }
 
-static int SetOADtoMeter07(BYTE bChoice, struct TMtrPro* pTMtrInfo, BYTE* pApdu, WORD wApduLen, BYTE* pbData)
-{
-	//TOobMtrInfo tTMtrInfo;
-	TRdItem tRdItem;
-	//BYTE bTxBuf[256];
-	//BYTE bBuf[64] = {0};
-	//BYTE *pbBuf = bBuf;
-	//int iTxLen;
-	int iRet=0;
-	BYTE *pbData0 = pbData;
-	BYTE bNum;
-
-	//if (GetMeterInfo(bTsa, bTsaLen, &tTMtrInfo) < 0)
-	//	return -1;
-
-	BYTE bType1;
-	WORD wLen;
-	int iLen;
-
-	bNum = *pApdu++;
-	*pbData++ = bNum;
-	if (bChoice==2)
-	{
-
-		for (BYTE i=0; i<bNum; i++)
-		{
-			tRdItem.dwOAD = OoOadToDWord(pApdu);
-			memcpy(pbData, pApdu, 4);
-			pbData += 4;
-			// 07 meter not support set function. terminal  respond reject.  added by whr  
-			*pbData++ = DAR_RES_RW;	//645表不支持，设置、操作，直接回“拒绝读写”
-
-			const ToaMap* pOI = GetOIMap(OoOadToDWord(pApdu));
-			iLen = OoScanData(pApdu+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType1);
-			if (iLen < 0)
-			{
-				DTRACE(DB_FAPROTO, ("SetOADtoMeter07: OoScanData error,  bChoice=%d, dwOAD=%08x.\n", bChoice, OoOadToDWord(pApdu)));
-				break;
-			}
-			DTRACE(DB_FAPROTO, ("SetOADtoMeter07 :  bChoice=%d, dwOAD=%08x, OADLen=%d\n",  bChoice, OoOadToDWord(pApdu), iLen));
-
-			pApdu += 4;
-			pApdu += iLen;
-
-			
-
-		}
-		
-	
-
-		iRet = pbData - pbData0;
-		pbData = pbData0;
-		//return iRet;
-	}
-	else if (bChoice== 3)
-	{
-
-		for (BYTE i=0; i<bNum; i++)
-		{
-			tRdItem.dwOAD = OoOadToDWord(pApdu);
-			memcpy(pbData, pApdu, 4);
-			pbData += 4;
-
-			const ToaMap* pOI = GetOIMap(OoOadToDWord(pApdu));
-			iLen = OoScanData(pApdu+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType1);
-			if (iLen < 0)
-			{
-				DTRACE(DB_FAPROTO, ("CStdReader::Set_OAD_to_645_meter(): OoScanData error, bChoice=%d, dwOAD=%08x.\n",  bChoice, OoOadToDWord(pApdu)));
-				break;
-			}
-			pApdu += 4;
-			*pbData++ = DAR_RES_RW;	//645表不支持，设置、操作，直接回“拒绝读写”
-			pApdu += iLen;
-
-			tRdItem.dwOAD = OoOadToDWord(pApdu);
-			memcpy(pbData, pApdu, 4);
-			pbData += 4;
-
-			pApdu += 4;
-			*pbData++ = DAR_RES_RW;	//645表不支持，设置、操作，直接回“拒绝读写”
-
-			pApdu++;	//跳过“延时读取时间”
-		}
-
-
-		iRet = pbData - pbData0;
-		pbData = pbData0;
-		//return iRet;
-	}
-
-	return iRet;
-
-}
-
-
 
 
 int DL645V07DirAskItemEx(struct TMtrPro* pMtrPro, BYTE bRespType, BYTE bChoice, BYTE* pbTx, WORD wTxLen, BYTE* pbData)
@@ -2727,7 +2632,8 @@ int DL645V07DirAskItemEx(struct TMtrPro* pMtrPro, BYTE bRespType, BYTE bChoice, 
 	}
 	else if (bRespType == 6 || bRespType == 7)	//设置 || 操作
 	{
-		iRet = SetOADtoMeter07(bChoice, pMtrPro, pbTx, wTxLen, pbData);
+		DTRACE(DB_FAPROTO, ("07 meter mo support Set and action method\n"));
+		iRet = 0;   //07 表不支持设置操作
 		pbDataTmp = pbData + iRet;
 	}
 

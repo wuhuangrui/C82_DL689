@@ -319,7 +319,7 @@ int SearchAnUnReadID(BYTE bCn, WORD wPn, TMtrRdCtrl* pMtrRdCtrl, TRdItem* pRdIte
 			{
 				if (tTaskCfg.bPrio<=bPro
 					&& GetTaskCurExeTime(&tTaskCfg, &dwCurSec, &dwStartSec, &dwEndSec)==0
-					&& !pMtrRdCtrl->taskSucFlg[bTaskIdx].fRecSaved)
+					&& pMtrRdCtrl->taskSucFlg[bTaskIdx].bRecSaved!=TASK_DATA_FULL)
 				{
 					pbSch = GetSchCfg(&tTaskCfg, &iSchCfgLen);
 					if (pbSch!=NULL)
@@ -450,7 +450,7 @@ int SearchAnUnReadID(BYTE bCn, WORD wPn, TMtrRdCtrl* pMtrRdCtrl, TRdItem* pRdIte
 						}
 					}
 				}
-				else if (!pMtrRdCtrl->taskSucFlg[bTaskIdx].fRecSaved)
+				else if (pMtrRdCtrl->taskSucFlg[bTaskIdx].bRecSaved != TASK_DATA_FULL)
 				{
 					iRet = RD_ERR_UNTIME;
 				}
@@ -477,7 +477,7 @@ int SearchAnUnReadID(BYTE bCn, WORD wPn, TMtrRdCtrl* pMtrRdCtrl, TRdItem* pRdIte
 					{
 						if (tTaskCfg.bPrio<=bPro
 							&& GetTaskCurExeTime(&tTaskCfg, &dwCurSec, &dwStartSec, &dwEndSec)==0
-							&& !pMtrRdCtrl->taskSucFlg[bTaskIdx].fRecSaved)
+								&& pMtrRdCtrl->taskSucFlg[bTaskIdx].bRecSaved!=TASK_DATA_FULL)
 						{
 							pbSch = GetSchCfg(&tTaskCfg, &iSchCfgLen);
 							if (pbSch!=NULL)
@@ -600,6 +600,9 @@ TThreadRet MtrRdThread(void* pvPara)
 	DTRACE(DB_METER, ("MtrRdThread: bThrId=%d start with bPort=%d\r\n", bThrId, bPort));
 	while (1)
 	{
+
+		Sleep(10);	//防止CPU空转
+		
 		UpdThreadRunClick(iMonitorID);
 
 		MtrBroadcast_485( bThrId);//单地址校时

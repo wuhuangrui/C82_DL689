@@ -3052,7 +3052,7 @@ bool CStdReader::QueryFrzTaskReadState()
 											if (wTolCsdNum == wSucCsdNum)	//表地址对应的采集方案数据项是否采集成功
 												wPnToSucTaskNum++;
 #else	//通过保存的成功标识判断成功率
-											if (pMtrRdCtrl->taskSucFlg[bTaskIdx].fRecSaved)
+											if (pMtrRdCtrl->taskSucFlg[bTaskIdx].bRecSaved == TASK_DATA_FULL)
 												wPnToSucTaskNum++;
 #endif
 										}
@@ -3686,8 +3686,10 @@ int CStdReader::FinishSchMtr()
 
 	SetSchMtrState(false);
 	if (GetUdpMtrFlg())
-		SetInfo(INFO_MTR_UPDATE);
-
+	{
+		DTRACE(DB_FAPROTO, ("FinishSchMtr(): SetDelayInfo INFO_MTR_INFO_UPDATE.\n"));
+		SetDelayInfo(INFO_MTR_INFO_UPDATE);
+	}
 	return true;
 }
 
@@ -4422,6 +4424,7 @@ int CStdReader::OneAddrBroadcast(BYTE *pbTsa, BYTE *pbInBuf, WORD wInLen, TMtrPa
 	int iRet;
 	DWORD dwSecM;
 	DWORD dwSecT;
+	DWORD dwSecDiff = 0;
 	int iLen69845;
 	int iRespLen;;
 	BYTE bFrm69845[100];
@@ -4454,7 +4457,17 @@ int CStdReader::OneAddrBroadcast(BYTE *pbTsa, BYTE *pbInBuf, WORD wInLen, TMtrPa
 			//if ((dwSecM > (dwSecT+300)) || (dwSecT > (dwSecM+300)))//时间差大于5分钟的不理会
 			//	return -1;
 
-			if (dwSecM > (dwSecT+bBuf1[3]) ||dwSecT > (dwSecM+bBuf1[3]))//电表时间超差
+			if(dwSecM >= dwSecT)
+            {
+                dwSecDiff = dwSecM -dwSecT;
+            }
+            else
+            {
+                dwSecDiff = dwSecT - dwSecM;
+            }            
+
+			//if (dwSecM > (dwSecT+bBuf1[3]) ||dwSecT > (dwSecM+bBuf1[3]))//电表时间超差
+			if(dwSecDiff > abs((char)bBuf1[3]))
 			{
 				bTsaLen = pbTsa[0];
 				g_MtrClkPrg.bEvtSrcTSA[0] = DT_TSA;
@@ -5415,7 +5428,7 @@ int CStdReader::ReadDLT_645(TMtrRdCtrl* pMtrRdCtrl, TRdItem* pRdItem, TMtrPara* 
 		iLen = DL645V07AskItemErc(pRdItem, &pMtrPara->bAddr[1], pMtrPara->bAddr[0], pMtrPara->bProId, pRdItem->dwOAD, pbRxBuf);
 		if (iLen <= 0)
 		{
-			pMtrRdCtrl->taskSucFlg[pMtrRdCtrl->schItem.bTaskIdx].fRecSaved = true;	//特殊处理，直接置成功标识！
+				pMtrRdCtrl->taskSucFlg[pMtrRdCtrl->schItem.bTaskIdx].bRecSaved = TASK_DATA_FULL;	//特殊处理，直接置成功标识！
 			return -1;
 		}
 		UpdateTaskMoniStat(pMtrRdCtrl->taskSucFlg[pMtrRdCtrl->schItem.bTaskIdx].bTaskId, TASK_MONIINDEX_RCVNUM);

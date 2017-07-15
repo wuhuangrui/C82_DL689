@@ -281,6 +281,7 @@ bool OoParseField(TFieldParser* pParser, BYTE* pFmt, WORD wFmtLen, bool fParseIt
 
 int FieldCmp(BYTE bCmpType, BYTE* pbCmpField, BYTE bSrcType, BYTE* pbSrcField);
 
+int ReadFromROAD_1(BYTE* pbSelROAD, BYTE* pbSrcROAD, BYTE* pbSelData, BYTE* pbSrcData);
 int ReadFromROAD(BYTE* pbSelROAD, BYTE* pbSrcROAD, BYTE* pbSelData, BYTE* pbSrcData);
 
 int CreateTable(char* pszTableName, TFieldParser* pFixFields, TFieldParser* pDataFields, DWORD dwRecNumMax);
@@ -293,7 +294,7 @@ bool SaveHisRecord(char* pszTableName, int index, BYTE* pbRec);
 
 void InitSchTable();
 
-bool WriteCacheDataToTaskDB(BYTE bSchNo, BYTE bSchType, BYTE *pbRecBuf, WORD wRecLen, WORD wIdex = 0);
+bool WriteCacheDataToTaskDB(BYTE bSchNo, BYTE bSchType, BYTE *pbRecBuf, WORD wRecLen, WORD wIdex = 0, int* piRecPhyIdx = NULL);
 
 int ReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int *piTabIdx, int* piStart, BYTE* pbBuf, WORD wBufSize, WORD* pwRetNum);
 

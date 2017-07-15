@@ -267,7 +267,7 @@ bool SaveTask(TMtrRdCtrl* pMtrRdCtrl)
 	int iSchCfgLen;
 	WORD wFmtLen, wLen;
 	TTimeInterv tiExe;
-	DWORD dwIntV, dwCurSec, dwStart, dwEnd;
+	DWORD dwIntV, dwCurSec, dwStart, dwEnd, wSucNum;
 	BYTE *pbSch, *pbFmt, *pbCollMode, bCollType;
 	BYTE bBuf[MEMORY_BLOCK_SIZE], bType;
 	TTaskCfg tTaskCfg;
@@ -276,7 +276,11 @@ bool SaveTask(TMtrRdCtrl* pMtrRdCtrl)
 	{
 		if (pMtrRdCtrl->taskSucFlg[bTaskIndex].bValid)
 		{
-			if (CalcuBitNum(pMtrRdCtrl->taskSucFlg[bTaskIndex].bSucFlg, TASK_SUC_FLG_LEN) < pMtrRdCtrl->taskSucFlg[bTaskIndex].bCSDItemNum) //任务还没有抄读成功
+			wSucNum = CalcuBitNum(pMtrRdCtrl->taskSucFlg[bTaskIndex].bSucFlg, TASK_SUC_FLG_LEN);
+			if (wSucNum==0 || pMtrRdCtrl->taskSucFlg[bTaskIndex].bRecSaved==TASK_DATA_FULL) //任务还没有抄读成功 || 任务已经完整入库
+				continue;
+
+			if (pMtrRdCtrl->taskSucFlg[bTaskIndex].bRecSaved==TASK_DATA_PART && wSucNum<pMtrRdCtrl->taskSucFlg[bTaskIndex].bCSDItemNum) //部分入库 && 还没有全部抄到
 				continue;
 
 			GetTaskCfg(pMtrRdCtrl->taskSucFlg[bTaskIndex].bTaskId, &tTaskCfg);
@@ -295,10 +299,18 @@ bool SaveTask(TMtrRdCtrl* pMtrRdCtrl)
 				break;
 			}
 
-			if (SaveTaskDataToDB(pMtrRdCtrl, bType, pMtrRdCtrl->taskSucFlg[bTaskIndex]))
+			if (SaveTaskDataToDB(pMtrRdCtrl, bType, &(pMtrRdCtrl->taskSucFlg[bTaskIndex])))
 			{
-				pMtrRdCtrl->taskSucFlg[bTaskIndex].fRecSaved = true;
-				memset(pMtrRdCtrl->taskSucFlg[bTaskIndex].bSucFlg, 0, sizeof(pMtrRdCtrl->taskSucFlg[bTaskIndex].bSucFlg));
+				if (wSucNum == pMtrRdCtrl->taskSucFlg[bTaskIndex].bCSDItemNum)
+				{
+					pMtrRdCtrl->taskSucFlg[bTaskIndex].bRecSaved = TASK_DATA_FULL;
+					memset(pMtrRdCtrl->taskSucFlg[bTaskIndex].bSucFlg, 0, sizeof(pMtrRdCtrl->taskSucFlg[bTaskIndex].bSucFlg));
+				}
+				else
+				{
+					pMtrRdCtrl->taskSucFlg[bTaskIndex].bRecSaved = TASK_DATA_PART;
+				}
+
 				memset(bBuf, 0, sizeof(bBuf));
 				int iLen = ReadMem(pMtrRdCtrl->allocTab, MTR_TAB_NUM, pMtrRdCtrl->bMem, MEM_TYPE_CURVE_FLG, pMtrRdCtrl->taskSucFlg[bTaskIndex].bTaskId, bBuf);
 				if (iLen > 0) //曲线任务某个时刻抄读标志特殊处理
@@ -346,7 +358,7 @@ bool SaveTask(TMtrRdCtrl* pMtrRdCtrl)
 	return false;
 }
 
-bool SaveTaskDataToDB(TMtrRdCtrl* pMtrRdCtrl, BYTE bType, TTaskSucFlg taskSucFlg, BYTE* pbData, WORD wDataLen, WORD wIdex)
+bool SaveTaskDataToDB(TMtrRdCtrl* pMtrRdCtrl, BYTE bType, TTaskSucFlg* ptaskSucFlg, BYTE* pbData, WORD wDataLen, WORD wIdex)
 {
 	TTaskCfg tTaskCfg;
 	TTime tNowTime, tTime;
@@ -358,7 +370,7 @@ bool SaveTaskDataToDB(TMtrRdCtrl* pMtrRdCtrl, BYTE bType, TTaskSucFlg taskSucFlg
 	int iRet, iSchCfgLen;
 	bool fIsSaveFlg = false;
 
-	if (!GetTaskCfg(taskSucFlg.bTaskId, &tTaskCfg))
+	if (!GetTaskCfg(ptaskSucFlg->bTaskId, &tTaskCfg))
 		return false;
 
 	pbSch = GetSchCfg(&tTaskCfg, &iSchCfgLen);
@@ -383,7 +395,7 @@ bool SaveTaskDataToDB(TMtrRdCtrl* pMtrRdCtrl, BYTE bType, TTaskSucFlg taskSucFlg
 		pbRecBuf += OoGetDataLen(81, (BYTE*)&dwOAD);
 
 		//采集启动时标
-		SecondsToTime(taskSucFlg.dwTime, &tTime);
+		SecondsToTime(ptaskSucFlg->dwTime, &tTime);
 		pbRecBuf[0] = tTime.nYear/256;
 		pbRecBuf[1] = tTime.nYear%256;
 		pbRecBuf[2] = tTime.nMonth;
@@ -445,7 +457,7 @@ bool SaveTaskDataToDB(TMtrRdCtrl* pMtrRdCtrl, BYTE bType, TTaskSucFlg taskSucFlg
 					GetCurTime(&tTime);
 					break;
 				case 1:	//任务开始时间
-					SecondsToTime(taskSucFlg.dwTime, &tTime);
+					SecondsToTime(ptaskSucFlg->dwTime, &tTime);
 					break;
 				case 2:	//相对当日0点0分
 					GetCurTime(&tTime);
@@ -475,6 +487,7 @@ bool SaveTaskDataToDB(TMtrRdCtrl* pMtrRdCtrl, BYTE bType, TTaskSucFlg taskSucFlg
 					tTime.nSecond = 0;
 					break;
 				case 6:	//数据冻结时标 
+					SecondsToTime(ptaskSucFlg->dwTime, &tTime);
 //					int iRet;
 //					DWORD dwFrzOAD;	//数据冻结时标
 //					DWORD dwOAD;
@@ -536,7 +549,7 @@ bool SaveTaskDataToDB(TMtrRdCtrl* pMtrRdCtrl, BYTE bType, TTaskSucFlg taskSucFlg
 //					return false;
 //OK_FRZOAD:
 //					memset(bMemRec, 0, sizeof(bMemRec));
-//					iRet = ReadTmpRec(pMtrRdCtrl, bType, taskSucFlg.bTaskId, bMemRec);
+//					iRet = ReadTmpRec(pMtrRdCtrl, bType, ptaskSucFlg->bTaskId, bMemRec);
 //					if (iRet < 0)
 //					{
 //						DTRACE(DB_CRITICAL, ("SaveTaskDataToDB(): iRet=%d.\n", iRet));
@@ -628,7 +641,7 @@ bool SaveTaskDataToDB(TMtrRdCtrl* pMtrRdCtrl, BYTE bType, TTaskSucFlg taskSucFlg
 
 		if (tTaskCfg.bSchType == SCH_TYPE_COMM)
 		{
-			iRet = ReadTmpRec(pMtrRdCtrl, bType, taskSucFlg.bTaskId, pbRecBuf);
+			iRet = ReadTmpRec(pMtrRdCtrl, bType, ptaskSucFlg->bTaskId, pbRecBuf);
 		}
 		else
 		{
@@ -649,7 +662,7 @@ bool SaveTaskDataToDB(TMtrRdCtrl* pMtrRdCtrl, BYTE bType, TTaskSucFlg taskSucFlg
 	}
 	if (fIsSaveFlg)
 	{
-		return WriteCacheDataToTaskDB(tTaskCfg.bSchNo, tTaskCfg.bSchType, bRecBuf, pbRecBuf-bRecBuf, wIdex);
+		return WriteCacheDataToTaskDB(tTaskCfg.bSchNo, tTaskCfg.bSchType, bRecBuf, pbRecBuf-bRecBuf, wIdex, &(ptaskSucFlg->iRecPhyIdx));
 	}
 
 	return false;
@@ -827,12 +840,13 @@ bool DoTaskSwitch(TMtrRdCtrl* pMtrRdCtrl)
 					pbSch = GetSchCfg(&tTaskCfg, &iSchLen);
 					if (pbSch != NULL)
 					{
-						if (iLen<0 && !pMtrRdCtrl->taskSucFlg[i].fRecSaved && tTaskCfg.bSchType==SCH_TYPE_COMM)
+						if (iLen<0 && pMtrRdCtrl->taskSucFlg[i].bRecSaved!=TASK_DATA_FULL && tTaskCfg.bSchType==SCH_TYPE_COMM)
 						{
-							if (SaveTaskDataToDB(pMtrRdCtrl, MEM_TYPE_TASK, pMtrRdCtrl->taskSucFlg[i])) //强制入库
-								pMtrRdCtrl->taskSucFlg[i].fRecSaved = true;
+							if (SaveTaskDataToDB(pMtrRdCtrl, MEM_TYPE_TASK, &(pMtrRdCtrl->taskSucFlg[i]))) //强制入库  可以考虑不再强制入库，因为第一回抄到会存一笔
+								pMtrRdCtrl->taskSucFlg[i].bRecSaved = TASK_DATA_FULL;
 						}
-						pMtrRdCtrl->taskSucFlg[i].fRecSaved = false;
+						pMtrRdCtrl->taskSucFlg[i].bRecSaved = TASK_DATA_NONE;
+						pMtrRdCtrl->taskSucFlg[i].iRecPhyIdx = 0;
 						pMtrRdCtrl->taskSucFlg[i].dwTime = dwCurSec;
 						ClrTmpRec(pMtrRdCtrl, MEM_TYPE_TASK, pMtrRdCtrl->taskSucFlg[i].bTaskId);
 						memset(pMtrRdCtrl->taskSucFlg[i].bSucFlg, 0, sizeof(pMtrRdCtrl->taskSucFlg[i].bSucFlg));
@@ -964,6 +978,9 @@ int DoTask(WORD wPn, TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, bool* pfModified)
 			UpdateTaskMoniStat(pMtrRdCtrl->taskSucFlg[pMtrRdCtrl->schItem.bTaskIdx].bTaskId, TASK_MONIINDEX_RCVNUM);
 			if (SaveMtrData(pMtrRdCtrl, tRdItem.bReqType, tRdItem.bCSD, bBuf, iRet))	//+1:跳过1字节DAR
 				*pfModified = true; //测量点数据已修改
+
+			if (tRdItem.bReqType == 1)
+				SaveMtrInItemMem(wPn, tRdItem.dwOAD, bBuf);
 
 			//hyl 20170412 特殊处理3105事件，按任务方案存储
 			if (tRdItem.dwOAD==0x40000200)

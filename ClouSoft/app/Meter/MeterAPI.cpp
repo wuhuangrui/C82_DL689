@@ -177,11 +177,11 @@ WORD GetMeterInterv()
 	}
 	else
 	{
-		bMeterInterv = 15;
+		bMeterInterv = 60;
 	}
 
-	if (bMeterInterv==0 || bMeterInterv>60)
-		bMeterInterv = 15;
+	if (bMeterInterv==0)
+		bMeterInterv = 60;
 
 	return bMeterInterv;
 }
@@ -191,7 +191,7 @@ bool InitMeter()
 {
 	//Init485MtrMask();
 	MtrCtrlInit();
-	InitMtrCacheCtrl();
+	//InitMtrCacheCtrl();
 	return true;
 }
 
@@ -374,6 +374,8 @@ void DoMangerMtrCacheCtrl()
 			&& (abs(GetCurTime()-g_MtrCacheCtrl[bIndex].dwCacheTime)>10*60))))
 		{
 			SaveMtrRdCtrl(g_MtrCacheCtrl[bIndex].wPn, &g_MtrCacheCtrl[bIndex].mtrRdCtrl);
+			g_MtrCacheCtrl[bIndex].fTrigerSave = false;
+			g_MtrCacheCtrl[bIndex].fDirty = false; //防止频繁写flash
 			//memset((BYTE*)&g_MtrCacheCtrl[bIndex], 0, sizeof(TMtrCacheCtrl));
 			g_MtrCacheCtrl[bIndex].dwCacheTime = GetCurTime();
 			DTRACE(DB_METER, ("DoMangerMtrCacheCtrl: wPn=%d, bIndex=%d.\n", g_MtrCacheCtrl[bIndex].wPn, bIndex));
@@ -382,6 +384,35 @@ void DoMangerMtrCacheCtrl()
 	//SignalSemaphore(g_semMtrCtrl);
 	SignalSemaphore(g_semMtrCacheCtrl);
 }
+
+
+//保存抄表控制结构，注意不会释放信号量！！！
+void SaveMangerMtrCacheCtrl(bool fSignalLock)
+{
+	WaitSemaphore(g_semMtrCacheCtrl);
+
+	for (BYTE bIndex=0; bIndex<MTR_CACHE_NUM; bIndex++)		//遍历抄表控制结构
+	{
+		if (g_MtrCacheCtrl[bIndex].bStatus != CACHE_STATUS_FREE)
+		{
+			SaveMtrRdCtrl(g_MtrCacheCtrl[bIndex].wPn, &g_MtrCacheCtrl[bIndex].mtrRdCtrl);
+			DTRACE(DB_METER, ("SaveMangerMtrCacheCtrl: wPn=%d, bIndex=%d.\n", g_MtrCacheCtrl[bIndex].wPn, bIndex));
+			g_MtrCacheCtrl[bIndex].bStatus = CACHE_STATUS_IDLE;
+		}
+	}
+
+	if (fSignalLock)
+		SignalSemaphore(g_semMtrCacheCtrl);	//这里不释放信号量了，后面马上复位CPU
+}
+
+void ClearMtrCacheCtrl()
+{
+	WaitSemaphore(g_semMtrCacheCtrl);
+	memset((BYTE*)g_MtrCacheCtrl, 0, sizeof(g_MtrCacheCtrl));
+	DTRACE(DB_CRITICAL, ("###ClearMtrCacheCtrl().\r\n"));
+	SignalSemaphore(g_semMtrCacheCtrl);	
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////
 //电表抄读控制结构接口函数定义
@@ -489,7 +520,10 @@ TMtrRdCtrl* GetMtrRdCtrl(WORD wPn, BYTE*pbTsa)
 	//没有则需要把最老的CACHE_STATUS_IDLE结构导出到文件系统以释放出一个空间
 	if (iLastInx >= 0)
 	{
-		SaveMtrRdCtrl(g_MtrCacheCtrl[iLastInx].wPn, &g_MtrCacheCtrl[iLastInx].mtrRdCtrl);
+		if (g_MtrCacheCtrl[iLastInx].fDirty) //防止频繁写flash
+		{
+			SaveMtrRdCtrl(g_MtrCacheCtrl[iLastInx].wPn, &g_MtrCacheCtrl[iLastInx].mtrRdCtrl);
+		}
 		memset((BYTE *)&g_MtrCacheCtrl[iLastInx], 0, sizeof(TMtrCacheCtrl));
 		if (LoadMtrRdCtrl(wPn, pbTsa, &g_MtrCacheCtrl[iLastInx].mtrRdCtrl) && g_MtrCacheCtrl[iLastInx].mtrRdCtrl.bTaskSN==GetTaskCfgSn())
 		{
@@ -629,6 +663,16 @@ void DeleteMtrRdCtrl()
 	
 }
 
+void DeleteOneMtrRdCtrl(WORD wPn)
+{
+	char szName[64];
+
+	sprintf(szName, USER_DATA_PATH"MtrRdCtrl_Pn%d.dat", wPn);	
+	DeleteFile(szName);
+
+	DTRACE(DB_TASK,("DeleteOneMtrRdCtrl(): wPn=%d.\r\n", wPn));
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //电表临时缓存访问接口定义：
@@ -753,6 +797,28 @@ WORD* MtrGetFixedLen()
 WORD* MtrGetFixedInItems()
 {
 	return g_wFixRDInID;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+//描述:刷新内部测量点数据
+//参数:
+//	@wPn测量点号
+//	@dwOAD数据标识
+//	@pbData数据内容
+//返回:如果有保存则返回true，否则返回false
+bool SaveMtrInItemMem(WORD wPn, DWORD dwOAD, BYTE* pbData)
+{
+	for (int i=0; i<sizeof(g_dwFixRDOad)/sizeof(DWORD); i++)
+	{
+		if (g_dwFixRDOad[i] == dwOAD)
+		{
+			WriteItemEx(BN0, wPn, g_wFixRDInID[i], pbData, GetCurTime());
+			return true;
+		}	
+	}
+
+	return false;
 }
 
 //描述:在一个间隔切换后，重新初始化电表临时数据结构
@@ -1005,7 +1071,7 @@ bool SaveMtrData(TMtrRdCtrl* pMtrRdCtrl, BYTE bRespType, BYTE* pbCSD, BYTE* pbDa
 				{
 					if (tTaskCfg.bTaskId==pMtrRdCtrl->taskSucFlg[bTaskId].bTaskId)
 					{
-						if (pMtrRdCtrl->taskSucFlg[bTaskId].fRecSaved)	//日冻结与小时冻结存在相同的OAD，小时更新时防止日冻结存储
+						if (pMtrRdCtrl->taskSucFlg[bTaskId].bRecSaved == TASK_DATA_FULL)	//日冻结与小时冻结存在相同的OAD，小时更新时防止日冻结存储
 							continue;
 
 						switch (tTaskCfg.bSchType)
@@ -1091,7 +1157,7 @@ bool SaveMtrData(TMtrRdCtrl* pMtrRdCtrl, BYTE bRespType, BYTE* pbCSD, BYTE* pbDa
 											break;
 										if (dwCurRecIndex==0 || dwLastRecIndex<dwCurRecIndex)
 										{
-											SaveTaskDataToDB(pMtrRdCtrl, MEM_TYPE_NONE, pMtrRdCtrl->taskSucFlg[bTaskId], pbData, wDataLen, bCSDIndex);
+											SaveTaskDataToDB(pMtrRdCtrl, MEM_TYPE_NONE, &(pMtrRdCtrl->taskSucFlg[bTaskId]), pbData, wDataLen, bCSDIndex);
 											fSave = true;
 
 											char szTableName[32];

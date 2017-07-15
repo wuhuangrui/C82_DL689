@@ -39,4 +39,7 @@ unsigned int freespace(char* disk);
 int CloseConsole(void);
 int OpenConsole(void);
 bool IsConsoleClosed();
+void CheckConsole();
+
+
 #endif //SYSAPI_H

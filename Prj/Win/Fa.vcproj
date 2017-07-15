@@ -70,8 +70,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				LinkLibraryDependencies="true"
 				AdditionalOptions="/NODEFAULTLIB:uafxcwd.lib"
-				AdditionalDependencies="TaskDB.lib LibDb.lib Modem.lib drivers.lib arch.lib"
+				AdditionalDependencies="TaskDB.lib LibDb.lib Modem.lib drivers.lib arch.lib ProtoIf.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="..\..\ClouSoft\app\CctOob;..\..\ClouSoft\common\LibDb;..\..\ClouSoft\common;..\..\ClouSoft\common\TaskDB;..\..\ClouSoft\common\Modem;..\..\ClouSoft\common\ProtoIf;..\..\ClouSoft\drivers\win;..\..\ClouSoft\arch\win"
 				GenerateDebugInformation="true"
@@ -1794,15 +1795,7 @@
 				Name="ProtoIf"
 				>
 				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\CommIf.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\..\ClouSoft\common\ProtoIf\CommIf.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\EmbedGprsIf.cpp"
 					>
 				</File>
 				<File
@@ -1810,15 +1803,7 @@
 					>
 				</File>
 				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\GprsIf.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\..\ClouSoft\common\ProtoIf\GprsIf.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\GprsWorker.cpp"
 					>
 				</File>
 				<File
@@ -1826,23 +1811,11 @@
 					>
 				</File>
 				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\HS230If.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\..\ClouSoft\common\ProtoIf\HS230If.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\P2PIf.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\..\ClouSoft\common\ProtoIf\P2PIf.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\ProIfAPI.cpp"
 					>
 				</File>
 				<File
@@ -1854,15 +1827,7 @@
 					>
 				</File>
 				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\ProtoIf.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\..\ClouSoft\common\ProtoIf\ProtoIf.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\R230mIf.cpp"
 					>
 				</File>
 				<File
@@ -1870,15 +1835,7 @@
 					>
 				</File>
 				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\RSCoder.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\..\ClouSoft\common\ProtoIf\RSCoder.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\RSCoderJS.cpp"
 					>
 				</File>
 				<File
@@ -1886,23 +1843,11 @@
 					>
 				</File>
 				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\RSCoderSH.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\..\ClouSoft\common\ProtoIf\RSCoderSH.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\SmsIf.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\..\ClouSoft\common\ProtoIf\SmsIf.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\ClouSoft\common\ProtoIf\SocketIf.cpp"
 					>
 				</File>
 				<File

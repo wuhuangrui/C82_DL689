@@ -17,6 +17,10 @@
 
 struct TMtrPro g_MtrPro[3];
 extern TMtrClkPrg g_MtrClkPrg;
+TTmRunMode g_TmRunModeI;
+TTmRunMode g_TmRunModeII;
+TTmRunMode g_TmRunModeIII;
+
 //描述:通过测量点号取出对应测量点的参数和保存变量
 //参数:	@wPn:测量点号
 //		@pMtrPara:用于返回该电表参数的指针
@@ -67,7 +71,8 @@ struct TMtrPro*  CreateMtrPro(WORD wPn, TMtrPara* pMtrPara, BYTE bThrId)
 	case PROTOCOLNO_DLT69845:
 		g_MtrPro[bThrId].pMtrPara->pComm = &g_commRs485[bThrId];
 		if ( Mtr69845Init(&g_MtrPro[bThrId], bThrId) )
-			return &g_MtrPro[bThrId];	
+			return &g_MtrPro[bThrId];
+		break;
 
 #ifdef EN_SBJC_V2
     case PROTOCOLNO_SBJC:
@@ -138,9 +143,18 @@ int OneAddrBroadcast_485(struct TMtrPro* pMtrPro, BYTE bRespType, DWORD dwOAD,  
 			
 			DWORD dwSecM = TimeToSeconds(tmMtr);
 			DWORD dwSecT = TimeToSeconds(tmTm);
-			//if ((dwSecM > (dwSecT+300)) || (dwSecT > (dwSecM+300)))//时间差大于5分钟的不理会
+			DWORD dwSecDiff = 0;
 			//	return -1;
-			if (dwSecM > (dwSecT+bBuf1[3]) ||dwSecT > (dwSecM+bBuf1[3]))//电表时间超差
+            if(dwSecM >= dwSecT)
+            {
+                dwSecDiff = dwSecM -dwSecT;
+            }
+            else
+            {
+                dwSecDiff = dwSecT - dwSecM;
+            }
+			//if (dwSecM > (dwSecT+bBuf1[3]) ||dwSecT > (dwSecM+bBuf1[3]))//电表时间超差
+			if(dwSecDiff > abs((char)bBuf1[3]))
 			{
 				TMtrPara* pMtrPara = pMtrPro->pMtrPara;	
 				g_MtrClkPrg.bEvtSrcTSA[0] = DT_TSA;
@@ -537,4 +551,103 @@ int BroadcastAdjustTime_485(BYTE bThrId)
 	return 0;
 }
 
+
+void IsInTestMode(BYTE bThrId)
+{
+	TRdItem tRdItem;
+	int iStep = -1;
+
+	BYTE bPort;
+	WORD wPnSum = 0;
+	BYTE bBuf[10];
+	TTmRunMode tmpmode;
+	wPnSum = GetPnNum();
+	int iRet1, iRet2;
+	//if (bThrId != 0)//只对485 I  口做此尝试
+	//	return;
+	if (bThrId == 2)//第III路为上行调试口
+		return;
+	
+	bPort = LOGIC_PORT_MIN + bThrId;
+	if (ReadBankId(BANK1, PN0, 0x2111, bBuf) <0 )
+		bBuf[0] = 8;
+	if (g_TmRunModeI.bTmRunMode == 1 ||g_TmRunModeII.bTmRunMode==1 ||g_TmRunModeIII.bTmRunMode==1)//任何一个检测到了就不再检了
+		return;
+	if (bThrId == 0)
+		tmpmode = g_TmRunModeI;
+	else if (bThrId == 1)
+		tmpmode = g_TmRunModeII;
+	else
+		tmpmode = g_TmRunModeII;
+	
+	if (wPnSum > bBuf[0])//认定为现场模式，不去尝试读模拟表了
+	{
+			tmpmode.bTmRunMode = 0;
+	}
+	else
+	{
+		TTime now;
+		GetCurTime(&now);
+		if (tmpmode.bTmRunMode == 1)
+		{
+			DWORD dwCurHour = TimeToMinutes(now)/60;
+			DWORD dwRdHour = TimeToMinutes(tmpmode.tTimeRd)/60;
+			if (dwCurHour == dwRdHour)//在测试模式情况下也1小时去再确认一次
+				return;
+		}
+		else
+		{
+			DWORD dwCurMin = TimeToMinutes(now);
+			DWORD dwRdMin = TimeToMinutes(tmpmode.tTimeRd);
+			if (dwCurMin == dwRdMin)//不在测试模式时1分钟尝试一次
+				return;
+		}
+		BYTE bBufY[25]={0x68, 0x17, 0x00, 0x43, 0x05, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x00, 0x9E, 0x50, 0x05, 0x01, 0x02, 0x40, 0x00, 0x02, 0x00, 0x00, 0x00, 0x17, 0x16};
+		BYTE bBufX[25]={0x68, 0x17, 0x00, 0x43, 0x05, 0x77, 0x77, 0x77, 0x77, 0x77, 0x77, 0x00, 0xAC, 0xEF, 0x05, 0x01, 0x03, 0x40, 0x00, 0x02, 0x00, 0x00, 0x2B, 0x13, 0x16};
+
+		TMtrPara tMtrPara;
+		WORD m_iPn = 1;
+		tMtrPara.CommPara.wPort = MeterPortToPhy(bPort);
+		tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(3);//2400;
+		tMtrPara.CommPara.bByteSize = 8;
+		tMtrPara.CommPara.bStopBits = ONESTOPBIT;
+		tMtrPara.CommPara.bParity = EVENPARITY;
+
+		tMtrPara.bProId = PROTOCOLNO_DLT69845;
+		TMtrPro * pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
+		DTRACE(DB_METER, ("bPort %d test read-2400\r\n",bPort)); 
+		memcpy(pMtrPro->pbTxBuf, bBufY, sizeof(bBufY));
+		iStep = sizeof(bBufY);
+		
+		tRdItem.bReqType = 1;
+		tRdItem.dwOAD = 0x40000200;
+		iRet1 = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x40000200, iStep);
+		if ((iRet1 >= 0))
+		{
+			memcpy(pMtrPro->pbTxBuf, bBufX, sizeof(bBufX));
+			iStep = sizeof(bBufX);
+			iRet2 = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x40000200, iStep);
+			if (iRet2 >= 0)
+			{
+				tmpmode.bTmRunMode = 1;//说明为测试模式
+				DTRACE(DB_METER, ("bPort %d is test mode\r\n",bPort)); 
+			}
+			else
+				tmpmode.bTmRunMode = 0;
+		}
+		else
+			tmpmode.bTmRunMode = 0;
+		
+		memcpy(&tmpmode.tTimeRd, &now, sizeof(TTime));
+
+	}
+
+	if (bThrId == 0)
+		g_TmRunModeI = tmpmode;
+	else if (bThrId == 1)
+		g_TmRunModeII = tmpmode;
+	else
+		g_TmRunModeII = tmpmode;
+
+}
 

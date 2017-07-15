@@ -15,7 +15,7 @@ void GetRSDAndRCSD(TRdItem* pRdItem, BYTE bMethod, BYTE* pbData, BYTE* pbCSD, DW
 void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModified);
 int DoTask(WORD wPn, TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, bool* pfModified);
 bool SaveTask(TMtrRdCtrl* pMtrRdCtrl);
-bool SaveTaskDataToDB(TMtrRdCtrl* pMtrRdCtrl, BYTE bType, TTaskSucFlg taskSucFlg, BYTE* pbData=NULL, WORD wDataLen=0, WORD wIdex=0);
+bool SaveTaskDataToDB(TMtrRdCtrl* pMtrRdCtrl, BYTE bType, TTaskSucFlg* taskSucFlg, BYTE* pbData=NULL, WORD wDataLen=0, WORD wIdex=0);
 
 bool ClrTaskMoniStat(BYTE bTaskId);
 bool UpdateTaskMoniStat(BYTE bTaskId, BYTE bIndex, void* pbData=NULL, WORD wDataLen=0);

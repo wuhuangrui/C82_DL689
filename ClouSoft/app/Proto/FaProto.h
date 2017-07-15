@@ -93,6 +93,8 @@
 #define FAP_FRM_SIZE        			GB_FRM_SIZE
 
 #define SMS_ADDR_INTER    				0x91
+#define REPORT_FORWARD				1//是否支持掉线补报功能
+
 //国标下的定义结束
 //////////////////////////////////////////////////////////////
 
@@ -811,6 +813,9 @@ private:
 	int		m_iStart;
 	int		m_iRdPn;	//本次读的测量点	
 	int		m_iRsd10Pn;
+	int		m_iRPFWPn;//记录补报测量点
+	DWORD	m_dwRPFWTimes[2];//依次记录最远补报那笔的时间和当前时间
+	DWORD	m_dwFrmStartClick;  //接收到帧起始时标
 private:
 	TNegoSizeDef  m_NegoSizeDef;//空间协商参数块
 	void InitCommSize(BYTE bType);
@@ -983,6 +988,7 @@ private:
 	
 	int ProxyTimeoutDealSetThenGetReqList(BYTE * pbTx, BYTE *pbData);
 	int ProxyTimeoutDealActThenGetReqList(BYTE * pbTx, BYTE *pbData);
+	int ProxyTimeoutDealSetReqList(BYTE * pbTx, BYTE *pbData);
 	int ProxyTimeoutDealActReqList(BYTE * pbTx, BYTE *pbData);
 };//end class CFaProto;
 

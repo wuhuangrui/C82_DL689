@@ -41,11 +41,12 @@ extern int SetFileTransAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbPara);
 BYTE OIGetAttrNum(WORD wClass)
 {
 	BYTE iOIAttrNum[] = {	0, 5, 3, 3, 3,		//0~4
-							6, 3, 9, 2, 6,		//5~9
-							4, 4, 19, 5, 3,		//10~14
-							3, 3, 4, 3, 8,		//15~19
+							6, 3, 9, 2, 4,		//5~9
+							3, 4, 19, 5, 3,		//10~14
+							3, 3, 4, 3, 10,		//15~19
 							5, 13, 4, 18, 12,	//20~24
 							11, 5, 0, 0, 0};	//25~29
+
 	if (wClass <= 29)
 		return iOIAttrNum[wClass];
 	else
@@ -359,7 +360,7 @@ int ScanArray(BYTE* pbSrc, bool fRevOrder)
 			break;
 		
 		case DT_TI:
-			Offset = 5;
+			Offset = 3;
 			break;
 
 		case DT_TSA:
@@ -1323,17 +1324,8 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 			wSigFrmPnNum = wBufSize/TASK_CFG_LEN;
 			if (*piStart == -1) //第一次来读
 			{
-				wTotNum = GetTaskNum();
-				if (wTotNum == 0) //无相应参数
-				{
-					*pbBuf = EMPTY_DATA;
-					*piStart = -1;		//单帧结束
-					return 1;
-				}
-				else
-				{
+				
 					*piStart = 0;
-				}
 			}
 			pbTmp += 2;
 			for (i=*piStart; i<TASK_NUM; i++)
@@ -1364,7 +1356,7 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 			pbBuf[0] = DT_ARRAY; //数组
 			pbBuf[1] = bTaskNum;
 			
-			if (i == TASK_NUM) //参数全部发完
+			if (i == TASK_NUM || bTaskNum==0) //参数全部发完
 				*piStart = -1;
 
 			return (pbTmp-pbBuf);	
@@ -1939,6 +1931,7 @@ int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bo
 		//BYTE bOADBuf[4];
 		TTime tm;
 		TTimeInterv Ti;
+		DWORD dwNow,dwDelay,dwStartTime;
 		
 		memset(bTmpBuf, 0, sizeof(bTmpBuf));//防止当变长数据个数为0时（如重点表计清单清除）设置下取随机值
 		if ((bAttr == 0) || ((bAttr == 1))) //0属性,逻辑名属性是只读的
@@ -1991,7 +1984,10 @@ int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bo
 						Ti.bUnit = *(pbBuf+nRet+8); 				
 						Ti.wVal = OoLongUnsignedToWord(pbBuf+nRet+9);
 	
-						if((TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti))) || GetCurTime() < TimeToSeconds(tm))//传输延时时间大于零,判断时效性
+						dwNow = GetCurTime();
+						dwDelay = TiToSecondes(&Ti);
+						dwStartTime = TimeToSeconds(tm);
+						if(dwDelay > 0 && ((dwNow > dwStartTime + dwDelay) || (dwNow < dwStartTime - dwDelay)))//传输延时时间大于零,判断时效性
 							return -5;
 					}
 								
@@ -2173,7 +2169,10 @@ int OoProWriteAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf, WORD wLen, bo
 						Ti.bUnit = *(pbBuf+iSrcLen+8);				
 						Ti.wVal = OoLongUnsignedToWord(pbBuf+iSrcLen+9);
 					
-						if((TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti))) || GetCurTime() < TimeToSeconds(tm))//传输延时时间大于零,判断时效性
+						dwNow = GetCurTime();
+						dwDelay = TiToSecondes(&Ti);
+						dwStartTime = TimeToSeconds(tm);
+						if(dwDelay > 0 && ((dwNow > dwStartTime + dwDelay) || (dwNow < dwStartTime - dwDelay)))//传输延时时间大于零,判断时效性
 							return -5;
 					}
 				//	OoDWordToOad(GetOAD(wOI, bAttr, bIndex), bOADBuf);
@@ -3408,10 +3407,11 @@ bool IsSpecOMD(const TOmMap* pOmMap)
 //返回：如果正确则返回pbRes中结果的长度,否则返回负数
 int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaLen, BYTE* pvAddon, BYTE* pbRes)
 {
-	TTime tm;
+		TTime tm;
 	TTimeInterv Ti;
 	int offset;
-	
+	bool bSpecOMDFlag = false;
+	DWORD dwNow,dwDelay,dwStartTime;
 	//搜索对象方法对应的映射表
 	const TOmMap* pOmMap = GetOmMap((((DWORD )wOI)<<16)+(((DWORD )bMethod<<8)));
 	if (pOmMap == NULL)
@@ -3420,32 +3420,15 @@ int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaL
 	*piParaLen = 0;
 
 	int iParaLen = 0;
-	if (!IsSpecOMD(pOmMap))
+	bSpecOMDFlag = IsSpecOMD(pOmMap);
+	if (bSpecOMDFlag == false)
 	{
-		if (pbPara != NULL) //hyl pbPara有可能入参为空
+		if (pbPara != NULL)	//hyl pbPara有可能入参为空
 		{
 			//扫描参数，求参数长度、对字节顺序进行调整
 			iParaLen = OoDataFieldScan(pbPara, pOmMap->pFmt, pOmMap->wFmtLen);
 			if (iParaLen< 0)
 				return -1;
-#if 0
-			if((strlen((const char *)pbPara) - iParaLen >= 11) && (*(pbPara + iParaLen) == 0x01))//带时间标签，需判断时效性
-			{
-				memset((BYTE*)&tm, 0, sizeof(tm));
-				tm.nYear = (*(pbPara+iParaLen+1))*256 +*(pbPara+iParaLen+2);
-				tm.nMonth = *(pbPara+iParaLen+3);
-				tm.nDay = *(pbPara+iParaLen+4);
-				tm.nHour = *(pbPara+iParaLen+5);
-				tm.nMinute = *(pbPara+iParaLen+6);
-				tm.nSecond = *(pbPara+iParaLen+7);
-
-				Ti.bUnit = *(pbPara+iParaLen+8);					
-				Ti.wVal = OoLongUnsignedToWord(pbPara+iParaLen+9);
-
-				if(TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti)))//传输延时时间大于零,判断时效性
-					return -7;
-			}
-#endif
 		}
 	}
 
@@ -3466,8 +3449,11 @@ int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaL
 	
 		Ti.bUnit = *(pbPara+offset+8);					
 		Ti.wVal = OoLongUnsignedToWord(pbPara+offset+9);
-	
-		if((TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti))) || GetCurTime() < TimeToSeconds(tm))//传输延时时间大于零,判断时效性
+
+		dwNow = GetCurTime();
+		dwDelay = TiToSecondes(&Ti);
+		dwStartTime = TimeToSeconds(tm);
+		if(dwDelay > 0 && ((dwNow > dwStartTime + dwDelay) || (dwNow < dwStartTime - dwDelay)))//传输延时时间大于零,判断时效性
 			return -7;
 	}
 	else if ((wOI==0x8000 || wOI==0x8001) && *(pbPara+offset)==0) //台体测试(V1.17.06.05版本)：下发遥控跳闸命令不带时间标签，不处理，返回时间标签无效.
@@ -3481,7 +3467,9 @@ int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaL
 	{
 		TrigerSavePara();
 	}
-	*piParaLen = iParaLen;
+	if (bSpecOMDFlag == false)
+		*piParaLen = iParaLen;
+
 	return iRet;
 
 }

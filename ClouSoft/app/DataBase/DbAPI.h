@@ -115,5 +115,15 @@ bool IsPointOfGrp(WORD wPn);
 bool IsGrpOfCtrl(WORD wPn);
 //开机自动应用配置文件
 void ApllyCfgAuto(void);
+void SetDefaultPara();	//2?êy3?ê??ˉ/??ê??ˉó2?ìoóDè??è?μ?2?êy
+WORD GetPnNum();
+
+void SetRdMtrCtrlMask(WORD wPn);
+void DoRdMtrCtrlMask();
+bool MeterInfoCompare(WORD wPn, BYTE *pbBuf);
+
+void SetSchUpdateMask(WORD wOI, WORD wSchId);
+void ClearSchData();
+
 
 #endif //DBAPI_H

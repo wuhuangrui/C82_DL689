@@ -24,6 +24,7 @@
 #include "MtrHook.h"
 #include "CctAPI.h"
 #include "ParaMgr.h"
+#include "SchParaCfg.h"
 
 
 
@@ -293,38 +294,76 @@ void SetDefFnCfgOfMain(BYTE bMain)
 	WriteItemEx(BN0, bMain, 0x027f, bBuf);	
 }
 
+#if FA_TYPE == FA_TYPE_K32
 
-//出厂格式化后需默认的参数
-void SetFmtDiskDefPara()
-{
+//485端口默认参数
+void SetDefault485PortPara()
+{	
 	int iLen;
 	WORD wPn;
-	const WORD wOI = OI_YX;
-	const BYTE bDefaultYXCfg[] = {0x01, 0x05, 0x51, 0x20, 0x1E, 0x42, 0x00, 0x51, 0xF2, 0x03, 0x42, 0x01, 0x51, 0xF2, 0x03, 0x42, 0x02, 0x51, 0xF2, 0x03, 0x42, 0x03, 0x51, 0xF2, 0x03, 0x42, 0x04};
-	BYTE bBuf[EVT_ATTRTAB_LEN];
+	BYTE bBuf[100];
+	const WORD wID = 0xF201;	//485端口
+	bool fTrigerSave = false;
 
-	for (wPn=0; wPn<TERM_EXC_NUM; wPn++)
+	const BYTE bMtrRd485PortCfg[] = {
+				DT_STRUCT, 0x03, 
+					DT_VIS_STR, 0x10,	//端口描述符
+						'0', '0', '0', '0', '0', '0', '0', '0',
+						'0', '0', '0', '0', '0', '0', '0', '0',
+					DT_COMDCB,	//端口参数
+						0x03,	//2400bps --- 抄表口波特率默认2400
+						0x02,	//偶校验
+						0x08,	//8位数据位
+						0x01,	//停止位
+						0x00,	//流控
+					DT_ENUM,	//端口功能
+						0x01,	//上行通信（0），抄表（1），级联（2），停用（3）
+};	//485抄表口默认参数
+
+	const BYTE bLocal485PortCfg[] = {
+				DT_STRUCT, 0x03, 
+					DT_VIS_STR, 0x10,	//端口描述符
+						'0', '0', '0', '0', '0', '0', '0', '0',
+						'0', '0', '0', '0', '0', '0', '0', '0',
+					DT_COMDCB,	//端口参数
+						0x06,	//9600bps --- 维护口波特率默认9600
+						0x02,	//偶校验
+						0x08,	//8位数据位
+						0x01,	//停止位
+						0x00,	//流控
+					DT_ENUM,	//端口功能
+						0x00,	//上行通信（0），抄表（1），级联（2），停用（3）
+	};	//485维护口默认参数
+
+	for (wPn=0; wPn<LOGIC_PORT_NUM; wPn++)
 	{
 		memset(bBuf, 0, sizeof(bBuf));	
-		iLen = ReadItemEx(BN0, wPn, 0x3700, bBuf);
-		if (iLen>0 && IsAllAByte(bBuf, 0, sizeof(bBuf)))
+		iLen = ReadItemEx(BN0, wPn, wID, bBuf);
+		if (iLen>0 && bBuf[0]!=DT_STRUCT)
 		{
-			if (wPn == PN4)		//0x31040300 状态量关联属性配默认值
-			{	
-				if (sizeof(bDefaultYXCfg) <= EVT_ATTRTAB_LEN)
-				{
-					memcpy(bBuf, bDefaultYXCfg, sizeof(bDefaultYXCfg));
-					WriteItemEx(BN0, wPn, 0x3700, bBuf);
-				}
-			}
+			if (wPn == LOGIC_PORT_NUM-1)	//第3路485口
+				memcpy(bBuf, bLocal485PortCfg, sizeof(bMtrRd485PortCfg));	//485维护口
 			else
-			{
-				bBuf[0] = DT_ARRAY;
-				WriteItemEx(BN0, wPn, 0x3700, bBuf);
-			}
+				memcpy(bBuf, bMtrRd485PortCfg, sizeof(bMtrRd485PortCfg));	//485抄表口
+
+			WriteItemEx(BN0, wPn, wID, bBuf);
+			fTrigerSave = true;
 		}
 	}
+
+	if (fTrigerSave)
+		TrigerSaveBank(BN0, SECT11, -1);
 }
+
+
+//参数初始化后/硬盘格式化后默认参数
+void SetDefaultPara()
+{
+	SetDefault485PortPara();
+}
+
+#endif
+
 
 //描述:设置默认大小类支持项配置
 void SetDefFnCfg()
@@ -850,7 +889,10 @@ void PostDbInit()
 #ifdef PRO_698
 //	SetDefFnCfg();		//设置默认大小类支持项配置
 	InitMtrSnToPn();	//本函数必须放到InitAcPn()前,因为涉及到装置序号到测量点号的映射
-//	SetFmtDiskDefPara();	//格式化硬盘后需默认的参数
+#if FA_TYPE == FA_TYPE_K32
+	SetDefaultPara();	//参数初始化/格式化硬盘后需默认的参数
+#endif
+
 #endif
 
 	TermSoftVerChg();
@@ -2031,3 +2073,188 @@ bool IsCtrlEnable()
 {	
 	return false;
 }
+
+
+
+//取得有效测量点个数
+WORD GetPnNum()
+{
+	BYTE bMtrMask[PN_MASK_SIZE];
+	WORD wPnSun = 0;
+
+	memset(bMtrMask, 0, sizeof(bMtrMask));
+	memcpy(bMtrMask, GetMtrMask(BANK17, PN0, 0x6001), PN_MASK_SIZE);
+	for (WORD wMtrMask=0; wMtrMask<PN_MASK_SIZE; wMtrMask++)
+	{
+		if (bMtrMask[wMtrMask] != 0)
+		{
+			for (BYTE bBit=0; bBit<8; bBit++)
+			{
+				if (bMtrMask[wMtrMask] & (1<<(bBit)))
+				{
+					wPnSun ++;
+				}
+			}
+		}
+	}
+	return wPnSun;
+}
+
+TSem g_semRdMtrCtrl = NewSemaphore(1);
+
+//描述：设置更新抄表控制结构屏蔽字
+void SetRdMtrCtrlMask(WORD wPn)
+{
+	BYTE bMtrCtrlMask[PN_MASK_SIZE];
+
+	WaitSemaphore(g_semRdMtrCtrl);
+	memset(bMtrCtrlMask, 0, sizeof(bMtrCtrlMask));
+	ReadItemEx(BANK17, PN0, 0x6005, bMtrCtrlMask);
+	bMtrCtrlMask[wPn/8] |= 1<<(wPn%8);
+	WriteItemEx(BANK17, PN0, 0x6005, bMtrCtrlMask);
+	DTRACE(DB_CRITICAL, ("SetRdMtrCtrlMask(): wPn=%d.\r\n", wPn));
+	SetDelayInfo(INFO_MTR_INFO_UPDATE);
+	SignalSemaphore(g_semRdMtrCtrl);
+}
+
+//描述：处理抄表控制结构屏蔽字
+void DoRdMtrCtrlMask()
+{
+	WORD wPn;
+	BYTE bMtrCtrlMask[PN_MASK_SIZE];
+
+	WaitSemaphore(g_semRdMtrCtrl);
+	memset(bMtrCtrlMask, 0, sizeof(bMtrCtrlMask));
+	ReadItemEx(BANK17, PN0, 0x6005, bMtrCtrlMask);
+	for (WORD i=0; i<PN_MASK_SIZE; i++)
+	{
+		if (bMtrCtrlMask[i])
+		{
+			for (BYTE j=0; j<8; j++)
+			{
+				if (bMtrCtrlMask[i] & (1<<j))
+				{
+					wPn = i*8 + j;
+					DeleteOneMtrRdCtrl(wPn);
+					DTRACE(DB_CRITICAL, ("DoRdMtrCtrlMask(): wPn=%d.\r\n", wPn));
+				}
+			}
+		}
+	}
+	memset(bMtrCtrlMask, 0, sizeof(bMtrCtrlMask));
+	WriteItemEx(BANK17, PN0, 0x6005, bMtrCtrlMask);
+	SignalSemaphore(g_semRdMtrCtrl);
+}
+
+//描述：电表信息比较是否相同
+//返回：相同返回true，反之false
+bool MeterInfoCompare(WORD wPn, BYTE *pbBuf)
+{
+	BYTE bDbBuf[128];
+
+	memset(bDbBuf, 0, sizeof(bDbBuf));
+	if (ReadItemEx(BN0, wPn, 0x6000, bDbBuf)>0 && !IsAllAByte(bDbBuf, 0, sizeof(bDbBuf)))
+	{
+		if (bDbBuf[0]==pbBuf[0] && memcmp(bDbBuf, pbBuf, pbBuf[0]+1)==0)
+			return true;
+	}
+
+	return false;
+}
+
+
+typedef struct {
+	WORD wOI;	//方案类型ID
+	WORD wDbId;	//方案类型ID对应系统库中的ID屏蔽字
+	const TSchFieldCfg *pSchFieldCfg;	//对应&g_TSchFieldCfg[]
+}TOiMapSchId;
+
+TOiMapSchId g_tOiMap[] = {	{0x6014, 0x6006, &g_TSchFieldCfg[0]},	//普通采集方案更新屏蔽字
+							{0x6016, 0x6007, &g_TSchFieldCfg[1]},	//事件采集方案
+							{0x601C, 0x6008, &g_TSchFieldCfg[2]},	//透明采集方案
+							{0x6051, 0x6009, &g_TSchFieldCfg[3]}};	//上报采集方案
+
+TSem g_semSchUdp = NewSemaphore(1);
+
+void SetSchUpdateMask(WORD wOI, WORD wSchId)
+{
+	BYTE bBuf[TASK_NUM_MASK];
+
+	WaitSemaphore(g_semSchUdp);
+	for (BYTE i=0; i<sizeof(g_tOiMap)/sizeof(g_tOiMap[0]); i++)
+	{
+		if (g_tOiMap[i].wOI == wOI)
+		{
+			memset(bBuf, 0, sizeof(bBuf));
+			ReadItemEx(BANK17, PN0, g_tOiMap[i].wDbId, bBuf);
+			bBuf[i] |= 1<<(i%8);
+			WriteItemEx(BANK17, PN0, g_tOiMap[i].wDbId, bBuf);
+			break;
+		}
+	}
+	SignalSemaphore(g_semSchUdp);
+}
+
+//描述：根据相应的屏蔽字清除相应的方案
+void ClearSchData()
+{
+	int iRet;
+	WORD wSchNo;
+	BYTE bBuf[TASK_NUM_MASK];
+	char pszTabName[64];
+	bool fSchUdp = false;
+
+	WaitSemaphore(g_semSchUdp);
+	for (BYTE i=0; i<sizeof(g_tOiMap)/sizeof(g_tOiMap[0]); i++)
+	{
+		memset(bBuf, 0, sizeof(bBuf));
+		ReadItemEx(BANK17, PN0, g_tOiMap[i].wDbId, bBuf);
+		if (!IsAllAByte(bBuf, 0, sizeof(bBuf)))
+		{
+			for (BYTE i=0; i<TASK_NUM_MASK; i++)
+			{
+				if (bBuf[i])
+				{
+					for (BYTE j=0; j<8; j++)
+					{
+						if (bBuf[i] & (1<<j))
+						{
+							wSchNo = i*8 + j;
+
+							memset(pszTabName, 0, sizeof(pszTabName));
+							if (g_tOiMap[i].pSchFieldCfg->bSchType == SCH_TYPE_EVENT)
+							{
+#ifndef SYS_WIN
+								memset(pszTabName, 0, sizeof(pszTabName));
+								sprintf(pszTabName, "rm -rf /mnt/data/data/%s_%03d_*", g_tOiMap[i].pSchFieldCfg->pszTableName, wSchNo);
+								system(pszTabName);
+								DTRACE(DB_TASK, ("DelSchData: %s.\n", pszTabName));
+#endif
+							}
+							else
+							{
+								sprintf(pszTabName, "%s_%03d.dat", g_tOiMap[i].pSchFieldCfg->pszTableName, wSchNo);
+								iRet = TdbClearRec(pszTabName); 
+								DTRACE(DB_TASK, ("DelSchData: %s, iRet=%d.\n", pszTabName, iRet));
+							}
+
+							fSchUdp = true;
+						}
+					}
+				}
+			}
+		}
+		memset(bBuf, 0, sizeof(bBuf));
+		WriteItemEx(BANK17, PN0, g_tOiMap[i].wDbId, bBuf);
+	}
+	SignalSemaphore(g_semSchUdp);
+
+	if (fSchUdp)
+	{
+		BYTE bTaskSN = 0;
+		ReadItemEx(BANK2, PN0, 0x6005, &bTaskSN);
+		bTaskSN++;	
+		WriteItemEx(BANK2, PN0, 0x6005, &bTaskSN);
+	}
+}
+

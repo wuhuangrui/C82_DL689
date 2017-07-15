@@ -102,7 +102,7 @@
 #define INFO_PRIMTR_PARACHG		60	//RJ45网络表参数修改
 #define INFO_FRZPARA_CHG			61	//冻结参数变更
 #define INFO_HARDWARE_INIT		62
-#define INFO_MTR_UPDATE			63	//面向对象电表档案更新
+#define INFO_MTR_ALL_CLEAR			63	//面向对象电表档案更新
 #define INFO_TASK_CFG_UPDATE		64	//面向对象任务配置单元更新
 #define INFO_ACQ_SCH_UPDATE		65	//面向对象采集方案更新
 #define INFO_EVT_RESET				66	//面向对象事件复位，清所有事件
@@ -163,14 +163,27 @@
 #define INFO_MTR_BRAODCAST_ARG_CCT			118	//广播校时参数更改
 #define INFO_MTR_BRAODCAST_ARG_485			119	//广播校时参数更改
 
+
 #define INFO_AUTODETECT_START				120
 #define INFO_AUTODETECT_STOP				121
 #define INFO_STOP_FEED_WDG					122 //禁止喂狗消息，看门狗测试命令用
 
+#define INFO_MTR_INFO_UPDATE				123	//电表档案更新
+#define INFO_TASK_CFG_DEL					124	//面向对象任务配置单元删除
+#define INFO_ACQ_SCH_DEL					125	//面向对象采集方案删除
+#define INFO_PWROFF							126 //停电消息
+
+#define INFO_LOCAL_SEND_LED					127	//本地发送灯
+#define INFO_LOCAL_RECV_LED					128	//本地接收灯
+#define INFO_GPRS_SEND_LED					129 //GPRS发送灯
+#define INFO_GPRS_RECV_LED					130	//GRPS接收灯
 
 
 
-#define INFO_END	   						123//空消息,作为所有消息的结束
+
+
+
+#define INFO_END	   						131//空消息,作为所有消息的结束
 									//把本通知恒定作为最后一个
 
 #define INFO_NUM	   	    		(INFO_END+1)

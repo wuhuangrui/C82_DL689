@@ -17,6 +17,7 @@
 #include "FaCfg.h"
 #include "sysapi.h"
 #include "ComAPI.h"
+#include "FaConst.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //CProto
@@ -198,6 +199,7 @@ WORD CProto::Receive(BYTE* pbRxBuf, WORD wBufSize)
 //接收并处理帧
 bool CProto::RcvFrm(bool fSingleMode)
 {
+	int nScanLen = 0;
 	bool fRet = false;
 	if (m_pIf == NULL)
 		return false;
@@ -222,9 +224,9 @@ bool CProto::RcvFrm(bool fSingleMode)
 
 	if (len <= 0)
 	{
-		#ifdef SYS_WIN	
+	#ifdef SYS_WIN	
 			Sleep(300); //如果不加,在VC socket方式下不睡眠会导致CPU利用率高达99%,原因待查
-		#endif //SYS_WIN
+	#endif //SYS_WIN
 
 		return false;
 	}
@@ -242,9 +244,15 @@ bool CProto::RcvFrm(bool fSingleMode)
 			
 		if (len > 0)    //收到数据
 		{
-			int nScanLen = RcvBlock(bBuf, len);
+			nScanLen = RcvBlock(bBuf, len);
 			if (nScanLen > 0)   //成功组成一帧
 			{
+				char *pStr = GetIf()->GetName();
+				if (strcmp(pStr, "gprs-master")==0 || strcmp(pStr, "Socket")==0)
+					SetInfo(INFO_GPRS_RECV_LED);
+				else if (strcmp(pStr, "Test")==0 || strcmp(pStr, "Local")==0)
+					SetInfo(INFO_LOCAL_RECV_LED);
+
 				HandleFrm();   //帧处理
 				
 				if (m_pProPara->fUseLoopBuf)
@@ -255,9 +263,12 @@ bool CProto::RcvFrm(bool fSingleMode)
 				{
 					len = len - nScanLen;
 				}
+
 				m_pIf->OnRcvFrm(); //在通信协议收到正确帧时调用,主要更新链路状态,比如心跳等
 				fRet = true;
 				m_dwRcvClick = GetClick();
+				if (fSingleMode)	//单帧模式，处理完一帧后立即退出
+					return true;
 			}
 			else if (nScanLen < 0)   //不全的报文
 			{
@@ -283,6 +294,8 @@ bool CProto::RcvFrm(bool fSingleMode)
 						m_dwRcvClick = GetClick();
 						if (fSingleMode)	//单帧模式，处理完一帧后立即退出
 							return true;
+
+						break;
 					}
 					else
 					{
@@ -297,7 +310,7 @@ bool CProto::RcvFrm(bool fSingleMode)
 						}
 
 						if (m_pProPara->fUseLoopBuf)
-							DeleteFromLoopBuf(nScanLen); //删除已经扫描的数据
+							DeleteFromLoopBuf(nScanLen + 1); //删除已经扫描的数据
 
 						//break;
 					}
@@ -311,6 +324,7 @@ bool CProto::RcvFrm(bool fSingleMode)
 	}
 	
 	return fRet;
+
 }
 
 bool CProto::Login()

@@ -1,6 +1,5 @@
 
 
-
 #include "stdafx.h"
 #include "syscfg.h"
 #include "FileTran.h"
@@ -233,6 +232,16 @@ int SetFileTransAttr(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbPara)
 }
 
 
+static int PrintFileBlkTransInfo(TFileBlkTrans *pFileInfo)
+{
+
+	DTRACE(DB_FAPROTO, ("pFileInfo->bSrcFile: %s, pFileInfo->bDstFile: %s\r\n", pFileInfo->bSrcFile, pFileInfo->bDstFile));
+	DTRACE(DB_FAPROTO, ("pFileInfo->dwTotalLen=%d, pFileInfo->dwTranLen=%d\r\n", pFileInfo->dwTotalLen, pFileInfo->dwTranLen));
+	DTRACE(DB_FAPROTO, ("pFileInfo->bFileAttr=%d, pFileInfo->bFileVer=%s\r\n", pFileInfo->bFileAttr, pFileInfo->bFileVer));
+	DTRACE(DB_FAPROTO, ("pFileInfo->wBlkSize=%d, pFileInfo->wEndBlkSize=%d, pFileInfo->wTotalBlks=%d\r\n", pFileInfo->wBlkSize, pFileInfo->wEndBlkSize, pFileInfo->wTotalBlks));
+	return 0;
+}
+
 //文件分块传输管理方法的处理
 
 //启动传输
@@ -338,6 +347,9 @@ int FileBlkTransMethod7(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 	PartWriteFile(USER_DATA_PATH"downinfo.dat", 0, (BYTE*)&g_FileBlkTrans, sizeof(TFileBlkTrans));
 	g_fDownSoft = true;
 	g_dwFileTransCurSec = GetCurTime();
+
+	//DTRACE(DB_FAPROTO, ("FileBlkTransMethod7\r\n"));
+	//PrintFileBlkTransInfo(&g_FileBlkTrans);
 	return 0;
 		
 
@@ -421,11 +433,19 @@ int FileBlkTransMethod8(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 		PartWriteFile(USER_DATA_PATH"downinfo.dat", 0, (BYTE*)&g_FileBlkTrans, sizeof(TFileBlkTrans));
 		g_fDownSoft = true;
 		g_dwFileTransCurSec = GetCurTime();
+
+		//DTRACE(DB_FAPROTO, ("FileBlkTransMethod8\r\n"));
+		//PrintFileBlkTransInfo(&g_FileBlkTrans);
+		
 		return 0;
 	}
 	else
 	{
 		DTRACE(DB_FAPROTO, ("FileTrans Method8 error  BlkSize =0\r\n"));
+
+		//DTRACE(DB_FAPROTO, ("FileBlkTransMethod8\r\n"));
+		//PrintFileBlkTransInfo(&g_FileBlkTrans);
+		
 		return -1;
 	}
 		
@@ -568,8 +588,6 @@ int FileExtTransmit(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPar
 	}
 	return 0;
 }
-
-
 
 
 

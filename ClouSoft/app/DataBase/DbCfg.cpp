@@ -2129,7 +2129,11 @@ BYTE g_InOutDevDefault[] = {	 //输入输出设备类对象
 		DT_ENUM,	//端口功能
 			0x00,	//上行通信（0），抄表（1），级联（2），停用（3）
 	//F201属性2--RS485端口1\2\3
-	DT_STRUCT, 0x03,
+#if FA_TYPE == FA_TYPE_K32
+			DT_NULL, 0x03,	//配成空类型，上电数据库初始化后SetDefaultPara()中按测量点默认
+#else
+			DT_STRUCT, 0x03,
+#endif
 		DT_VIS_STR, 0x10,	//端口描述符
 			'0', '0', '0', '0', '0', '0', '0', '0',
 			'0', '0', '0', '0', '0', '0', '0', '0',
@@ -2444,7 +2448,7 @@ TItemDesc  g_Bank1Desc[] =   //标准版
 	{0x2100, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 	0, 		INFO_APP_RST},  //终端功能：1:集中器，2:专变终端
 
 	{0x2110, 	2, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 	0, 		INFO_COMM_GPRS_RLD},  //重拨间隔，多少秒进入休眠模式，设为0时不休眠。BCD格式
-	
+	{0x2111, 	1, 			DI_LOW_PERM, 	DI_READ|DI_WRITE, 	0, 		INFO_NONE},  //测试模式与现场模式测量点个数界限
 };
 
 BYTE g_bBank1Default[] =   
@@ -2478,6 +2482,7 @@ BYTE g_bBank1Default[] =
 	0x01, //0x2100， 终端功能 1：集中器， 2：专变终端，其他：集中器
 
 	0x80, 0x01,	//0x2110 重拨间隔，多少秒进入休眠模式，设为0时不休眠，BCD格式 默认180秒
+	0x05,//0x2111	
 };
 
 
@@ -2687,6 +2692,7 @@ TItemDesc  g_Bank2Desc[] =   //标准版
 	{0x6001,	5,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0,	INFO_NONE,	FMT_UNK,		1,		},//自检模式及项目
 	{0x6002,	5,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0,	INFO_NONE,	FMT_UNK,		1,		},//自检测试状态及结果
 
+	{0x6005,	1,			DI_HIGH_PERM, DI_READ, 0,	INFO_NONE,	FMT_UNK,		1,		},//任务配置的序列号
 };
 
 
@@ -2961,6 +2967,12 @@ TItemDesc  g_Bank17Desc[] =
 	{0x6002,   PN_MASK_SIZE,DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //485测量点屏蔽位
 	{0x6003,   PN_MASK_SIZE,DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //载波测量点屏蔽位
 	{0x6004,   PN_MASK_SIZE,DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //载波测量点采集器屏蔽位
+
+	{0x6005,   PN_MASK_SIZE,DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //抄表控制结构更新
+	{0x6006,   TASK_NUM_MASK,DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //普通采集方案更新屏蔽字
+	{0x6007,   TASK_NUM_MASK,DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //事件采集方案更新屏蔽字
+	{0x6008,   TASK_NUM_MASK,DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //透明采集方案更新屏蔽字
+	{0x6009,   TASK_NUM_MASK,DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //上报采集方案更新屏蔽字
 	
 	{0x6010,	1,			DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //公网通信模块：0--公网通信模块1，1--公网通信模块2
 	{0x6011,	1,			DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //每个公网通信模块存在多个主站IP地址，本参数用于区分不同IP地址
@@ -3447,7 +3459,7 @@ TBankCtrl g_BankCtrl[BANK_NUM] = {
 	 sizeof(g_Bank1Desc)/sizeof(TItemDesc), //本BANK数据项描述表的数据项个数
 	 g_bBank1Default,						//本BANK数据库的默认值	
 	 sizeof(g_bBank1Default),				//本BANK数据库的默认值的大小
-	 0x03,									//本BANK数据库的当前版本,0表示没有版本管理
+	 0x04,									//本BANK数据库的当前版本,0表示没有版本管理
 	 1,										//本BANK数据的测量点个数
 	 1,										//本BANK数据的镜像个数
 	 false,									//本BANK数据是否需要更新时间

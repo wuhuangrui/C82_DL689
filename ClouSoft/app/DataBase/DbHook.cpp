@@ -85,7 +85,7 @@ bool IsPnValid(WORD wPn)
 	BYTE bBuf[PNPARA_LEN+1];
 	if (ReadItemEx(BN0, wPn, 0x6000,bBuf) > 0)
 	{
-		WORD wSn = ((WORD )bBuf[4]<<8)+bBuf[3];
+		WORD wSn = OoOiToWord(&bBuf[4]);//((WORD )bBuf[4]<<8)+bBuf[3];
 		BYTE bAddrLen = bBuf[9];
 		if (wSn>0 && !IsAllAByte(&bBuf[9], 0x00, bAddrLen))
 			return true;

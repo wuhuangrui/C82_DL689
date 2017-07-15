@@ -45,6 +45,8 @@ void PutMtrRdCtrl(WORD wPn, BYTE* pbTsa, bool fModify);
 bool LoadMtrRdCtrl(WORD wPn, BYTE* pbTsa, TMtrRdCtrl* pMtrRdCtrl);
 bool SaveMtrRdCtrl(WORD wPn, TMtrRdCtrl* pMtrRdCtrl);
 void DeleteMtrRdCtrl();
+void DeleteOneMtrRdCtrl(WORD wPn);
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //电表临时缓存访问接口定义：
@@ -53,6 +55,7 @@ int GetMtrItemMem(TMtrTmpData* pMtrTmpData, DWORD dwOAD, BYTE* pbData);
 DWORD* MtrGetFixedItems(WORD* pwItemNum);
 WORD* MtrGetFixedLen();
 WORD* MtrGetFixedInItems();
+bool SaveMtrInItemMem(WORD wPn, DWORD dwOAD, BYTE* pbData);
 void InitMtrTmpData(TMtrTmpData* pMtrTmpData, DWORD* pdwFixOAD, WORD* pwDataLen, WORD wNum);
 bool QueryMtrItemMem(TMtrTmpData* pMtrTmpData, DWORD* pdwOAD, WORD wNum);
 
@@ -74,5 +77,9 @@ void SaveMtrDataHook(DWORD dwOAD, TMtrExcTmp* pMtrExcTmp, BYTE bType);
 extern void InitMtrExcCtrl(BYTE bPn, TMtrExcTmp* pCtrl);
 extern bool AllocateMtrExcMem(BYTE* pbGlobal, TAllocTab* pAllocTab, WORD wTabNum);
 extern BYTE DoMtrExc(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModified);
+extern void SaveMangerMtrCacheCtrl(bool fSigLock=false);	//±￡′?3-±í?????á11￡?×￠òa2??áêí·?D?o?á?￡?￡?￡?
+extern void ClearMtrCacheCtrl();
+
+
 
 #endif //METERAPI_H

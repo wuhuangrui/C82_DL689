@@ -1604,5 +1604,5 @@ void CCctSchMeter::CheckMeterSearchTime()
 	}while (iStart != -1);
 
 	if (fUpdMtrFlg)
-		SetInfo(INFO_MTR_UPDATE);
+		SetInfo(INFO_MTR_INFO_UPDATE);
 }

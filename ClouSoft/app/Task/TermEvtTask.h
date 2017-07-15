@@ -280,8 +280,8 @@ typedef struct{
 typedef struct{
 	bool fPowerOff;
 	bool fOldPowerOff;
-	WORD wRecvCnt;
-	WORD wEstbCnt;
+	WORD wLastPwrOnClick;
+	WORD wLastPwrOffClick;
 	bool fInit;
 	BYTE bAttr;						//属性标志，用于固定字段
 	BYTE bEvtSrcEnum;				//事件发生源，用于固定字段 enum{停电(0)，上电(1)}
@@ -440,7 +440,8 @@ bool DoEvt(struct TEvtCtrl* pEvtCtrl);
 bool DoVLoss(struct TEvtCtrl* pEvtCtrl);
 bool DoDmd(struct TEvtCtrl* pEvtCtrl);
 bool DoAVLoss(struct TEvtCtrl* pEvtCtrl);
-void DoTermEvt();
+TThreadRet  DoTermEvt(void* pvPara);
+
 
 bool InitYXEvtCtrl(struct TEvtCtrl* pEvtCtrl);
 int DoYXChgJudge(struct TEvtCtrl* pEvtCtrl);

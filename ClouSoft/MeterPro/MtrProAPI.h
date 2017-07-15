@@ -39,6 +39,7 @@ int OneAddrBroadcast_485(struct TMtrPro* pMtrPro, BYTE bRespType, DWORD dwOAD,  
 int Make69845Frm_485(BYTE *pbMtr, BYTE bMtrLen, BYTE bCtrl, BYTE bAFType, BYTE bCA, WORD wFramFmt, BYTE *pbAPDU, WORD wAPDULen, BYTE *pbRespBuf);
 int MtrBroadcast_485(BYTE bThrId);
 int BroadcastAdjustTime_485(BYTE bThrId);
+void IsInTestMode(BYTE bThrId);
 #endif //MTRPROAPI_H
 
 

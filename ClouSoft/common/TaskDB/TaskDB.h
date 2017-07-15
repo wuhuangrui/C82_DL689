@@ -299,6 +299,7 @@ public:
 	int         ReadRec(const int fd, int index, BYTE* pbBuf, int iLen);
 	int			ReadRec(const int fd, int* piStart, BYTE* pbBuf, WORD wBufSize, bool fFromEnd, WORD* pwRetNum);
 	int         GetRecNum(const int fd);
+	int			GetMaxRecNum(const int fd);
 	int         GetRecPtr(const int fd);
 				//读出相关记录
 	int			OpenSch(const int fd, TTdbSchRule* pTdbSchRule, const WORD wRuleNum, TTdbSchCtrl& rTdbSchCtrl);
@@ -457,6 +458,18 @@ inline int TdbGetRecNum(const int fd)
 {
     return GetTaskDB()->GetRecNum(fd);
 }
+
+
+
+//描述：当前表最大可记录笔数
+//参数：@fd 数据库表的句柄
+//返回：当前表的最大可记录笔数,小于表示错误
+inline int TdbGetMaxRecNum(const int fd)
+{
+	//return GetTaskDB()->GetMaxRecNum(fd);
+	return 1200;   //for test whr 20170715
+}
+
 
 //描述：当前表记录指针
 //参数：@fd 数据库表的句柄

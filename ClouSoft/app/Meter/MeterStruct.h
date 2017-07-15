@@ -170,6 +170,7 @@ typedef struct
 	WORD  wLastRecPhyIdx[MTR_EXC_NUM];		//依次是各抄表事件的最近一次记录的存储位置
 	DWORD dwLastStatClick[MTR_EXC_NUM];		//依次是各抄表事件的统计时标
 	BYTE  bTryReadCnt[MTR_EXC_NUM];		//依次是各抄表事件的尝试抄表次数
+	DWORD dwLastExeClick[MTR_EXC_NUM];		//依次是各抄表事件的上次执行时标
 											
 	TMtrClockErr mtrClockErr;  //电能表时钟超差事件
 	TMtrEnergyErr mtrEnergyErr; //电能量超差事件
@@ -196,7 +197,8 @@ typedef struct
 {
 	BYTE 	bValid;		//1有效，0无效
 	BYTE 	bTaskId;	//任务ID
-	bool	fRecSaved;	//任务记录是否已经入库
+	BYTE	bRecSaved;	//任务记录入库状态 0:未入库 1:不完整入库 2:完整入库
+	int		iRecPhyIdx;	//任务记录存储物理地址 >0有效
 	bool	fReRd;		//是否是补抄
 	BYTE	bCSDItemNum; //任务需抄读CSD个数
 	DWORD 	dwTime;		//任务执行时标
@@ -267,6 +269,13 @@ typedef struct
 	bool fTrigerSave; //强制触发保存标志
 	TMtrRdCtrl mtrRdCtrl; 	//电表抄读控制数据
 }TMtrCacheCtrl;  //电表缓存控制结构
+
+typedef struct
+{
+	TTime tTimeRd;			   //抄读的时间
+	BYTE bTmRunMode;					//终端运行模式,1表示测试模式,0表示现场模式
+}TTmRunMode;  
+
 
 extern TMtrCacheCtrl g_MtrCacheCtrl[MTR_CACHE_NUM];
 

@@ -1304,6 +1304,8 @@ void LoadSocketPara(TSocketPara* pPara, BYTE bSockType)
 {
 	const char *pSockName[16] = {"Ethernet", "GPRS"};
 
+	LoadIfDefPara(&pPara->IfPara);	//装载通信接口的默认参数
+
 #ifdef SYS_WIN
 	pPara->dwRemoteIP = 0x7f000001;
 	pPara->wRemotePort = 9200;
@@ -1862,6 +1864,7 @@ bool LoadGprsUnrstPara(TGprsPara* pGprsPara)
 void LoadLocalPara(TCommIfPara* pCommIfPara)
 {
 	memset(pCommIfPara, 0, sizeof(TCommIfPara));
+	LoadIfDefPara(&pCommIfPara->IfPara);   //装载通信接口的默认参数
 //	pCommIfPara->IfPara.fAutoSend = false; //是否具有主动上送的功能
 	pCommIfPara->IfPara.fNeedLogin = false;	//是否需要登录
 	pCommIfPara->IfPara.wMaxFrmBytes = COMM_MAX_BYTES; //接口的一帧最大发送字节数,不同协议可能规定不一样
@@ -1889,6 +1892,7 @@ void LoadLocalPara(TCommIfPara* pCommIfPara)
 void LoadTestPara(TCommIfPara* pCommIfPara)
 {
 	memset(pCommIfPara, 0, sizeof(TCommIfPara));
+	LoadIfDefPara(&pCommIfPara->IfPara);   //装载通信接口的默认参数
 //	pCommIfPara->IfPara.fAutoSend = false; //是否具有主动上送的功能
 	pCommIfPara->IfPara.fNeedLogin = false;	//是否需要登录
 	pCommIfPara->IfPara.wMaxFrmBytes = COMM_MAX_BYTES; //接口的一帧最大发送字节数,不同协议可能规定不一样
@@ -1939,6 +1943,8 @@ void Load230MPara(TR230mIfPara* pR230mIfPara)
 	memset(pR230mIfPara, 0, sizeof(TR230mIfPara));
 
 	BYTE bBuf[16];
+
+	LoadIfDefPara(&pR230mIfPara->CommIfPara.IfPara);   //装载通信接口的默认参数
 	ReadItemEx(BN0, PN0, 0x1001, bBuf);
 	pR230mIfPara->CommIfPara.IfPara.wReSendNum = (bBuf[2]>>4) & 0x03;	//重发次数
 	
@@ -1999,6 +2005,9 @@ bool LoadLinkCommPara(TCommIfPara* pCommIfPara)
 	bBuf[0]=0;	
 
 	memset(pCommIfPara, 0, sizeof(TCommIfPara));
+
+	LoadIfDefPara(&pCommIfPara->IfPara);   //装载通信接口的默认参数
+	
 	//if (GBReadItem(GB_DATACLASS4,37,0,bBuf,0) < 0)
 	if (ReadItemEx(BN0, PN0, 0x025f, bBuf) < 0)
 	{

@@ -50,10 +50,10 @@ const WORD g_wMtrExcOI[MTR_EXC_NUM] = { OI_MTR_CLOCK_ERR, OI_MTR_ENERGY_DEC, OI_
 static DWORD g_dwJudgeOADList[][MAX_JUDGE_OAD] = 
 {
 	{ OI_MTR_CLOCK_ERR,		0x40000200,		0 },
-	{ OI_MTR_ENERGY_DEC,	0x00100201,		0x00200201,		0 },
+	{ OI_MTR_ENERGY_DEC,	0x00100200,		0x00200200,		0 },
 	{ OI_MTR_ENERGY_ERR,	0x00100200,		0x00200200,		0 },
 	{ OI_MTR_FLEW,			0x00100200,		0x00200200,		0 },
-	{ OI_MTR_STOP,			0x00100201,		0x00200201,		0x20040201,		0 },
+	{ OI_MTR_STOP,			0x00100200,		0x00200200,		0x20040200,		0 },
 	{ OI_MTR_RD_FAIL,		0 },	//抄表失败事件判断不依赖抄表ID
 	{ OI_MTR_DATA_CHG,		0 },	//电能表数据变更监控记录抄表ID依赖于配置的任务，需要单独处理，此处不进行配置
 };
@@ -663,6 +663,7 @@ BYTE DoMtrExc(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModifi
 	BYTE bRelaOAD[EVT_ATTRTAB_LEN];
 	BYTE bBuf[60];
 	BYTE bOADBuf[4];
+	TMtrExcTmp* pMtrExcTmp = &pMtrRdCtrl->mtrExcTmp;	
 
 	if (GetInfo(INFO_MTR_EXC_RESET))		
 	{
@@ -677,7 +678,6 @@ BYTE DoMtrExc(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModifi
 		memset(dwJudgeOAD, 0, sizeof(dwJudgeOAD));
 
 		wOI = GetMtrExcOI(i);
-
 		if (IsMtrExcTableCreate(wOI) == false)	//表未创建, 事件不用判断了
 			continue;
 
@@ -726,25 +726,19 @@ BYTE DoMtrExc(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModifi
 							break;
 						}
 					}
-					else
-					{
-						OoDWordToOad(dwOAD, bOADBuf);
-						nOADLen = OoGetDataLen(DT_OAD, bOADBuf);
-						memset(bBuf, INVALID_DATA, sizeof(bBuf));
-						if (nOADLen > 0)
-						{
-#ifdef TERM_EVENT_DEBUG
-							SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, dwOAD, bBuf, nOADLen);
-#else
-							SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, dwOAD, bBuf+1, nOADLen);	//+1 跳过DAR
-#endif
-							SaveMtrDataHook(dwOAD, &pMtrRdCtrl->mtrExcTmp, 0);
-							*pfModified = true; //测量点数据已修改
-						}
-					}
 				}
 			}
 		}
+
+		if (pMtrExcTmp->dwLastExeClick[i]!=0 && pMtrExcTmp->dwLastExeClick[i]== pMtrExcTmp->dwItemRdTime[EP_POS_ITEM_INDEX] && wOI==OI_MTR_STOP)	//停走事件
+			continue;
+
+		if (i>=1 && i<=4)
+			DTRACE(DB_METER_EXC, ("DoMtrExc: wOI = %04x at dwClick=%ld.\r\n", wOI, GetClick()));
+
+		pMtrExcTmp->dwLastExeClick[i] = pMtrExcTmp->dwItemRdTime[EP_POS_ITEM_INDEX];
+		if (IsMtrErr(wPn) && wOI!=OI_MTR_RD_FAIL)	//抄表失败时不判断抄表相关事件，防止事件误报（抄表取的是间隔缓存数据）
+			continue;
 
 		//在相应的事件函数中进行发生、结束判断，更新状态机
 		//再调用ReadAndSaveMtrExcRec()抄数据及保存记录
@@ -1149,7 +1143,7 @@ bool ReadAndSaveMtrExcRec(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wOI, BY
 			}
 			else
 			{
-				SaveRecordByPhyIdx(pEvtOaMap->pszTableName, nLastRecPhyIdx, bRecBuf);	//先获取发生记录的存储位置，再更新记录
+				SaveRecordByPhyIdx(pEvtOaMap->pszTableName, nLastRecPhyIdx-1, bRecBuf);	//先获取发生记录的存储位置，再更新记录
 				*pfIsSaveRec = true;
 			}
 		}
@@ -1384,8 +1378,8 @@ bool DoMtrClockErr(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 		tmMtrTime.nSecond = 0; //目前三相表回的日期时间秒数据为FF，表回错了数据，暂时清零处理 --QLS
 #endif
 
-		if (IsInvalidTime(tmMtrTime))
-			return false;
+		//if (IsInvalidTime(tmMtrTime))
+		//	return false;
 
 		memset(bBuf, 0, sizeof(bBuf));
 		iLen = OoReadAttr(wOI, ATTR6, bBuf, NULL, NULL);	// 读取配置参数
@@ -1452,10 +1446,10 @@ bool DoMtrEnergyDec(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
   	BYTE i = 0;
 	WORD wValidNum = 0;
 	BYTE bBuf[100];
-	BYTE bAlrBuf[20];
+	//BYTE bAlrBuf[20];
 	BYTE bAddrBuf[MTR_ADDR_LEN];
 	TTime time;	
-	BYTE bMtrInterv;
+	//BYTE bMtrInterv;
 	WORD wIdNum;	
 	bool fInvalid[2];//正向、反向有功电能值是否有效 
 	int iLen = 0;
@@ -1474,7 +1468,7 @@ bool DoMtrEnergyDec(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 	TMtrEnergyDec* pCtrl = &pMtrTmp->mtrEnergyDec;
 
 	memset(bBuf, 0, sizeof(bBuf));
-	memset(bAlrBuf, 0, sizeof(bAlrBuf));
+	//memset(bAlrBuf, 0, sizeof(bAlrBuf));
 	memset(bAddrBuf, 0, sizeof(bAddrBuf));
 	memset(fInvalid, 0, sizeof(fInvalid));
 	memset(&time, 0, sizeof(time));
@@ -1508,6 +1502,12 @@ bool DoMtrEnergyDec(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 			if (iLen <= 0)	//没抄到
 				return false;
 			
+			if (pbBuf[2] == DT_DB_LONG_U)
+				iLen = 5;	//取出总电能
+			else
+				iLen = 9;	//取出总电能
+
+			memmove(pbBuf, pbBuf+2, iLen);
 			pbBuf += iLen;
 		}		
 
@@ -1609,7 +1609,6 @@ bool DoMtrEnergyErr(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 	int iLen = 0;
 	TTime time;
 	
-
 	bool fInit[2];
 
 	WORD wUn = 0 ;//额定电压值
@@ -1675,8 +1674,8 @@ bool DoMtrEnergyErr(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 				iLen = 5;	//取出总电能
 			else
 				iLen = 9;	//取出总电能
+
 			memmove(pbBuf, pbBuf+2, iLen);
-			
 			pbBuf += iLen;
 		}		
 
@@ -1782,12 +1781,12 @@ bool DoMtrEnergyErr(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 				if (ui64DeltEnergy >= ui64PastEnergy)	//有功电能值下降且发生标志置0；（防止电表走到满刻度重新走字）
 				{
 					bCurErcFlag[i] = ERC_STATE_HAPPEN;	//发生
-					DTRACE(DB_METER_EXC, ("EnergyErr::###### EnergyErr event happened! ui64DeltEnergy=%u,  ui64PastEnergy=%u.######\r\n", ui64DeltEnergy, ui64PastEnergy));					
+					DTRACE(DB_METER_EXC, ("EnergyErr::###### EnergyErr event happened! ui64DeltEnergy=%u,  ui64PastEnergy=%u, wPn=%d.######\r\n", ui64DeltEnergy, ui64PastEnergy, wPn));					
 				}
 				else if (ui64DeltEnergy < ui64PastEnergy)	//有功电能值没有下降且发生标志置1；
 				{
 					bCurErcFlag[i] = ERC_STATE_RECOVER;	//恢复
-					DTRACE(DB_METER_EXC, ("EnergyErr::###### EnergyErr event recover! ui64DeltEnergy=%u,  ui64PastEnergy=%u.######\r\n", ui64DeltEnergy, ui64PastEnergy));					
+					DTRACE(DB_METER_EXC, ("EnergyErr::###### EnergyErr event recover! ui64DeltEnergy=%u,  ui64PastEnergy=%u, wPn=%d.######\r\n", ui64DeltEnergy, ui64PastEnergy, wPn));					
 				}
 				else
 				{
@@ -1853,8 +1852,7 @@ bool DoMtrFlew(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 	BYTE bMtrInterv = 2;	//GetMeterInterv();
 	int iLen = 0;
 	TTime time;
-	
-	//bool fErc = false;
+		
 	bool fInit[2];
 
 	WORD wUn = 0 ;//额定电压值
@@ -1926,6 +1924,7 @@ bool DoMtrFlew(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 				iLen = 9;	//取出总电能
 
 			memmove(pbBuf, pbBuf+2, iLen);
+			//DTRACE(DB_METER_EXC, ("EnergyErr::stepDDD :pn=%d, iLen=%d, wIndex=%d bBuf[0]=0x%02x, bBuf[1]=0x%02x, bBuf[2]=0x%02x, bBuf[3]=0x%02x, bBuf[4]=0x%02x.\r\n", wPn, iLen, wIndex, pbBuf[0], pbBuf[1], pbBuf[2], pbBuf[3], pbBuf[4]));
 			pbBuf += iLen;
 		}
 
@@ -2034,12 +2033,12 @@ bool DoMtrFlew(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 				if (ui64DeltEnergy >= ui64PastEnergy)	//有功电能值下降且发生标志置0；（防止电表走到满刻度重新走字）
 				{
 					bCurErcFlag[i] = ERC_STATE_HAPPEN;	//发生
-					DTRACE(DB_METER_EXC, ("EnergyErr::###### EnergyFlew event happened! ui64DeltEnergy=%u,  ui64PastEnergy=%u.######\r\n", ui64DeltEnergy, ui64PastEnergy));
+					DTRACE(DB_METER_EXC, ("EnergyErr::###### EnergyFlew event happened! ui64DeltEnergy=%u,  ui64PastEnergy=%u, wPn=%d.######\r\n", ui64DeltEnergy, ui64PastEnergy, wPn));
 				}
 				else if (ui64DeltEnergy < ui64PastEnergy)	//有功电能值没有下降且发生标志置1；
 				{
 					bCurErcFlag[i] = ERC_STATE_RECOVER;	//恢复
-					DTRACE(DB_METER_EXC, ("EnergyErr::###### EnergyFlew event recover! ui64DeltEnergy=%u,  ui64PastEnergy=%u.######\r\n", ui64DeltEnergy, ui64PastEnergy));
+					DTRACE(DB_METER_EXC, ("EnergyErr::###### EnergyFlew event recover! ui64DeltEnergy=%u,  ui64PastEnergy=%u, wPn=%d.######\r\n", ui64DeltEnergy, ui64PastEnergy, wPn));
 				}
 				else
 				{
@@ -2124,7 +2123,7 @@ bool DoMtrStop(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 	fInit = false;
 	memset(bAlrBuf, 0, sizeof(bAlrBuf));
 	memset(bAddr, 0, sizeof(bAddr));
-	memset(&time, 0, sizeof(time));
+	memset(&time, 0, sizeof(time));	
 
 	if (!GetMtrExcRdItem(wOI, &dwJudgeOAD[0], &wJudgeOadNum, bRelaOAD))
 		return false;
@@ -2155,14 +2154,27 @@ bool DoMtrStop(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 			if (iLen <= 0)	//没抄到
 				return false;
 			
+			if (dwJudgeOAD[wIndex] == 0x20040200)	//功率 DT_DB_LONG
+			{
+				iLen = 5;	//取出总功率
+			}
+			else
+			{
+				if (pbBuf[2] == DT_DB_LONG_U)
+					iLen = 5;	//取出总电能
+				else
+					iLen = 9;	//取出总电能
+			}
+
+			memmove(pbBuf, pbBuf+2, iLen);
 			pbBuf += iLen;
 		}
 		
 		bOffset = 0;
-		ui64PosE = GetEnergyValByFmt(bBuf[bOffset], bBuf+bOffset+1, &bLen);	//正向有功总
+		ui64PosE = GetEnergyValByFmt(bBuf[bOffset], bBuf+bOffset, &bLen);	//正向有功总
 		bOffset += bLen;
 
-		ui64NegE = GetEnergyValByFmt(bBuf[bOffset], bBuf+bOffset+1, &bLen);	//反向有功总
+		ui64NegE = GetEnergyValByFmt(bBuf[bOffset], bBuf+bOffset, &bLen);	//反向有功总
 		bOffset += bLen;
 
 		dwPower = ABS(OoDoubleLongToInt(bBuf+bOffset+1));	//实际有功功率
@@ -2227,14 +2239,13 @@ bool DoMtrStop(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 #ifdef TERM_EVENT_DEBUG
 					if (dwDeltSeconds>=dwStopHold)
 					{
-						DTRACE(DB_METER_EXC, ("CMtrStop::RunTask: ******pn=%d, dwDeltSeconds=%d, ui64PastEnergy=%lld\r\n", wPn, dwDeltSeconds, ui64PastEnergy));
+						DTRACE(DB_METER_EXC, ("CMtrStop::RunTask: ******pn=%d, dwDeltSeconds=%d, ui64PastEnergy=%lld, dwPower=%d.\r\n", wPn, dwDeltSeconds, ui64PastEnergy, dwPower));
 						if (ui64PastEnergy >= dwE0/10)	//OOP电能为2位小数
 						{
 							bCurErcFlag = ERC_STATE_HAPPEN;	//发生
-							DTRACE(DB_METER_EXC, ("CMtrStop::###### CMtrStop event happened!!! ######\r\n"));
+							DTRACE(DB_METER_EXC, ("CMtrStop::###### CMtrStop event happened wPn=%d!!! ######\r\n", wPn));
+							fInit = true;	//yjw modify
 						}
-						
-						fInit = true;
 					}
 #else
 					DTRACE(DB_METER_EXC, ("CMtrStop::RunTask: ******pn=%d, dwDeltSeconds=%d, ui64PastEnergy=%lld\r\n", wPn, dwDeltSeconds, ui64PastEnergy));
@@ -2309,7 +2320,7 @@ bool DoMtrRdFail(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn)
 	if (IsMtrErr(wPn))	//发生状态
 	{
 		bCurErcFlag = ERC_STATE_HAPPEN;
-		DTRACE(DB_METER_EXC, ("DoMtrRdFail::###### DoMtrRdFail event happened!!! ######\r\n"));
+		DTRACE(DB_METER_EXC, ("DoMtrRdFail::###### DoMtrRdFail event happened wPn=%d.!!! ######\r\n", wPn));
 	}
 	else	//结束状态
 		bCurErcFlag = ERC_STATE_RECOVER;
@@ -2848,6 +2859,7 @@ void InitMtrExcCtrl(BYTE bPn, TMtrExcTmp* pCtrl)
 	memset(pCtrl->wLastRecPhyIdx, 0, sizeof(pCtrl->wLastRecPhyIdx));
 	memset(pCtrl->dwLastStatClick, 0, sizeof(pCtrl->dwLastStatClick));
 	memset(pCtrl->bTryReadCnt, 0, sizeof(pCtrl->bTryReadCnt));
+	memset(pCtrl->dwLastExeClick, 0, sizeof(pCtrl->dwLastExeClick));
 }
 
 //分配抄表事件临时内存空间
@@ -3105,8 +3117,8 @@ bool UpdateMtrExcStatData(WORD wOI, BYTE bState, TMtrExcTmp* pExcTmp, BYTE* pbTs
 		pExcTmp->dwLastStatClick[nIndex] = 0;	//清零统计时标，停止统计(事件发生期间的统计数据) ---是否需要触发保存统计数据？
 	}
 
-	if (fTrigerSave)
-		TrigerSaveBank(BN0, SECT16, -1);
+	//if (fTrigerSave)
+		//TrigerSaveBank(BN0, SECT16, -1);
 
 	return true; 
 }

@@ -298,7 +298,7 @@ bool GetMeterInfo(BYTE *pbTsa, BYTE bTsaLen, TOobMtrInfo *pTMtrInfo)
 // 是否合法的表计档案信息
 int IsValidMtrInfo(BYTE *pMtrInfoBuf)
 {
-    TOobMtrInfo TMtrInfo;
+   	TOobMtrInfo TMtrInfo;
     TOobMtrInfo *pTMtrInfo = &TMtrInfo;
     BYTE bTsaLen;
     BYTE* pbBuf = pMtrInfoBuf;
@@ -320,30 +320,41 @@ int IsValidMtrInfo(BYTE *pMtrInfoBuf)
         return -1;
     pbBuf++;	//TSA长度
     pTMtrInfo->bTsaLen = *pbBuf++ + 1;	//TSA内部octet数据长度， 表地址长度+1=表地址有效长度
-    if (TMtrInfo.bTsaLen > 0)	//TSA len
-			bTsaLen = pTMtrInfo->bTsaLen;
-    memcpy(pTMtrInfo->bTsa, pbBuf, bTsaLen);	pbBuf += bTsaLen;	//TSA Addr
+    if (TMtrInfo.bTsaLen > 0 && TMtrInfo.bTsaLen <= sizeof(pTMtrInfo->bTsa))	//TSA len
+		bTsaLen = pTMtrInfo->bTsaLen;
+	else
+		return -1;
+
+    memcpy(pTMtrInfo->bTsa, pbBuf, bTsaLen);
+	pbBuf += bTsaLen;	//TSA Addr
     if (*pbBuf++ != DT_ENUM)	//enum
-			return -1;
+		return -1;
+
     pTMtrInfo->bBps = *pbBuf++;	//bps
     if(pTMtrInfo->bBps>10 && pTMtrInfo->bBps!=255)
     {
         return -1;  // 波特率异常
     }
     if (*pbBuf++ != DT_ENUM)	//enum	//protocol type
-			return -1;
+		return -1;
+
     pTMtrInfo->bProType = *pbBuf++;
-    if(pTMtrInfo->bProType>4)
+    if(pTMtrInfo->bProType >= PROTOCOLNO_MAXNO)
     {
         return -1;  // 协议异常
     }
     if (*pbBuf++ != DT_OAD)	//OAD
         return -1;
-    pTMtrInfo->dwPortOAD = OoOadToDWord(pbBuf);	pbBuf += 4;	//PORT
+
+    pTMtrInfo->dwPortOAD = OoOadToDWord(pbBuf);
+	pbBuf += 4;	//PORT
     if (*pbBuf++ != DT_OCT_STR)	//octet-string
         return -1;
     pTMtrInfo->bCodeLen = *pbBuf++;	//code len
-    memcpy(pTMtrInfo->bCode, pbBuf, pTMtrInfo->bCodeLen);	
+    if(pTMtrInfo->bCodeLen > sizeof(pTMtrInfo->bCode))
+		return -1;
+
+    memcpy(pTMtrInfo->bCode, pbBuf, pTMtrInfo->bCodeLen);
     pbBuf += pTMtrInfo->bCodeLen;	//code
     if (*pbBuf++ != DT_UNSIGN)	//unsigned 
         return -1;
@@ -361,10 +372,12 @@ int IsValidMtrInfo(BYTE *pMtrInfoBuf)
 
     if (*pbBuf++ != DT_LONG_U)
         return -1;
-    pTMtrInfo->wRateVol = OoLongUnsignedToWord(pbBuf);	pbBuf += 2;
+    pTMtrInfo->wRateVol = OoLongUnsignedToWord(pbBuf);
+	pbBuf += 2;
     if (*pbBuf++ != DT_LONG_U)
         return -1;
-    pTMtrInfo->wRateCurr = OoLongUnsignedToWord(pbBuf);	pbBuf += 2;
+    pTMtrInfo->wRateCurr = OoLongUnsignedToWord(pbBuf);
+	pbBuf += 2;
 
     if (*pbBuf++ != DT_STRUCT)	//struct
         return -1;
@@ -374,23 +387,31 @@ int IsValidMtrInfo(BYTE *pMtrInfoBuf)
     pbBuf++;
     pTMtrInfo->bAcqTsaLen = *pbBuf++ + 1;	//TSA Len
     bTsaLen = 0;
-    if (pTMtrInfo->bAcqTsaLen >= 0)	//TSA len
+    if (pTMtrInfo->bAcqTsaLen>=0 && pTMtrInfo->bAcqTsaLen<sizeof(pTMtrInfo->bAcqTsa))	//TSA len
         bTsaLen = pTMtrInfo->bAcqTsaLen;
+	else
+		return -1;
+
     memcpy(pTMtrInfo->bAcqTsa, pbBuf, bTsaLen);	
     pbBuf += bTsaLen;	//TSA
     if (*pbBuf++ != DT_OCT_STR)	//octet-string
         return -1;
     pTMtrInfo->bAssetLen = *pbBuf++;	//assert Len
+    if(pTMtrInfo->bAssetLen > sizeof(pTMtrInfo->bAsset))
+		return -1;
+
     memcpy(pTMtrInfo->bAsset, pbBuf, pTMtrInfo->bAssetLen);	
     pbBuf += pTMtrInfo->bAssetLen;	//assert
     if (*pbBuf++ != DT_LONG_U)	//PT
         return -1;
-    pTMtrInfo->wPT = OoLongUnsignedToWord(pbBuf);	pbBuf += 2;	//PT
+    pTMtrInfo->wPT = OoLongUnsignedToWord(pbBuf);
+	pbBuf += 2;	//PT
     if (*pbBuf++ != DT_LONG_U)	//CT
         return -1;
-    pTMtrInfo->wCT = OoLongUnsignedToWord(pbBuf);	pbBuf += 2;	//CT
+    pTMtrInfo->wCT = OoLongUnsignedToWord(pbBuf);
+	pbBuf += 2;	//CT
 
-    return 0; 
+    return 0;
 }
 
 //描述：获取电表信息（通过测量点）
@@ -610,10 +631,16 @@ bool SetMeterInfo(WORD wPn, TOobMtrInfo tTMtrInfo)
 	*p++ = 0;	
 #endif
 	bBuf[0] = p - (bBuf+1);
-	if (WriteItemEx(BANK0, wPn, 0x6000, bBuf) > 0)
+
+	bool fSameMtr = MeterInfoCompare(wPn, bBuf);
+	if (!fSameMtr)
 	{
-		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
-		return true;
+		if (WriteItemEx(BANK0, wPn, 0x6000, bBuf) > 0)
+		{
+			SetRdMtrCtrlMask(wPn);
+			TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
+			return true;
+		}
 	}
 
 	return false;

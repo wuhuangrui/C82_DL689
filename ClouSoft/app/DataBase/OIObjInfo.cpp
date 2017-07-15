@@ -50,17 +50,12 @@ BYTE g_bComHiPreEngFmt[] = {0x01, 0x05, DT_LONG64};	//高精度组合电能量
 BYTE g_bHiPreEngFmt[] = {0x01, 0x05, DT_LONG64_U};	//高精度电能量
 
 BYTE g_bVoltDataFmt[3] = {0x01, 0x03, DT_LONG_U};
-
 BYTE g_bCurDataFmt[3] = {0x01, 0x04, DT_DB_LONG};
-
 BYTE g_bPowerDataFmt[3] = {0x01, 0x04, DT_DB_LONG};
-
-
 BYTE g_bEngUnitFmt[] = {0x0f};
 BYTE g_bMaxDemFmt[6] = {0x01,0x05,0x02,0x02,0x06,DT_DATE_TIME_S};
 BYTE g_bComMaxDemFmt[] = {0x01,0x05,0x02,0x02,0x05,DT_DATE_TIME_S};
 BYTE g_bCosDataFmt[3] = {0x01, 0x04, DT_LONG};
-
 BYTE g_bFreqDataFmt[] = {0x01, 0x01, DT_LONG_U};
 BYTE g_bVarDmdFmt[] = {DT_DB_LONG};							//需量
 BYTE g_bPwrPrice[1] = {DT_DB_LONG_U};	//电价
@@ -82,7 +77,6 @@ BYTE g_bPhaseCosDataFmt[] = {DT_LONG};	//单相功率因数
 BYTE g_bFeeMaxDemFmt[4] = {0x02,0x02,0x06,DT_DATE_TIME_S};	//分费率需量
 BYTE g_bAngleFmt[3] = {0x01, 0x03, DT_LONG_U};	//相角
 BYTE g_bPhaseAngleFmt[] = {DT_LONG_U};	//单相相角
-
 
 //水气热表数据格式
 BYTE g_b645ExtDataFmt[1] = {DT_DB_LONG_U};
@@ -115,7 +109,6 @@ BYTE gbPImpConst[] = {DT_DB_LONG_U};
 BYTE gbQImpConst[] = {DT_DB_LONG_U};
 //电能表型号 属性2（只读）∷=visible-string(SIZE(32))
 BYTE gbMeterTypeString[] = {DT_VIS_STR, 32, RLV};
-
 
 //终端广播校时参数
 BYTE bCascadeCommParam[] = {DT_STRUCT, 0x08,
@@ -159,7 +152,22 @@ BYTE g_bRptFlowFlg[] = {DT_BOOL};	//电气设备——允许跟随上报
 BYTE g_bRptFlg[] = {DT_BOOL};	//电气设备——允许主动上报
 BYTE g_bMastCall[] = {DT_BOOL};	//电气设备——允许与主站通话
 BYTE g_bMasRptCn[] = {DT_ARRAY, CN_RPT_NUM, DT_OAD};	//电气设备——上报通道，hyl目前0x430a的空间是按CN_RPT_NUM开的，为17个字节
-
+/*
+DT_ARRAY,0x04, 
+    DT_STRUCT,0x02,
+        DT_OI,
+        DT_STRUCT, 0x02, 
+            DT_ARRAY, 0x04, 
+                DT_STRUCT, 0x02,DT_UNSIGN,DT_ENUM,
+                DT_STRUCT, 0x02,DT_UNSIGN,DT_ENUM,
+                DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,
+                DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,
+            DT_ARRAY, 0x04, 
+                DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,
+                DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,
+                DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,
+                DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,	
+*/
 
 BYTE g_bApplyConnectObList[] = {DT_ARRAY,0x04,
     DT_STRUCT,0x02,
@@ -216,8 +224,6 @@ BYTE g_bApplyConnectContext[] = {DT_STRUCT,0x07,
 BYTE g_bApplyConnectClientAddr[] = {DT_UNSIGN}; //当前连接的客户机地址
 BYTE g_bApplyConnectAuthmech[] = {DT_ENUM}; // 连接认证机制
 BYTE g_bAuthenticationKey[] = {DT_VIS_STR, 127,RLV}; // 认证密码
-
-
 
 BYTE g_bSimCCID[] = {DT_VIS_STR, 0x14, RLV};	//SIM卡的ICCID
 BYTE g_bIMSI[] = {DT_VIS_STR, 0x0F, RLV};	//IMSI
@@ -308,9 +314,8 @@ BYTE g_bEvtBitStrFmt[] = {DT_BIT_STR, 0x08, RLF};
 BYTE g_bEvtIntFmt[] = {DT_INT};		
 BYTE g_bEvtYKCtrlPEFmt[] = {DT_ARRAY, 8, DT_LONG64};		
 BYTE g_bEvtMtrClkTimeFmt[] = {DT_DATE_TIME_S};		
-BYTE g_bEvtMtrClkErrFmt[] = {DT_INT};	
+BYTE g_bEvtMtrClkErrFmt[] = {DT_INT};		
 BYTE g_bBCTimeTimeFmt[] = {DT_DATE_TIME_S};	
-
 
 
 BYTE g_bEvtYXParamFmt[] = {DT_ARRAY, 0x10,
@@ -476,8 +481,7 @@ DT_VIS_STR, 0x20, RLV,	//PPPoE密码
 };
 
 //MAC地址
-BYTE g_bEthMacCfg[] = {DT_OCT_STR, 0x06, RLV};
-
+BYTE g_bEthMacCfg[] = {DT_OCT_STR, 0x06, RLV};	
 
 
 BYTE g_bMastCommPara[] = {DT_ARRAY, MAX_MAINIP_NUM,	//最多2个主站地址
@@ -3044,8 +3048,8 @@ ToaMap g_OIConvertClass[] =
 	{0x41130200,	8,		MAP_SYSDB,		0x4113, 	PN0,   0,		g_bBitStringTypeFmt,		sizeof(g_bBitStringTypeFmt),	NULL},	//无功组合方式1特征字
 	{0x41140200,	8,		MAP_SYSDB,		0x4114, 	PN0,   0,		g_bBitStringTypeFmt,		sizeof(g_bBitStringTypeFmt),	NULL},	//无功组合方式2特征字
 	{0x41160200,	8, 		MAP_SYSDB,		0x4116, 	PN0,   0,		g_bBalanceDayFmt,			sizeof(g_bBalanceDayFmt),		NULL},	//结算日参数
-	{0x42020200,    8,      MAP_SYSDB,      0x4202,     PN0,   0,       bCascadeCommParam,             sizeof(bCascadeCommParam),         NULL},  //终端级联通信参数
-	{0x42040200,	8,		MAP_SYSDB,		0x4204,		PN0,   0,		bTermBroadTime,				sizeof(bTermBroadTime),			NULL},  //终端广播校时参数
+    {0x42020200,    8,      MAP_SYSDB,      0x4202,     PN0,   0,       bCascadeCommParam,             sizeof(bCascadeCommParam),         NULL},  //终端级联通信参数
+    {0x42040200,	8,		MAP_SYSDB,		0x4204,		PN0,   0,		bTermBroadTime,				sizeof(bTermBroadTime),			NULL},  //终端广播校时参数
 	{0x42040300,	8,		MAP_SYSDB,		0x4205,		PN0,   0,		bSigAddrBroadTime,			sizeof(bSigAddrBroadTime),		NULL},  //终端单地址广播校时参数
 
 
@@ -3060,7 +3064,6 @@ ToaMap g_OIConvertClass[] =
 	{0x43000900,	9,		MAP_SYSDB,		0x4309,	  PN0,   0,		g_bMastCall,		sizeof(g_bMastCall),				NULL},	//电气设备——允许与主动通话
 	{0x43000a00,	9,		MAP_SYSDB,		0x430a,	  PN0,   0,		g_bMasRptCn,			sizeof(g_bMasRptCn),					NULL},	//电气设备——上报通道
 
-
     {0x44000200,    20,    MAP_SYSDB,      0x4402,   PN0,   0,     g_bApplyConnectObList,          sizeof(g_bApplyConnectObList),           NULL},  // 应用连接属性2 对象列表
     {0x44000300,    20,    MAP_SYSDB,      0x4403,   PN0,   0,     g_bApplyConnectContext,            sizeof(g_bApplyConnectContext),                    NULL},  // 应用连接属性3 应用语境信息
     {0x44000400,    20,    MAP_SYSDB,      0x4404,   PN0,   0,     g_bApplyConnectClientAddr,            sizeof(g_bApplyConnectClientAddr),                    NULL},  // 应用连接属性4 当前连接客户机地址
@@ -3068,7 +3071,6 @@ ToaMap g_OIConvertClass[] =
 
     // 认证密码
     {0x44010200,   8,     MAP_SYSDB,       0x4401,      PN0,   0,     g_bAuthenticationKey,  sizeof(g_bAuthenticationKey),  NULL}, // 认证密码
-
 
 	//公网通信模块1
 	{0x45000200,	25,		MAP_SYSDB,		0x4500,	  PN0,   0,		g_bGprsCommCfg,		sizeof(g_bGprsCommCfg),				NULL},	//通讯配置
@@ -3199,7 +3201,7 @@ ToaMap g_OIConvertClass[] =
 	{0x60028100,	11,		MAP_SYSDB,		0x600B,	  PN0,   0,		NULL,												0},	//清空跨台区搜表结果
 
 	{0x60120200,	1,		MAP_TASKDB,		0x6012,	  PN0,   0,		g_bTskUnitFmtDesc/*g_bTskUnitFmtDesc+2*/,	sizeof(g_bTskUnitFmtDesc)/*sizeof(g_bTskUnitFmtDesc)-2*/},
-	{0x60120300,	1,		MAP_TASKDB, 	0,		  PN0,	 0, 	NULL,												0},
+	{0x60120300,	1,		MAP_TASKDB,		0,		  PN0,   0,		NULL,												0},
 	{0x60140200,	1,		MAP_TASKDB,		0x6014,	  PN0,   0,		g_bCommFmtDesc+2,		sizeof(g_bCommFmtDesc)-2},
 	{0x60160200,	1,		MAP_TASKDB,		0x6016,	  PN0,   0,		g_bEvtFmtDesc+2,		sizeof(g_bEvtFmtDesc)-2},
 	{0x60180200,	1,		MAP_TASKDB,		0x6018,	  PN0,   0,		g_bTranFmtDesc+2,		sizeof(g_bTranFmtDesc)-2},
@@ -3921,11 +3923,10 @@ TOmMap g_OmMap[] =
 	//{0x32230300,	7,		g_bSrcNullTrigEvtFmt,		sizeof(g_bSrcNullTrigEvtFmt),						DoTermEvtIC7Method3,			NULL},	//触发一次记录
 	{0x32230400,	7,		g_bOADCfgFmt,	sizeof(g_bOADCfgFmt),						DoTermEvtMethod4,			NULL},	//添加一个事件关联对象属性
 	{0x32230500,	7,		g_bOADCfgFmt,	sizeof(g_bOADCfgFmt),						DoTermEvtMethod5,			NULL},	//删除一个事件关联对象属性
-
-	{0x40007f00,	8,	  g_bBCTimeTimeFmt,    sizeof(g_bBCTimeTimeFmt),		DoClass8BroadcastTimeMethod127, 		 NULL}, // 广播校时
-	{0x40067f00,    8,	 NULL,		 NULL,						 DoClass8ClockSourceMethod127,			NULL},	// 启用时钟源
-	{0x40068000,    8,	 NULL,		 NULL,						 DoClass8ClockSourceMethod128,			NULL},	// 停用时钟源
-
+    
+    {0x40007f00,    8,    g_bBCTimeTimeFmt,    sizeof(g_bBCTimeTimeFmt),        DoClass8BroadcastTimeMethod127,          NULL}, // 广播校时
+    {0x40067f00,    8,    NULL,       NULL,                       DoClass8ClockSourceMethod127,          NULL},  // 启用时钟源
+    {0x40068000,    8,    NULL,       NULL,                       DoClass8ClockSourceMethod128,          NULL},  // 停用时钟源
 
 	{0x43000100,	19,				NULL,		NULL,						DoDevInterfaceClass19,			NULL},	//复位
 	{0x43000200,	19,				NULL,		NULL,						DoDevInterfaceClass19,			NULL},	//执行
@@ -4198,7 +4199,7 @@ TOmMap* BinarySearchOM(TOmMap* pOmMap, WORD num, DWORD dwOIMethod)
 		return NULL;
 
 	little = 0;
-	big = num;
+	big = num - 1;
 	while (little <= big)
 	{                               
 		mid = (little + big) / 2;       //二分
@@ -4451,7 +4452,6 @@ int DoClass8ClockSourceMethod128(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbP
 	return 0;
 }
 
-
 int DoDevInterfaceClass19(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	DWORD dwOMD = (wOI<<16) + (bMethod<<8) + bOpMode;
@@ -4530,6 +4530,7 @@ int DoClass11Method127_AddMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 	WORD wSn, wPn;
 	BYTE bBuf[128];
 	char bDar = 0;
+	bool fSameMtr = false;
 
 	wSn = OoOiToWord(&pbPara[3]);
 	if (wSn == 0) //无效配置
@@ -4552,20 +4553,27 @@ int DoClass11Method127_AddMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 	memset(bBuf, 0, sizeof(bBuf));
 	bBuf[0] = iParaLen;
 	memcpy(bBuf+1, pbPara, iParaLen);
+
 	if(IsValidMtrInfo(bBuf)<0)
 	{
 	    bDar = 1; // wqs 协议一致性，数据非法回异常
         goto Do_ExMethod_Fail;
 	}
-
-	
 	DTRACE(DB_FAPROTO, ("DoClass11Method127_AddMeter: wPn=%ld, bBuf[0]=0x%02x, bBuf[1]=0x%02x.\n", wPn, bBuf[0], bBuf[1]));
+
+	fSameMtr = MeterInfoCompare(wPn, bBuf);
+	if (fSameMtr)
+		DTRACE(DB_FAPROTO, ("DoClass11Method127_AddMeter: Same wPn=%d.\n", wPn));
 	iRet = WriteItemEx(BN0, wPn, 0x6000, bBuf);
 	if (iRet > 0)
 	{
-		SetMtrSnToPn(wPn, wSn);
-		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
-		SetInfo(INFO_MTR_UPDATE);
+		if (!fSameMtr)
+		{
+			SetMtrSnToPn(wPn, wSn);
+			TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
+			SetDelayInfo(INFO_MTR_INFO_UPDATE);
+		}
+		
 #ifdef EN_SBJC_V2_CVTEXTPRO
 		BYTE bAddL = bBuf[9];
 		if (bBuf[13+bAddL] == 4) //是水气热表
@@ -4676,7 +4684,6 @@ int DoClass11Method129_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 	{
 		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
 		DTRACE(DB_FAPROTO, ("Update meter successful.\n"));
-		SetDelayInfo(INFO_MTR_UPDATE);
 		pbRes[0] = DAR_SUCC;
 		return 1;
 	}
@@ -4735,7 +4742,6 @@ int DoClass11Method130_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 	TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
 
 	DTRACE(DB_FAPROTO, ("Update meter successful.\n"));
-	SetDelayInfo(INFO_MTR_UPDATE);
 
 	return -1;
 }
@@ -4746,6 +4752,7 @@ int DoClass11Method131_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 	WORD wMtrSn, wPn;
 	BYTE *pbPara0 = pbPara;
 	BYTE bBuf[256];
+	BYTE bMtrCtrlMask[PN_MASK_SIZE];
 
 	*piRetLen = 3;
 
@@ -4759,11 +4766,9 @@ int DoClass11Method131_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 		memset(bBuf, 0, sizeof(bBuf));
 		WriteItemEx(BN0, wPn, 0x6000, bBuf);
 		SetMtrSnToPn(wPn, 0);	//清除映射
-
 		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
-
-		DTRACE(DB_FAPROTO, ("Delete meter successful.\n"));
-		SetDelayInfo(INFO_MTR_UPDATE);
+		DTRACE(DB_FAPROTO, ("Delete meter successful wPn=%d.\n", wPn));
+		SetRdMtrCtrlMask(wPn);
 	}
 	//wqs, 协议一致性，删除不存在的表号也需要返回成功
 	pbRes[0] = DAR_SUCC; 
@@ -4818,7 +4823,8 @@ int DoClass11Method132_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 		return -1;
 	tDelMtrInfo.wRateCurr = OoOiToWord(pbPara);	pbPara += 2;
 
-	for (WORD wPn=0; wPn<POINT_NUM; wPn++)
+	WORD wPn;
+	for (wPn=0; wPn<POINT_NUM; wPn++)
 	{
 		if (GetMeterInfo(wPn, &tDbMtrInfo))
 		{
@@ -4842,6 +4848,8 @@ int DoClass11Method132_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 				continue;
 			memset(bBuf, 0, sizeof(bBuf));
 			WriteItemEx(BN0, wPn, 0x6000, bBuf);
+			SetMtrSnToPn(wPn, 0);	//清除映射
+			SetRdMtrCtrlMask(wPn);	//待清除的抄表控制结构
 			fDelMtrFlg  = true;
 			break;
 		}
@@ -4852,16 +4860,14 @@ int DoClass11Method132_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 		iRet = 1;
 		pbRes[0] = DAR_SUCC;
 		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
-		DTRACE(DB_FAPROTO, ("Delete meter successful.\n"));
+		DTRACE(DB_FAPROTO, ("Delete meter successful wPn=%d.\n", wPn));
 	}
 	else
 	{
 		pbRes[0] = DAR_RES_RW;
-		DTRACE(DB_FAPROTO, ("Delete meter fail.\n"));
+		DTRACE(DB_FAPROTO, ("Delete meter fail wPn=%d.\n", wPn));
 	}
 
-	DTRACE(DB_FAPROTO, ("Delete meter successful.\n"));
-	SetDelayInfo(INFO_MTR_UPDATE);
 
 	*piRetLen = pbPara - pbPara0;
 
@@ -4902,7 +4908,10 @@ int DoClass11Method133_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 			{
 				memset(bBuf, 0, sizeof(bBuf));
 				WriteItemEx(BN0, wPn, 0x6000, bBuf);
+				SetMtrSnToPn(wPn, 0);	//清除映射
+				SetRdMtrCtrlMask(wPn);	//待清除的抄表控制结构
 				fDelMtrFlg = true;
+				DTRACE(DB_FAPROTO, ("DoClass11Method133_DelMeter: Delete meter wPn=%d.\n", wPn));
 				break;
 			}
 		}
@@ -4910,9 +4919,6 @@ int DoClass11Method133_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 
 	if (fDelMtrFlg)
 		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
-
-	DTRACE(DB_FAPROTO, ("Delete meter successful.\n"));
-	SetDelayInfo(INFO_MTR_UPDATE);
 
 	*piRetLen = pbPara - pbPara0;
 
@@ -4936,6 +4942,7 @@ int DoClass11Method134_DelAllMtr(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbP
 		{
 			memset(bBuf, 0, sizeof(bBuf));	
 			WriteItemEx(BN0, wPn, 0x6000, bBuf);
+			SetMtrSnToPn(wPn, 0);	//清除映射
 			fDelMtrFlg = true;
 		}
 	}
@@ -4944,7 +4951,7 @@ int DoClass11Method134_DelAllMtr(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbP
 		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
 
 	DTRACE(DB_FAPROTO, ("Delete all meter successful.\n"));
-	SetDelayInfo(INFO_MTR_UPDATE);
+	SetDelayInfo(INFO_MTR_ALL_CLEAR);
 
 	pbRes[0] = DAR_SUCC;
 	return 1;
@@ -4962,6 +4969,7 @@ int AddCommonMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 	BYTE bBuf[TASK_CFG_REC_LEN];
 	BYTE bType;
 	BYTE *pbPara0 = pbPara;
+	bool fSameData = false;
 
 	pbPara++;	//array
 	bArryNum = *pbPara++;	//跳过 array
@@ -5004,19 +5012,64 @@ int AddCommonMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 		}
 		else	//任务存在，先删除该条记录
 		{
-			memset((BYTE*)&tTdbSchRule, 0, sizeof(tTdbSchRule));
-			tTdbSchRule[0].wField = 0;
-			tTdbSchRule[0].wOpNum = 1;
-			tTdbSchRule[0].wOp[0] = TDB_OP_EQ;
-			tTdbSchRule[0].bVal[0][0] = bId;
-			if (TdbDeleteSchRec(fd, tTdbSchRule, 1) < 0)
+			if (wOI==0x6012)
 			{
-				TdbCloseTable(fd);
-				return -1;
+				BYTE bDbBuf[TASK_CFG_REC_LEN] = {0};
+				int iDbRet;
+
+				if ((iDbRet=GetTaskConfigFromTaskDb(bId, bDbBuf)) > 0)
+				{
+					if (iLen==iRet && memcmp(bDbBuf, pbPara, iLen)==0)
+					{
+						fSameData = true;
+					}
+				}
+			}
+			else if (wOI==0x6014 || wOI==0x6016 || wOI==0x601C|| wOI==0x6051)
+			{
+				for (BYTE bSchType=0; bSchType<sizeof(g_TSchFieldCfg)/sizeof(g_TSchFieldCfg[0]); bSchType++)
+				{
+					if (strcmp((char*)g_TSchFieldCfg[bSchType].pszTableName, (char*)pvAddon) == 0)	
+					{
+						BYTE bSchNo = bId;
+						BYTE bDbBuf[TASK_CFG_REC_LEN] = {0};
+						int iDbRet;
+
+						//主站配置的方案数据
+						memset(bBuf, 0, sizeof(bBuf));
+						bBuf[0] = bId;	//填充字段
+						WordToByte(iLen, &bBuf[1]);
+						memcpy(bBuf+3, pbPara, iLen);
+
+						//数据库原先配置的数据
+						if ((iDbRet=GetSchFromTaskDb(bSchNo, g_TSchFieldCfg[bSchType].bSchType, bDbBuf)) > 0)
+						{
+							if (iLen==iRet && memcmp(bDbBuf, pbPara, iLen)==0)
+							{
+								fSameData = true;
+							}
+						}
+						break;
+					}
+				}
+			}
+
+			if (!fSameData)	//数据不相同，清除原先任务库的数据
+			{
+				memset((BYTE*)&tTdbSchRule, 0, sizeof(tTdbSchRule));
+				tTdbSchRule[0].wField = 0;
+				tTdbSchRule[0].wOpNum = 1;
+				tTdbSchRule[0].wOp[0] = TDB_OP_EQ;
+				tTdbSchRule[0].bVal[0][0] = bId;
+				if (TdbDeleteSchRec(fd, tTdbSchRule, 1) < 0)
+				{
+					TdbCloseTable(fd);
+					return -1;
+				}
 			}
 		}
 
-		if (fd > 0)
+		if (fd>0 && !fSameData)
 		{
 			memset(bBuf, 0, sizeof(bBuf));
 			bBuf[0] = bId;	//填充字段
@@ -5031,15 +5084,25 @@ int AddCommonMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 
 		}
 		pbPara += iLen;
-	}
+	
+		if (fSameData)
+			DTRACE(DB_FAPROTO, ("AddCommonMethod127(): Same param TableName=%s.\n", pszTabName));
 
-	if (wOI==0x6012)
-	{
-		SetDelayInfo(INFO_TASK_CFG_UPDATE);
-	}
-	else if (wOI==0x6014 || wOI==0x6016 || wOI==0x601C|| wOI==0x6051)
-	{
-		SetDelayInfo(INFO_ACQ_SCH_UPDATE);
+		if (wOI==0x6012)
+		{
+			if (!fSameData)
+			{
+				SetDelayInfo(INFO_TASK_CFG_UPDATE);
+			}
+		}
+		else if (wOI==0x6014 || wOI==0x6016 || wOI==0x601C|| wOI==0x6051)
+		{
+			if (!fSameData)
+			{
+				SetSchUpdateMask(wOI, bId);
+				SetDelayInfo(INFO_ACQ_SCH_UPDATE);
+			}
+		}
 	}
 
 	*piRetLen = pbPara - pbPara0;
@@ -5068,7 +5131,7 @@ int DelCommonMethod128(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 	for (BYTE i = 0; i < bDelNum; i++)
 	{
 		TTdbSchRule tTdbSchRule[2];
-		BYTE bBuf[512];
+		BYTE bBuf[TASK_CFG_REC_LEN];
 
 		pbPara0++;
 		bId = *pbPara0++;
@@ -5094,15 +5157,18 @@ int DelCommonMethod128(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 			TdbCloseTable(fd);
 		}
 		pbPara0 += wLen;
-	}
 
-	if (wOI==0x6012)
-	{
-		SetDelayInfo(INFO_TASK_CFG_UPDATE);
-	}
-	else if (wOI==0x6014 || wOI==0x6016 || wOI==0x6051 || wOI==0x601c)
-	{
-		SetDelayInfo(INFO_ACQ_SCH_UPDATE);
+		DTRACE(DB_FAPROTO, ("DelCommonMethod128(): Delete TableName=%s.\n", pszTabName));
+
+		if (wOI==0x6012)
+		{
+			SetDelayInfo(INFO_TASK_CFG_UPDATE);
+		}
+		else if (wOI==0x6014 || wOI==0x6016 || wOI==0x6051 || wOI==0x601c)
+		{
+			SetSchUpdateMask(wOI, bId);
+			SetDelayInfo(INFO_ACQ_SCH_UPDATE);
+		}
 	}
 
 	*piRetLen = pbPara - pbPara0;
@@ -5115,7 +5181,7 @@ int ClrCommonMethod129(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 {
 	char pszTabName[32];
 
-	DelSchData();
+	//DelSchData();
 
 	for (WORD wIndex=1; wIndex<TASK_NUM; wIndex++)
 	{
@@ -5128,20 +5194,24 @@ int ClrCommonMethod129(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 			TdbClearRec(pszTabName); 
 		}
 		DTRACE(DB_FAPROTO, ("ClrCommonMethod129: wOI=0x%04x, pszTabName:%s.\n", wOI, pszTabName));
+
+		if (wOI==0x6012)
+		{
+			SetDelayInfo(INFO_TASK_CFG_UPDATE);
+		}
+		else if (wOI==0x6014 || wOI==0x6016 || wOI==0x6051)
+		{
+			SetDelayInfo(INFO_ACQ_SCH_UPDATE);
+			SetSchUpdateMask(wOI, wIndex);
+		}
+		else if (wOI==0x601C)
+		{
+			SetDelayInfo(INFO_RP_SCH_UPDATE);
+			SetSchUpdateMask(wOI, wIndex);
+		}
 	}
 
-	if (wOI==0x6012)
-	{
-		SetDelayInfo(INFO_TASK_CFG_UPDATE);
-	}
-	else if (wOI==0x6014 || wOI==0x6016 || wOI==0x6051)
-	{
-		SetDelayInfo(INFO_ACQ_SCH_UPDATE);
-	}
-	else if (wOI==0x601C)
-	{
-		SetDelayInfo(INFO_RP_SCH_UPDATE);
-	}
+
 
 	return 0;
 }
@@ -5369,8 +5439,9 @@ int UdpTaskState130(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPar
 	bDbBuf[1] = 0x01;
 
 	iRet += 2;
-	if (AddCommonMethod127(wOI, 0, bOpMode,bDbBuf, iRet, pvAddon, pbTaskFmt, wTaskFmtLen, pbRes, piRetLen) < 0)
+	if (AddCommonMethod127(wOI, 0, bOpMode, bDbBuf, iRet, pvAddon, pbTaskFmt, wTaskFmtLen, pbRes, piRetLen) < 0)
 		return -1;
+
 	return 0;
 }
 
@@ -5786,6 +5857,7 @@ int ResetSchRecordCSD(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iP
 				TdbCloseSch(schID);
 				TdbCloseTable(fd);
 
+				DTRACE(DB_FAPROTO, ("ResetSchRecordCSD(): Reset param TableName=%s.\n", pszTabName));
 				SetDelayInfo(INFO_ACQ_SCH_UPDATE);
 			}
 		}
@@ -5951,6 +6023,12 @@ int GetSchFromTaskDb(BYTE bSchNo, BYTE bSchType, BYTE *pbRespBuf)
 	int	schID = -1;
 	int fd;
 	int iRet = -1;
+
+	if (bSchType > sizeof(g_TSchFieldCfg)/sizeof(TSchFieldCfg))
+	{
+		DTRACE(DB_DB, ("GetSchFromTaskDb: bSchType=%d invalid, return!!!\n", bSchType));
+		return iRet;
+	}
 
 	const TSchFieldCfg *p = &g_TSchFieldCfg[bSchType-1];
 	if (p == NULL)

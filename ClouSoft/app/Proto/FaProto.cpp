@@ -29,6 +29,10 @@
 #include "Sample.h"
 #endif
 extern DWORD TiToSecondes(TTimeInterv *pTI);
+extern TTmRunMode g_TmRunModeI;
+extern TTmRunMode g_TmRunModeII;
+extern TTmRunMode g_TmRunModeIII;
+
 
 CFaProto::CFaProto()
 {
@@ -74,6 +78,11 @@ CFaProto::CFaProto()
 	m_iStart = -1;
 	m_iRsd10Pn = -1;
 	m_fPwrOnRun = false;
+
+	m_dwFrmStartClick = 0;
+	m_iRPFWPn = 0;
+	m_dwRPFWTimes[0] = 0;
+	m_dwRPFWTimes[1] = 0;
 }
 
 CFaProto::~CFaProto()
@@ -308,7 +317,7 @@ bool CFaProto::AddrCheck()
 	m_LnkComm.bCliAddrLen = (m_bRxBuf[4]&0x0f) + 1;	//地址长度
 	memcpy(m_LnkComm.bCliAddrs, &m_bRxBuf[5], m_LnkComm.bCliAddrLen);
 
-	if(m_LnkComm.bLogicAddr != 0)//协议一致性测试，判断逻辑地址
+	if(m_LnkComm.bLogicAddr == 3)//协议一致性测试，判断逻辑地址 一致性测试逻辑地址3不应该应答，台体功能测试电压合格率时下发的逻辑地址为1又必须应答
 		return false;
 
 
@@ -349,7 +358,7 @@ bool CFaProto::AddrCheck()
 				bCliH = (m_LnkComm.bCliAddrs[i]>>4) & 0x0f;
 				bCliL = m_LnkComm.bCliAddrs[i] & 0x0f;
 
-				if ((bCliH!=bSvrH && bCliH!=0x0A) && (bCliL!=bSvrL && bCliL!=0x0A))
+				if ((bCliH!=bSvrH && bCliH!=0x0A) || (bCliL!=bSvrL && bCliL!=0x0A))
 				{
 					if ((i==(m_LnkComm.bCliAddrLen-1))	//地址的最后一个字节
 						&& (bDecNum%2 == 1)		//地址10进制位数为奇数
@@ -386,8 +395,8 @@ int  CFaProto::VeryFrm()
 	m_LnkComm.fIsSegSend = ((m_bRxBuf[3]&0x20) != 0);		//链路层是否有分帧
 	m_LnkComm.bFrmHeaderLen = m_LnkComm.bCliAddrLen+6;	//0x68+Len(2byte)+C(1byte)+AF(1byte)+SA(SvrLen)+CA(1byte)
 	
-	BYTE DIR = m_bRxBuf[3]&0x80;
-	if((1 != m_LnkComm.bFunCode && 3 != m_LnkComm.bFunCode) || (m_bRxBuf[3]&0x80) != 0 || ((m_bRxBuf[3]&0x40) != 0 && (m_bRxBuf[3]&0x80) != 0))//控制域检查，最高位为0表示此帧由主站发出，功能码目前仅1和3使用，其他保留
+		if ((1!=m_LnkComm.bFunCode && 3!=m_LnkComm.bFunCode) || (m_bRxBuf[3]&0x80)!=0 ||
+		((m_bRxBuf[3]&0x40)==0 && (m_bRxBuf[3]&0x80)==0 && 1!=m_LnkComm.bFunCode && 8!=m_bRxBuf[m_LnkComm.bFrmHeaderLen+2]))//控制域检查，最高位为0表示此帧由主站发出，功能码目前仅1和3使用，其他保留
 	{
 		DTRACE(DB_FAPROTO,("VeryFrm: FunCode error, m_LnkComm.bFunCode=0x%02x!\r\n", m_LnkComm.bFunCode));
 		return -4;
@@ -1320,6 +1329,7 @@ int CFaProto::Get_request_normal()
 	TTime tm;
 	TTimeInterv Ti;
 	TTime t;
+	DWORD dwNow,dwDelay,dwStartTime;
 
 	memset((BYTE*)&tApduInfo, 0, sizeof(tApduInfo));
 	tApduInfo.wOI = OoOiToWord(pbAskStart);
@@ -1356,8 +1366,10 @@ int CFaProto::Get_request_normal()
 			Ti.bUnit = *(pbAskStart+8);					
 			Ti.wVal = OoLongUnsignedToWord(pbAskStart+9);
 
-			DTRACE(DB_FAPROTO, ("Get_request_normal GetCurTime %d, %d,.\r\n", GetCurTime(),TimeToSeconds(tm),TiToSecondes(&Ti)));
-			if((TiToSecondes(&Ti) > 0 && GetCurTime() > (TimeToSeconds(tm) + TiToSecondes(&Ti))) || GetCurTime() < TimeToSeconds(tm))//传输延时时间大于零,判断时效性
+			dwNow = GetCurTime();
+			dwDelay = TiToSecondes(&Ti);
+			dwStartTime = TimeToSeconds(tm);
+			if(dwDelay > 0 && ((dwNow > dwStartTime + dwDelay) || (dwNow < dwStartTime - dwDelay)))//传输延时时间大于零,判断时效性
 				nRet = -5;
 		}
 	}
@@ -1571,7 +1583,7 @@ int CFaProto::Get_request_normal_list()
 #define DEBUG_TEST_RECORD_SEGMENT	//台体测试回帧字节数为4096时异常，先用宏控制
 int CFaProto::Get_request_record()
 {
-	TApduInfo tApduInfo;
+		TApduInfo tApduInfo;
 	const ToaMap* pOI;
 	WORD wRetNum=0;
 	WORD wRxMaxLen;
@@ -1663,7 +1675,7 @@ GOTO_RSD10:	//方法10比较特殊
 		nRet = ReadRecord(tApduInfo.pbOAD, tApduInfo.pbRSD, tApduInfo.pbRCSD, &m_AppComm.iTabIdx, &m_AppComm.iStep, pbRxPtr, wRxMaxLen, &wRetNum);
 	}
 
-	if (nRet < 0)
+	if (nRet <= 0)
 	{
 		*pApdu++ = GET_RECORD;
 		*pApdu++ = m_AppComm.bPIID;
@@ -1702,32 +1714,54 @@ GOTO_RSD10:	//方法10比较特殊
 		{
 			memcpy(pApdu, tApduInfo.pbRCSD, tApduInfo.wRCSDLen);	
 			pApdu += tApduInfo.wRCSDLen;
-	
+
+			bool fErr = false;
+			bool fInvalid = false;
 			DWORD dwOAD;
+			if (bMethod == 2)
+			{
+				dwOAD = OoOadToDWord(&tApduInfo.pbRSD[1]); //对象属性描述符OAD
+				pOI = GetOIMap(dwOAD);
+				if (pOI!=NULL && pOI->pFmt!=NULL && pOI->pFmt[0]==DT_DATE_TIME_S)
+				{
+					TTime tmStart, tmEnd;
+					OoDateTimeSToTime(&tApduInfo.pbRSD[6], &tmStart);
+					OoDateTimeSToTime(&tApduInfo.pbRSD[14], &tmEnd);
+					if (SecondsPast(tmStart, tmEnd) == 0) //tmEnd <= tmStart
+						fErr = true;
+				} 
+			}
+
+			if (tApduInfo.pbRCSD[0]==1 && tApduInfo.pbRCSD[1]==0) //RCSD仅包含1个CSD，CSD中为OAD，OAD中有未定义的对象属性
+			{
+				dwOAD = OoOadToDWord(&tApduInfo.pbRCSD[2]);
+				pOI = GetOIMap(dwOAD);
+				if (pOI == NULL)
+					fInvalid = true;
+			}
+
 			dwOAD = OoOadToDWord(tApduInfo.pbOAD);
 			pOI = GetOIMap(dwOAD);
-			if (pOI == NULL) //未定义的记录型对象属性
+			if (pOI==NULL || fErr) //未定义的记录型对象属性 || 时标不对
 			{
-			*pApdu++ = 0x00;				//DAR
-			*pApdu++ = GetErrOfGet(nRet);	//对象不存在
+				*pApdu++ = 0x00;				//DAR
+				*pApdu++ = GetErrOfGet(nRet);	//对象不存在
 			}
-			else
+			else if (fInvalid || (nRet!=-2 && bMethod!=9)) //024电能表时钟超差事件:方法9不能回数据NULL
 			{
 				*pApdu++ = 0x01;	//Data
-				if(nRet!=-2)
+				*pApdu++ = 0x01;	//记录条数
+				for (int i=0; i<tApduInfo.pbRCSD[0]; i++) //CSD个数
 				{
-					*pApdu++ = 0x01;	//记录条数
-					for (int i=0; i<tApduInfo.pbRCSD[0]; i++) //CSD个数
-					{
-						*pApdu++ = 0x00;	//对象不存在
-					}
+					*pApdu++ = 0x00;	//数据为NULL
 				}
-                else{
-                    *pApdu++ = 0x00;
-                }
 			}
+            else
+			{
+				*pApdu++ = 0x01;	//Data
+                *pApdu++ = 0x00;    //对象不存在
+            }
 		}
-
 	}
 	else if (m_AppComm.fNewServer)	//开始读取
 	{
@@ -1779,39 +1813,7 @@ GOTO_RSD10:	//方法10比较特殊
 		{
 			memcpy(pApdu, tApduInfo.pbRCSD, tApduInfo.wRCSDLen);	
 			pApdu += tApduInfo.wRCSDLen;
-			bool fErr = false;
-			if (bMethod == 2)
-			{
-				DWORD dwOAD;
-				dwOAD = OoOadToDWord(&tApduInfo.pbRSD[1]); //对象属性描述符OAD
-				pOI = GetOIMap(dwOAD);
-				if (pOI!=NULL && pOI->pFmt!=NULL && pOI->pFmt[0]==DT_DATE_TIME_S)
-				{
-					TTime tmStart, tmEnd;
-					OoDateTimeSToTime(&tApduInfo.pbRSD[6], &tmStart);
-					OoDateTimeSToTime(&tApduInfo.pbRSD[14], &tmEnd);
-					if (SecondsPast(tmStart, tmEnd) == 0) //tmEnd <= tmStart
-						fErr = true;
-				} 
-			}
-            
-            if (fErr)
-            {
-    			*pApdu++ = 0x00;				//DAR
-    			*pApdu++ = GetErrOfGet(nRet);	//对象不存在
-            }
-            else
-            {
-                *pApdu++ = 0x01;	//Data
-                if(nRet==0)
-                {
-        		    *pApdu++ = 0x01;	//记录条数
-        		    for (int i=0; i<tApduInfo.pbRCSD[0]; i++) //CSD个数
-        		    {
-        		        *pApdu++ = 0x00;	//数据为NULL
-        		    }
-                }
-            }
+			*pApdu++ = 0x01;	//Data
 		}
 
 		if (wRetNum != 0)
@@ -1882,6 +1884,8 @@ GOTO_RSD10:	//方法10比较特殊
 
 #ifdef DEBUG_TEST_RECORD_SEGMENT
 	m_TxAPdu.wLen = pApdu - bBuf;
+	if (m_TxAPdu.wLen > APDUSIZE)
+		m_TxAPdu.wLen = APDUSIZE;
 	memcpy(m_TxAPdu.bBuf, bBuf, m_TxAPdu.wLen);
 #else
 	m_TxAPdu.wLen = pApdu - m_TxAPdu.bBuf;
@@ -1892,17 +1896,27 @@ GOTO_RSD10:	//方法10比较特殊
 
 int CFaProto::Get_request_record_list()
 {
-	static const int iApdu1Offset = 128;
+		static const int iApdu1Offset = 128;
 	static const int iApdu2Offset = 128;
 	TApduInfo tApduInfo;
-	const ToaMap* pOI;
+	const ToaMap* pOI = NULL;
 	int iBakStep;
 	WORD wRetNum;
 	WORD wRxMaxLen;
 	WORD wReqApduLen, wRspApduLen;
 	BYTE bGetNum=0;
 	BYTE *pbAskStart;
+
+#ifdef DEBUG_TEST_RECORD_SEGMENT
+	BYTE bBuf[1800+256];
+	BYTE *pApdu0 = bBuf;
+
+	WORD wBufSize = sizeof(bBuf);
+#else
 	BYTE *pApdu0 = m_TxAPdu.bBuf;
+	WORD wBufSize = sizeof(m_TxAPdu.bBuf);
+#endif
+
 	BYTE *pApdu1;
 	BYTE *pApdu2;
 	BYTE *pbRxPtr;
@@ -1932,7 +1946,8 @@ int CFaProto::Get_request_record_list()
 		wReqApduLen = tApduInfo.wOADLen + tApduInfo.wRSDLen + tApduInfo.wRCSDLen;	//APDU的请求信息长度（OAD\RSD\RCSD）
 		wRspApduLen = tApduInfo.wOADLen + tApduInfo.wRCSDLen;	//APDU的响应信息长度（OAD\RCSD）
 		pbRxPtr = pApdu2+iApdu2Offset;
-		wRxMaxLen = sizeof(m_TxAPdu.bBuf) - (pApdu2-pApdu0) - wRspApduLen;	//10
+		
+		wRxMaxLen = wBufSize - (pApdu2-pApdu0) - wRspApduLen;	//10
 		iBakStep = m_AppComm.iStep;
 		wRetNum = 0;
 		int nRet = ReadRecord(tApduInfo.pbOAD, tApduInfo.pbRSD, tApduInfo.pbRCSD, &m_AppComm.iTabIdx, &m_AppComm.iStep, pbRxPtr, wRxMaxLen, &wRetNum);
@@ -1993,6 +2008,7 @@ int CFaProto::Get_request_record_list()
 				{
 					memcpy(pApdu2, tApduInfo.pbRCSD, tApduInfo.wRCSDLen);	
 					pApdu2 += tApduInfo.wRCSDLen;
+					//*pApdu++ = 0x00;				//DAR
 					DWORD dwOAD;
 					dwOAD = OoOadToDWord(tApduInfo.pbOAD);
 					pOI = GetOIMap(dwOAD);
@@ -2003,11 +2019,11 @@ int CFaProto::Get_request_record_list()
 					}
 					else
 					{
-					*pApdu2++ = 0x01;	//Data
+						*pApdu2++ = 0x01;	//Data
 						*pApdu2++ = 0x01;	//记录条数
 						for (int i=0; i<tApduInfo.pbRCSD[0]; i++) //CSD个数
 						{
-					*pApdu2++ = 0x00;	//对象不存在
+							*pApdu2++ = 0x00;	//对象不存在
 						}
 					}
 				}
@@ -2108,7 +2124,8 @@ int CFaProto::Get_request_record_list()
 	*pApdu1++ = GetTimeFlg();
 
 	m_TxAPdu.wLen = pApdu1 - pApdu0;
-
+	if (m_TxAPdu.wLen > APDUSIZE)
+		m_TxAPdu.wLen = APDUSIZE;
 	memcpy(m_TxAPdu.bBuf, pApdu0, m_TxAPdu.wLen);
 
 	return ToSecurityLayer(); //ToLnkLayer();
@@ -3426,6 +3443,54 @@ int CFaProto::ProxyTimeoutDealSetThenGetReqList(BYTE * pbTx, BYTE *pbData)
 }
 
 
+
+int CFaProto::ProxyTimeoutDealSetReqList(BYTE * pbTx, BYTE *pbData)
+{
+	BYTE bNum = 0;
+	BYTE *pApdu = 0;
+	BYTE *pbData0 = pbData;
+	bNum = *pbTx++;
+	*pbData++ = bNum;
+	int iRet = 0, iLen=0;
+	WORD wLen=0;
+	BYTE bType1=0;
+	pApdu = pbTx;
+
+	DTRACE(DB_FAPROTO, ("ProxyTimeoutDealSetReqList bNum=%d.\n", bNum));
+
+	for (BYTE i=0; i<bNum; i++)
+	{
+		memcpy(pbData, pApdu, 4);
+		pbData += 4;
+
+		const TOmMap* pOI = GetOmMap(OoOadToDWord(pApdu));
+		if (pOI == NULL)
+		{
+			iLen = OoGetDataTypeLen(pApdu+4);
+			DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_REQ_LIST Can`t support, dwOAD=%08x, datalen=%d.\n", OoOadToDWord(pApdu), iLen));
+		}
+		else
+			iLen = OoScanData(pApdu+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType1);
+
+
+		if (iLen < 0)
+		{
+			DTRACE(DB_FAPROTO, ("ProxyTimeoutDealActThenGetReqList OoScanData error, dwOAD=%08x.\n", OoOadToDWord(pApdu)));
+			break;
+		}
+		pApdu += 4;
+		*pbData++ = DAR_OTHER; //  DAR
+		//*pbData++ = 0;    //data option
+		pApdu += iLen;
+
+	}
+	iRet = pbData - pbData0;
+	pbData = pbData0;
+
+	return iRet;
+}
+
+
 int CFaProto::ProxyTimeoutDealActReqList(BYTE * pbTx, BYTE *pbData)
 {
 	BYTE bNum = 0;
@@ -3578,7 +3643,7 @@ int CFaProto::ProxyTransCommandRequest()
 	pApdu += 2;
 	wByteTimeOut = (WORD )(pApdu[0]<<8) + pApdu[1];
 	pApdu += 2;
-	if (bStreamCtr < 2)  // 流控合法，才发送， 过台体会检测这项  whr 20170707
+	if (bStreamCtr < 3)  // 流控合法，才发送， 过台体会检测这项  whr 20170707
 	{
 		iLen = DecodeLength(pApdu, &dwSendLen);
 		pApdu += iLen;
@@ -3707,15 +3772,13 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 				const ToaMap* pOI = GetOIMap(OoOadToDWord(pbRx));
 				if (pOI == NULL)
 				{
+					iLen = OoGetDataTypeLen(pbRx+4);
 					DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_REQ_LIST Can`t support, dwOAD=%08x.\n", OoOadToDWord(pbRx)));
-					//return -1;
-					//协议一致性
-					pbApdu += 4;
-					pbRx += 4;
-					*pbApdu++ = NULL;
-					break; 		
 				}
-				iLen = OoScanData(pbRx+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType);
+				else
+				{
+					iLen = OoScanData(pbRx+4, pOI->pFmt, pOI->wFmtLen, false, -1, &wLen, &bType);
+				}	
 				if (iLen < 0)
 				{
 					DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_SET_REQ_LIST Can`t support, dwOAD=%08x.\n", OoOadToDWord(pbRx)));
@@ -3734,10 +3797,9 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 
 			if (iRet <= 0)
 			{
-				memcpy(pTxApdu, bApdu, 4);
-				pTxApdu += 4;
-				*pTxApdu++ = DAR;
-				*pTxApdu++ = DAR_OTHER;
+				iRet = ProxyTimeoutDealSetReqList(pbRxNum, pTxApdu);
+				pTxApdu += iRet;
+				DTRACE(DB_FAPROTO, ("ProxyTimeoutDealSetReqList after iRet=%d\r\n", iRet));
 			}
 			else
 			{
@@ -3762,7 +3824,7 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 				if (pOI == NULL)
 				{
 					iLen = OoGetDataTypeLen(pbRx+4);
-					DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_THEN_GET_REQ_LIST Can`t support, dwOAD=%08x, datalen=%d.\n", OoOadToDWord(pbRx), iLen));
+					DTRACE(DB_FAPROTO, ("ProxyResponse(): PROXY_ACT_REQ_LIST Can`t support, dwOAD=%08x, datalen=%d.\n", OoOadToDWord(pbRx), iLen));
 				}
 				else
 				{
@@ -5214,516 +5276,674 @@ bool CFaProto::AutoSend()
 void CFaProto::TaskRpt(BYTE * pbNSend)
 {
 		DWORD dwSecsNow = GetCurTime();
-	BYTE i;	
-	bool fIsRestC3TxCnt = false;
-	TFapRptMsg *pMsg;
-	TTaskCfg tTaskCfg;
-	BYTE *pbSchCfg;
-	DWORD dwOMD;
-	const TOmMap *p;
-	WORD wLen;
-	WORD wOI;
-	BYTE bType, bNum;
-	BYTE *pbTaskCSD = NULL, *pbRSD = NULL;
-	int nRet;
-	BYTE bBuf[20];	//读取单个OAD,最大允许长度为512字节
-	BYTE* pApdu = m_TxAPdu.bBuf;
-	BYTE* pApdu0 = pApdu;
-	BYTE *pRecBuf;
-	int ret;
-	BYTE bRcdNum = 0;//RecordData时的成员过个数
-	BYTE bOAD[4];
-	BYTE * pRCSD = NULL;
-	BYTE * pRSD = NULL;
-	int iTabIdx = 0;
-	WORD wRetNum;
-	DWORD dwCurSec, dwStartSec = 0, dwEndSec = 0, dwRptSec = 0;
-	DWORD dwPerStartMin, dwPerEndMin;
-	DWORD dwCycTime;
-	BYTE bTxCnt;
-	WORD wID;
-	BYTE * pTmp = NULL;
-	BYTE bMethod;
-
-	if (*pbNSend >= RPTMAXFRM_EVERYSEND)
-	{
-		DTRACE(DB_FAPROTO, ("CFaProto::TaskRpt NeedSend = %ld, no space!!! m_dwCnOAD=%04x.\n", *pbNSend, m_dwCnOAD));
-		return;
-	}
-
-	//如果待确认区满了，则不在处理常规队列，以防还有待确认帧无处可存
-	if (WaitQueGetNum() >= WaitQueGetSize())
-	{
-		DTRACE(DB_FAPROTO, ("CFaProto::TaskRpt WaitQueGetNum = %ld >= %ld, no space!!! m_dwCnOAD=%04x.\n", WaitQueGetNum(), WaitQueGetSize(), m_dwCnOAD));
-		return;
-	}
+		BYTE i; 
+		bool fIsRestC3TxCnt = false;
+		TFapRptMsg *pMsg;
+		TTaskCfg tTaskCfg;
+		BYTE *pbSchCfg;
+		DWORD dwOMD;
+		const TOmMap *p;
+		WORD wLen;
+		WORD wOI;
+		BYTE bType, bNum;
+		BYTE *pbTaskCSD = NULL, *pbRSD = NULL;
+		int nRet;
+		BYTE bBuf[20];	//读取单个OAD,最大允许长度为512字节
+		BYTE* pApdu = m_TxAPdu.bBuf;
+		BYTE* pApdu0 = pApdu;
+		BYTE *pRecBuf;
+		int ret;
+		BYTE bRcdNum = 0;//RecordData时的成员过个数
+		BYTE bOAD[4];
+		BYTE * pRCSD = NULL;
+		BYTE * pRSD = NULL;
+		int iTabIdx = 0;
+		WORD wRetNum;
+		DWORD dwCurSec, dwStartSec = 0, dwEndSec = 0, dwRptSec = 0;
+		DWORD dwPerStartMin, dwPerEndMin;
+		DWORD dwCycTime;
+		BYTE bTxCnt;
+		WORD wID;
+		BYTE * pTmp = NULL;
+		BYTE bMethod;
+		//BOOL fIsSameTask = TRUE;
 	
-	if ( m_pFaProPara->ProPara.fAutoSend == false)//本通道不具备上报功能测退出
-	{
-		DTRACE(DB_FAPROTO, ("CFaProto::TaskRpt m_dwCnOAD=%04x fAutoSend is false.\n", m_dwCnOAD));
-		return;
-	}
-
-	if (m_wCurTaskId >= TASK_ID_NUM)
-	{
-		m_wCurTaskId = 0;
-		m_iStart = -1;
-	}
-
-	for (; m_wCurTaskId<TASK_ID_NUM; m_wCurTaskId++)
-	{
-		if (m_wCurTaskId != m_wLastTaskId)
+		if (*pbNSend >= RPTMAXFRM_EVERYSEND)
 		{
-			m_wLastTaskId = m_wCurTaskId;
-			m_iStart = -1;
-			m_iRdPn = 0;
+			DTRACE(DB_FAPROTO, ("CFaProto::TaskRpt NeedSend = %ld, no space!!! m_dwCnOAD=%04x.\n", *pbNSend, m_dwCnOAD));
+			return;
 		}
-
-		if (GetTaskCfg(m_wCurTaskId, &tTaskCfg) && (tTaskCfg.bSchType == SCH_TYPE_REPORT))
+	
+		//如果待确认区满了，则不在处理常规队列，以防还有待确认帧无处可存
+		if (WaitQueGetNum() >= WaitQueGetSize())
 		{
-			if (GetTaskCurExeTime(&tTaskCfg, &dwCurSec, &dwStartSec, &dwEndSec) != 0)
-				continue;//不在执行时间内则跳过
-
-			wID = 0x6002+m_pIf->GetIfType();
-			ReadBankId(BANK16, m_wCurTaskId, wID, (BYTE*)&dwRptSec);//取得上一次的上报时间sec
-			if ((dwRptSec==dwCurSec) && (dwRptSec!=0))
+			DTRACE(DB_FAPROTO, ("CFaProto::TaskRpt WaitQueGetNum = %ld >= %ld, no space!!! m_dwCnOAD=%04x.\n", WaitQueGetNum(), WaitQueGetSize(), m_dwCnOAD));
+			return;
+		}
+		
+		if ( m_pFaProPara->ProPara.fAutoSend == false)//本通道不具备上报功能测退出
+		{
+			DTRACE(DB_FAPROTO, ("CFaProto::TaskRpt m_dwCnOAD=%04x fAutoSend is false.\n", m_dwCnOAD));
+			return;
+		}
+	
+		if (m_wCurTaskId >= TASK_ID_NUM)
+		{
+			m_wCurTaskId = 0;
+			m_iStart = -1;
+		}
+	
+		for (; m_wCurTaskId<TASK_ID_NUM; m_wCurTaskId++)
+		{
+			if (m_wCurTaskId != m_wLastTaskId)
 			{
+				m_wLastTaskId = m_wCurTaskId;
 				m_iStart = -1;
-				continue;//本间隔里已上报过了
+				m_iRdPn = 0;
+				//fIsSameTask = FALSE;
+#ifdef REPORT_FORWARD
+				m_iRPFWPn = 0;
+				m_dwRPFWTimes[0] = 0;
+				m_dwRPFWTimes[1] = 0;
+#endif			
 			}
-			
-			ret = 0;
-			pbSchCfg = GetSchCfg(&tTaskCfg, &ret);
-			if ((ret > 0) && (pbSchCfg != NULL))
+#ifdef REPORT_FORWARD
+			else if (m_wCurTaskId==0 && m_wLastTaskId==0)
 			{
-				WORD pwFmtLen = 0; 
-				dwOMD = 0x601C7F00;
-				//p = GetSchFmt(SCH_TYPE_REPORT, &pwFmtLen);//岑总说要把下边的p = GetOmMap(dwOMD)换成这种方式
-				p = GetOmMap(dwOMD);//要改成上边的，记得!!
-				if (p ==NULL)
+				//fIsSameTask = FALSE;
+				m_iRPFWPn = 0;
+				m_dwRPFWTimes[0] = 0;
+				m_dwRPFWTimes[1] = 0;
+			}
+#endif
+			BYTE bRpNum = 1;
+			WORD wPnSum;
+			if (GetTaskCfg(m_wCurTaskId, &tTaskCfg) && (tTaskCfg.bSchType == SCH_TYPE_REPORT))
+			{
+				if (GetTaskCurExeTime(&tTaskCfg, &dwCurSec, &dwStartSec, &dwEndSec) != 0)
+					continue;//不在执行时间内则跳过
+	
+				wID = 0x6002+m_pIf->GetIfType();
+				ReadBankId(BANK16, m_wCurTaskId, wID, (BYTE*)&dwRptSec);//取得上一次的上报时间sec
+				if ((dwRptSec==dwCurSec) && (dwRptSec!=0))
 				{
 					m_iStart = -1;
-					continue;
+					continue;//本间隔里已上报过了
 				}
-
-				if ((pbTaskCSD=OoGetField(pbSchCfg, p->pFmt+2, p->wFmtLen-2, 1, &wLen, &bType)) != NULL)//取上报通道,OoGetField()返回的偏移没有跳过了格式字符位置
+				else
 				{
-					//判断方案通道里是否包括了自身线程通道，是则往下执行
-					BYTE n;
-					DWORD dwCn = 0;
-					for (n=0; n<pbTaskCSD[1]; n++)
+#ifdef REPORT_FORWARD
+					wPnSum = GetPnNum();
+					DTRACE(DB_FAPROTO, ("CFaProto::wPnSum=%d RunModeI=%d RunModeII=%d \n", wPnSum,g_TmRunModeI.bTmRunMode,g_TmRunModeII.bTmRunMode));
+					if (ReadBankId(BANK1, PN0, 0x2111, bBuf) < 0)
+						bBuf[0] = 8;
+					if (wPnSum > bBuf[0])// || (g_TmRunModeI.bTmRunMode!=1 &&g_TmRunModeII.bTmRunMode!=1 && g_TmRunModeII.bTmRunMode!=1))
 					{
-						dwCn = OoOadToDWord(&pbTaskCSD[3+n*5]);
-						//if (dwCn == m_dwCnOAD)
+						if (TiToSecondes(&(tTaskCfg.tiExe)) != 0)
+						{
+							if (dwRptSec == 0)//从未上报过，则只上报最近一笔
+								bRpNum = 1;
+							else if (dwCurSec > dwRptSec)
+							{
+								bRpNum = (dwCurSec - dwRptSec)/TiToSecondes(&(tTaskCfg.tiExe));
+								DTRACE(DB_FAPROTO, ("CFaProto::report more!!bRpNum=%d\n", bRpNum));
+							}
+						}
+						if (bRpNum == 0)
+							bRpNum = 1;
+						if (bRpNum > 20)
+							bRpNum = 20;
+					}
+					else
+					{
+							bRpNum = 1;
+					}
+#endif				
+				}
+				DTRACE(DB_FAPROTO, ("CFaProto::bRpNum=%d setPn=%d.\n", bRpNum, bBuf[0]));
+				//for (BYTE n=bRpNum; n>0; n--)
+				BYTE n=bRpNum;
+				{
+#ifdef REPORT_FORWARD
+					DWORD dwBKCurSec = dwCurSec;
+					if (wPnSum > bBuf[0])// || (g_TmRunModeI.bTmRunMode!=1 &&g_TmRunModeII.bTmRunMode!=1 && g_TmRunModeII.bTmRunMode!=1))
+					{
+						if (n > 1)
+						{
+							if (dwStartSec > (n-2)*TiToSecondes(&(tTaskCfg.tiExe)))
+								dwStartSec -= (n-2)*TiToSecondes(&(tTaskCfg.tiExe));
+							if (dwEndSec > (n-2)*TiToSecondes(&(tTaskCfg.tiExe)))
+								dwEndSec -= (n-2)*TiToSecondes(&(tTaskCfg.tiExe));
+							if (dwCurSec > (n-2)*TiToSecondes(&(tTaskCfg.tiExe)))
+								dwCurSec -= (n-2)*TiToSecondes(&(tTaskCfg.tiExe));
+							if (m_dwRPFWTimes[1] != dwBKCurSec)
+							{
+								m_dwRPFWTimes[0] = dwCurSec-2*TiToSecondes(&(tTaskCfg.tiExe));//最远补报那笔的时间,以备切换测量点时要用
+								m_dwRPFWTimes[1] = dwBKCurSec;
+							}
+						}
+					}
+	
+#endif				
+					ret = 0;
+					pbSchCfg = GetSchCfg(&tTaskCfg, &ret);
+					if ((ret > 0) && (pbSchCfg != NULL))
+					{
+						WORD pwFmtLen = 0; 
+						dwOMD = 0x601C7F00;
+						//p = GetSchFmt(SCH_TYPE_REPORT, &pwFmtLen);//岑总说要把下边的p = GetOmMap(dwOMD)换成这种方式
+						p = GetOmMap(dwOMD);//要改成上边的，记得!!
+						if (p ==NULL)
+						{
+							m_iStart = -1;
+							continue;
+						}
+	
+						if ((pbTaskCSD=OoGetField(pbSchCfg, p->pFmt+2, p->wFmtLen-2, 1, &wLen, &bType)) != NULL)//取上报通道,OoGetField()返回的偏移没有跳过了格式字符位置
+						{
+							//判断方案通道里是否包括了自身线程通道，是则往下执行
+							BYTE n;
+							DWORD dwCn = 0;
+							for (n=0; n<pbTaskCSD[1]; n++)
+							{
+								dwCn = OoOadToDWord(&pbTaskCSD[3+n*5]);
+								//if (dwCn == m_dwCnOAD)
 #ifndef SYS_WIN
-						if ((dwCn&0xfff00000) == m_dwCnOAD)
-							break;
+								if ((dwCn&0xfff00000) == m_dwCnOAD)
+									break;
 #else
-						break;
+								break;
 #endif
-					}
-					if (n >= pbTaskCSD[1])
-					{
-						DTRACE(DB_FAPROTO, ("###TaskRpt dwCn = %04x, m_dwCnOAD=%04x ERR, wTaskId=%d.\n", dwCn, m_dwCnOAD, m_wCurTaskId));
-						//TraceBuf(DB_FAPROTO, "pbTaskCSD-->", pbTaskCSD, 7);
-
-						m_iStart = -1;
-						continue;
-					}
-				}
-					
-				if ((pbTaskCSD=OoGetField(pbSchCfg, p->pFmt+2, p->wFmtLen-2, 4, &wLen, &bType)) != NULL)//取上报内容项
-				{
-					pApdu = m_TxAPdu.bBuf;
-					pApdu0 = pApdu;
-					if(pbTaskCSD[3] == 0)//上报类型是OAD
-					{
-						 wOI = OoOiToWord(&pbTaskCSD[5]);
-						*pApdu++ = REPORT_NOTI;	//上报
-						*pApdu++ = GET_NORMAL;
-						pTmp = pApdu;//先记录PIID的位置，组帧发送时再获取PIID
-						*pApdu++ = 0;//PIID;
-						*pApdu++ = 1;//SEQUENCE OF OAD 个数=1,暂不考虑分帧
-						memcpy(pApdu, &pbTaskCSD[5], 4);
-						pApdu += 4;
-						nRet = OoProReadAttr(wOI, pbTaskCSD[7], pbTaskCSD[8], pApdu, 900, &m_iStart);//APDUSIZE,ESAM那边给的空间有限
-						//发送后直接放到待确认区
-						//先不考虑分帧,到时参看Get_request_normal()里的做法再来做分帧
-						if (nRet < 0)	//没取到数据
-						{
-							*pApdu++ = 0x00;	//为NULL
+							}
+							if (n >= pbTaskCSD[1])
+							{
+								DTRACE(DB_FAPROTO, ("###TaskRpt dwCn = %04x, m_dwCnOAD=%04x ERR, wTaskId=%d.\n", dwCn, m_dwCnOAD, m_wCurTaskId));
+								//TraceBuf(DB_FAPROTO, "pbTaskCSD-->", pbTaskCSD, 7);
+	
+								m_iStart = -1;
+								continue;
+							}
 						}
-						else
-							pApdu += nRet;
-						*pApdu++ = 0x00;	//无上报信息
-						*pApdu++ = 0x00;	//无时标
-						*pTmp = GetMyPIID();					
-						m_TxAPdu.wLen = pApdu - pApdu0;
-					
-						//return ToLnkLayer();
-						//WORD wSigFrmSize = m_LnkComm.tTxTrsPara.tConnPara.wSenFrmMaxLen;
-						//if (pApdu->wLen <= wSigFrmSize)	//如果在链路一帧就可以发送完，就无需分帧了
-						{
-							m_LnkComm.fIsSegSend = false;
-							//加密处理
-							BYTE bSecBuf[APDUSIZE];
-							int wSecLen;
-							WORD wApduLen = 0;
-							BYTE * pSec = NULL;
 							
-							memset(bSecBuf, 0, sizeof(bSecBuf));
-							if (m_TxAPdu.wLen >= (APDUSIZE-32))
-								m_TxAPdu.wLen = APDUSIZE-32;
-							wSecLen = Rpt_SecureLayer(pApdu0,  m_TxAPdu.wLen, bSecBuf);
-							if (wSecLen < 0)
-								return;
-							else if (wSecLen > 0)
+						if ((pbTaskCSD=OoGetField(pbSchCfg, p->pFmt+2, p->wFmtLen-2, 4, &wLen, &bType)) != NULL)//取上报内容项
+						{
+							pApdu = m_TxAPdu.bBuf;
+							pApdu0 = pApdu;
+							if(pbTaskCSD[3] == 0)//上报类型是OAD
 							{
-								wApduLen = wSecLen;
-								pSec = bSecBuf;
-							}
-							else
-							{
-								wApduLen = m_TxAPdu.wLen;
-								pSec = pApdu0;
-							}
-							ret = MakeFrm(pSec, wApduLen);
-							//ret = MakeFrm(pApdu0, m_TxAPdu.wLen);
-							DTRACE(DB_FAPROTO, ("---TaskRpt ResultNormal bOAD=0x%08x  nRet=%d.---\n", OoOadToDWord(&pbTaskCSD[5]), ret));
-							if (ret > 0)
-							{
-								if (m_iStart == -1)
+								 wOI = OoOiToWord(&pbTaskCSD[5]);
+								*pApdu++ = REPORT_NOTI; //上报
+								*pApdu++ = GET_NORMAL;
+								pTmp = pApdu;//先记录PIID的位置，组帧发送时再获取PIID
+								*pApdu++ = 0;//PIID;
+								*pApdu++ = 1;//SEQUENCE OF OAD 个数=1,暂不考虑分帧
+								memcpy(pApdu, &pbTaskCSD[5], 4);
+								pApdu += 4;
+								nRet = OoProReadAttr(wOI, pbTaskCSD[7], pbTaskCSD[8], pApdu, 900, &m_iStart);//APDUSIZE,ESAM那边给的空间有限
+								//发送后直接放到待确认区
+								//先不考虑分帧,到时参看Get_request_normal()里的做法再来做分帧
+								if (nRet < 0)	//没取到数据
 								{
-									memset(bBuf, 0, sizeof(bBuf));
-									DWordToByte(dwCurSec, bBuf);//dwCurSec
-									WriteItemEx(BANK16, m_wCurTaskId, wID, bBuf);//记录本次的上报时间sec
-								}
-
-								//发送成功，把该帧放入确认区
-								//注意，如果上报的信息不需要确认的就不用走下边的流程了
-								if ((pbTaskCSD=OoGetField(pbSchCfg, p->pFmt+2, p->wFmtLen-2, 3, &wLen, &bType)) != NULL)
-									bTxCnt = pbTaskCSD[1];//取得最大上报次数
-								else
-									bTxCnt = 1;
-								
-								if ((pbTaskCSD=OoGetField(pbSchCfg, p->pFmt+2, p->wFmtLen-2, 2, &wLen, &bType)) != NULL)
-								{
-									pbTaskCSD ++;
-									TTimeInterv Interv;
-									Interv.bUnit = pbTaskCSD[0];
-									Interv.wVal = OoOiToWord(&pbTaskCSD[1]);
-									dwCycTime = TiToSecondes(&Interv);//,取得上报响应超时时间
+									*pApdu++ = 0x00;	//为NULL
 								}
 								else
-								{
-									dwCycTime = 0;
-								}
-
-								WaitQue(GB_DATACLASS1, bTxCnt, dwCycTime, m_wCurTaskId, m_bTxBuf, ret);
-								
-								*pbNSend = *pbNSend + 1;
-								Sleep(50);
-								if (*pbNSend >= RPTMAXFRM_EVERYSEND)
-									return;
-							}
-						}
-					}
-					else//上报类型是RecordData上报记录型对象属性
-					{
-						TOobMtrInfo tMtrInfo;
-						TTime tTime;
-						int iRCSDLen, iDayFrzState;
-						WORD wPn;
-						BYTE bTaskCsdBuf[1024] = {0};
-						BYTE bMtrMask[PN_MASK_SIZE] = {0};
-						BYTE *pbMsd, *pTime, *pSechFrzOad;
-						
-						
-						
-						if (wLen > sizeof(bTaskCsdBuf))
-						{
-							DTRACE(DB_FAPROTO, ("TaskRpt error, wLen=%d > bTaskCSD=%d.\n", wLen, sizeof(bTaskCsdBuf)));
-							return;
-						}
-						memcpy(bTaskCsdBuf, pbTaskCSD, wLen);
-						memset(bOAD, 0, sizeof(bOAD));
-						memcpy(bOAD, bTaskCsdBuf+7, 4);//取得主对象描述符
-						pRCSD = bTaskCsdBuf+12;//取得bRCSD个数位置
-						pRSD = pRCSD;
-						pRSD += ScanRCSD(pRCSD, false);
-						pRSD++;//把RSD的第一个格式字符去掉了
-
-						bMethod = *pRSD;
-						switch (bMethod)
-						{
-						case 0:
-							pRSD[0] = 10;	//RSD=10
-							pRSD[1] = 1;	//上1条记录
-							pbMsd = pRSD+2;
-							pbMsd[0] = DT_MS;
-							pbMsd[1] = 0x01; //所有表
-							break;
-						case 4:
-						case 5:
-							pbMsd = pRSD + (1+7);	//1+7:RSD类型+格式date_time_s 
-							ParserMsParam(pbMsd, bMtrMask, sizeof(bMtrMask));
-							if (m_iStart < 0)
-							{
-								if ((m_iRdPn=SearchNextPnFromMask(bMtrMask, m_iRdPn)) < 0)
-								{
-									WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
-									goto NEXT_TASK;
-								}	
-							}
-							GetMeterInfo(m_iRdPn, &tMtrInfo);
-							*pbMsd++ = 0x04;	//MS“一组配置序号”
-							*pbMsd++ = 0x01;	//1个表序号
-							pbMsd += OoWordToOi(tMtrInfo.wMtrSn, pbMsd);
-							DTRACE(DB_FAPROTO, ("###TaskRpt bMethod=%d, wTaskId=%d, wSn=%d.\n", bMethod, m_wCurTaskId, tMtrInfo.wMtrSn));
-							break;
-						case 6:
-						case 7:
-							pbMsd = pRSD + (1+7+7+3);//1+7+7+3: RSD类型+date_time_s+date_time_s+TI, 
-							pTime = pRSD+1;
-							if (IsAllAByte(pTime, 0xff, 7))	//起始时间
-							{
-								dwStartSec -= TiToSecondes(&(tTaskCfg.tiExe));
-								SecondsToTime(dwStartSec, &tTime);
-								OoTimeToDateTimeS(&tTime, pTime);
-							}
-							if (IsAllAByte(pTime+7, 0xff, 7))	//结束时间
-							{
-								dwEndSec -= TiToSecondes(&(tTaskCfg.tiExe));
-								dwEndSec -= 60;
-								SecondsToTime(dwEndSec, &tTime);
-								OoTimeToDateTimeS(&tTime, pTime+7);
-							}
-							ParserMsParam(pbMsd, bMtrMask, sizeof(bMtrMask));
-							if (m_iStart < 0)
-							{
-								if ((m_iRdPn=SearchNextPnFromMask(bMtrMask, m_iRdPn)) < 0)
-								{
-									WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
-									goto NEXT_TASK;
-								}	
-							}
-							GetMeterInfo(m_iRdPn, &tMtrInfo);
-							*pbMsd++ = 0x04;	//MS“一组配置序号”
-							*pbMsd++ = 0x01;	//1个表序号
-							pbMsd += OoWordToOi(tMtrInfo.wMtrSn, pbMsd);
-							DTRACE(DB_FAPROTO, ("###TaskRpt bMethod=%d, wTaskId=%d, wSn=%d.\n", bMethod, m_wCurTaskId, tMtrInfo.wMtrSn));
-							break;
-						case 8:
-							pbMsd = pRSD+(1+7+7+3);//1+7+7+3: RSD类型+date_time_s+date_time_s+TI, 
-							pTime = pRSD+1;
-
-							char szRptStartTime[32];
-							char szRptEndTime[32];
-							memset(szRptStartTime, 0, sizeof(szRptStartTime));
-							memset(szRptEndTime, 0, sizeof(szRptEndTime));
-
-							if (IsAllAByte(pTime, 0xff, 7))	//起始时间
-							{
-								dwStartSec -= 2*TiToSecondes(&(tTaskCfg.tiExe));
-								SecondsToTime(dwStartSec, &tTime);
-								OoTimeToDateTimeS(&tTime, pTime);
-								TimeToStr(tTime, szRptStartTime);
-							}
-							if (IsAllAByte(pTime+7, 0xff, 7))	//结束时间
-							{
-								dwEndSec -= 2*TiToSecondes(&(tTaskCfg.tiExe));
-								SecondsToTime(dwEndSec, &tTime);
-								OoTimeToDateTimeS(&tTime, pTime+7);
-								TimeToStr(tTime, szRptEndTime);
-							}
-
-							DTRACE(DB_FAPROTO, ("------TaskRpt bMethod=%d, wTaskId=%d, RptStartTime:%s, RptEndTime:%s.-------\n", bMethod, m_wCurTaskId, szRptStartTime, szRptEndTime));
-							break;
-						case 10:
-							pbMsd = pRSD + 2;	//1+2: 上n条记录  unsigned”
-							ParserMsParam(pbMsd, bMtrMask, sizeof(bMtrMask));
-							if (m_iStart < 0)
-							{
-								if ((m_iRdPn=SearchNextPnFromMask(bMtrMask, m_iRdPn)) < 0)
-								{
-									WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
-									goto NEXT_TASK;
-								}	
-							}
-							GetMeterInfo(m_iRdPn, &tMtrInfo);
-							*pbMsd++ = 0x04;	//MS“一组配置序号”
-							*pbMsd++ = 0x01;	//1个表序号
-							pbMsd += OoWordToOi(tMtrInfo.wMtrSn, pbMsd);
-							DTRACE(DB_FAPROTO, ("###TaskRpt bMethod=%d, wTaskId=%d, wSn=%d.\n", bMethod, m_wCurTaskId, tMtrInfo.wMtrSn));
-							break;
-						default:
-							DTRACE(DB_FAPROTO, ("###TaskRpt wTaskId=%d, Nonsupport bMethod=%d.\n", m_wCurTaskId, bMethod));
-							WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
-							goto NEXT_TASK;
-						}
-
-						*pApdu++ = REPORT_NOTI;	//上报
-						*pApdu++ = GET_NORMAL_LIST;
-						pTmp = pApdu;//先记录PIID的位置，组帧发送时再获取PIID
-						*pApdu++ = 0;//PIID;
-						*pApdu++ = 1;//SEQUENCE OF OAD 个数=1,暂不考虑分帧
-						memcpy(pApdu, bOAD, 4);
-						pApdu += 4;
-
-						iRCSDLen = ScanRCSD(pRCSD, false);	
-						if (iRCSDLen != 1)	//RCSDLen=1表示无RCSD
-						{
-							memcpy(pApdu, pRCSD, iRCSDLen);	
-							pApdu += iRCSDLen;
-						}
-						*pApdu++ = 0x01;	//Data
-						nRet = ReadRecord(bOAD, pRSD, pRCSD, &iTabIdx, &m_iStart, pApdu+1, 2500, &wRetNum);//APDUSIZE,ESAM那边给的空间有限
-						pRecBuf = pApdu+1;
-						switch (bMethod)
-						{
-						case 0:
-							if (m_iStart <= -1)
-							{
-								WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
-								if (nRet <= 0)
-									goto NEXT_TASK;
-							}
-							break;
-						case 4:
-						case 5:
-						case 6:
-						case 7:
-						case 10:
-							if (m_iStart <= -1)	//表示所有的表地址都上报完成了，切到下一个任务
-							{
-								int iTmpPn = m_iRdPn;
-								iTmpPn = SearchNextPnFromMask(bMtrMask, iTmpPn);	
-								if (iTmpPn < 0)
-								{
-									WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
-									if (nRet < 0)
-										goto NEXT_TASK;
-								}
-								if (nRet <= 0)
-									goto NEXT_PN;
-							}
-
-							break;
-						case 8:
-							if (m_iStart <= -1)
-							{
-								WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
-								if (nRet < 0)
-									goto NEXT_TASK;
-							}
-							break;
-						default:
-							DTRACE(DB_FAPROTO, ("###TaskRpt read task-db wTaskId=%d, Error: bMethod=%d unsupport.\n", m_wCurTaskId, bMethod));
-							WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
-							goto NEXT_TASK;
-						}
-
-						//浙江要求数据上报需判断冻结时间，时间不对直接回NULL
-						iDayFrzState = DayFrzTimeMatch(pRecBuf, pRCSD);
-						if (iDayFrzState >= 1)	
-						{
-							*pApdu = wRetNum;
-							pApdu += nRet+1;
-							*pApdu++ = 0x00;	//无上报信息
-							*pApdu++ = 0x00;	//无时标		
-							*pTmp = GetMyPIID();					
-							m_TxAPdu.wLen = pApdu - pApdu0;
-						}
-						else if (iDayFrzState == 0)
-						{
-							*pApdu++ = 0;
-							*pApdu++ = 0x00;	//无上报信息
-							*pApdu++ = 0x00;	//无时标		
-							*pTmp = GetMyPIID();					
-							m_TxAPdu.wLen = pApdu - pApdu0;
-						}
-						else
-						{
-							*pApdu = wRetNum;
-							pApdu += nRet+1;
-							*pApdu++ = 0x00;	//无上报信息
-							*pApdu++ = 0x00;	//无时标		
-							*pTmp = GetMyPIID();					
-							m_TxAPdu.wLen = pApdu - pApdu0;
-						}
-						DTRACE(DB_FAPROTO, ("TaskRpt Record bOAD=0x%08x  nRet=%d  wRetNum=%d\r\n", OoOadToDWord(bOAD), nRet,wRetNum));	
-
-					
-						//return ToLnkLayer();
-						//WORD wSigFrmSize = m_LnkComm.tTxTrsPara.tConnPara.wSenFrmMaxLen;
-						//if (pApdu->wLen <= wSigFrmSize)	//如果在链路一帧就可以发送完，就无需分帧了
-						{
-							m_LnkComm.fIsSegSend = false;
-							//加密处理
-							BYTE bSecBuf[APDUSIZE];
-							int wSecLen;
-							WORD wApduLen = 0;
-							BYTE * pSec = NULL;
+									pApdu += nRet;
+								*pApdu++ = 0x00;	//无上报信息
+								*pApdu++ = 0x00;	//无时标
+								*pTmp = GetMyPIID();					
+								m_TxAPdu.wLen = pApdu - pApdu0;
 							
-							memset(bSecBuf, 0, sizeof(bSecBuf));
-							if (m_TxAPdu.wLen >= APDUSIZE-32)
-								m_TxAPdu.wLen = APDUSIZE-32;
-							wSecLen = Rpt_SecureLayer(pApdu0,  m_TxAPdu.wLen, bSecBuf);
-							if (wSecLen < 0)
-								return;
-							else if (wSecLen > 0)
-							{
-								wApduLen = wSecLen;
-								pSec = bSecBuf;
-							}
-							else
-							{
-								wApduLen = m_TxAPdu.wLen;
-								pSec = pApdu0;
-							}
-							ret = MakeFrm(pSec, wApduLen);
-							//ret = MakeFrm(pApdu0, m_TxAPdu.wLen);
-							if (ret > 0)//m_bTxBuf
-							{
-								//发送成功，把该帧放入确认区
-								//注意，如果上报的信息不需要确认的就不用走下边的流程了
-								if ((pbTaskCSD=OoGetField(pbSchCfg, p->pFmt+2, p->wFmtLen-2, 3, &wLen, &bType)) != NULL)
-									bTxCnt = pbTaskCSD[1];//取得最大上报次数
-								else
-									bTxCnt = 1;
-								
-								if ((pbTaskCSD=OoGetField(pbSchCfg, p->pFmt+2, p->wFmtLen-2, 2, &wLen, &bType)) != NULL)
+								//return ToLnkLayer();
+								//WORD wSigFrmSize = m_LnkComm.tTxTrsPara.tConnPara.wSenFrmMaxLen;
+								//if (pApdu->wLen <= wSigFrmSize)	//如果在链路一帧就可以发送完，就无需分帧了
 								{
-									pbTaskCSD ++;
-									TTimeInterv Interv;
-									Interv.bUnit = pbTaskCSD[0];
-									Interv.wVal = OoOiToWord(&pbTaskCSD[1]);
-									dwCycTime = TiToSecondes(&Interv);//,取得上报响应超时时间
+									m_LnkComm.fIsSegSend = false;
+									//加密处理
+									BYTE bSecBuf[APDUSIZE];
+									int wSecLen;
+									WORD wApduLen = 0;
+									BYTE * pSec = NULL;
+									
+									memset(bSecBuf, 0, sizeof(bSecBuf));
+									if (m_TxAPdu.wLen >= (APDUSIZE-32))
+										m_TxAPdu.wLen = APDUSIZE-32;
+									wSecLen = Rpt_SecureLayer(pApdu0,  m_TxAPdu.wLen, bSecBuf);
+									if (wSecLen < 0)
+										return;
+									else if (wSecLen > 0)
+									{
+										wApduLen = wSecLen;
+										pSec = bSecBuf;
+									}
+									else
+									{
+										wApduLen = m_TxAPdu.wLen;
+										pSec = pApdu0;
+									}
+									ret = MakeFrm(pSec, wApduLen);
+									//ret = MakeFrm(pApdu0, m_TxAPdu.wLen);
+									DTRACE(DB_FAPROTO, ("---TaskRpt ResultNormal bOAD=0x%08x  nRet=%d.---\n", OoOadToDWord(&pbTaskCSD[5]), ret));
+									if (ret > 0)
+									{
+										if (m_iStart == -1)
+										{
+											memset(bBuf, 0, sizeof(bBuf));
+											DWordToByte(dwCurSec, bBuf);//dwCurSec
+											WriteItemEx(BANK16, m_wCurTaskId, wID, bBuf);//记录本次的上报时间sec
+										}
+	
+										//发送成功，把该帧放入确认区
+										//注意，如果上报的信息不需要确认的就不用走下边的流程了
+										if ((pbTaskCSD=OoGetField(pbSchCfg, p->pFmt+2, p->wFmtLen-2, 3, &wLen, &bType)) != NULL)
+											bTxCnt = pbTaskCSD[1];//取得最大上报次数
+										else
+											bTxCnt = 1;
+										
+										if ((pbTaskCSD=OoGetField(pbSchCfg, p->pFmt+2, p->wFmtLen-2, 2, &wLen, &bType)) != NULL)
+										{
+											pbTaskCSD ++;
+											TTimeInterv Interv;
+											Interv.bUnit = pbTaskCSD[0];
+											Interv.wVal = OoOiToWord(&pbTaskCSD[1]);
+											dwCycTime = TiToSecondes(&Interv);//,取得上报响应超时时间
+										}
+										else
+										{
+											dwCycTime = 0;
+										}
+	
+										WaitQue(GB_DATACLASS1, bTxCnt, dwCycTime, m_wCurTaskId, m_bTxBuf, ret);
+										
+										*pbNSend = *pbNSend + 1;
+										Sleep(50);
+										if (*pbNSend >= RPTMAXFRM_EVERYSEND)
+											return;
+									}
 								}
-								else
-								{
-									dwCycTime = 0;
-								}
-
-								WaitQue(GB_DATACLASS2, bTxCnt, dwCycTime, m_wCurTaskId, m_bTxBuf, ret);
+							}
+							else//上报类型是RecordData上报记录型对象属性
+							{
+								TOobMtrInfo tMtrInfo;
+								TTime tTime;
+								int iRCSDLen, iDayFrzState;
+								WORD wPn;
+								BYTE bTaskCsdBuf[1024] = {0};
+								BYTE bMtrMask[PN_MASK_SIZE] = {0};
+								BYTE *pbMsd, *pTime, *pSechFrzOad;
 								
-								*pbNSend = *pbNSend + 1;
-								Sleep(50);
-								if (*pbNSend >= RPTMAXFRM_EVERYSEND)
+								
+								
+								if (wLen > sizeof(bTaskCsdBuf))
+								{
+									DTRACE(DB_FAPROTO, ("TaskRpt error, wLen=%d > bTaskCSD=%d.\n", wLen, sizeof(bTaskCsdBuf)));
 									return;
-								return;
-							}							
+								}
+								memcpy(bTaskCsdBuf, pbTaskCSD, wLen);
+								memset(bOAD, 0, sizeof(bOAD));
+								memcpy(bOAD, bTaskCsdBuf+7, 4);//取得主对象描述符
+								pRCSD = bTaskCsdBuf+12;//取得bRCSD个数位置
+								pRSD = pRCSD;
+								pRSD += ScanRCSD(pRCSD, false);
+								pRSD++;//把RSD的第一个格式字符去掉了
+	
+								bMethod = *pRSD;
+#ifdef REPORT_FORWARD
+								if (n > 1 && bMethod==10)//对于补报做特殊处理，读取方案按时间来
+								{
+									bMethod = 6;
+	
+									BYTE bFmtBuf[1024] = {0};
+									BYTE *pbFmt = bFmtBuf;
+	
+									pbMsd = pRSD + 2;
+	
+									pRSD = bFmtBuf;
+	
+									*pbFmt++ = 0x06;
+									memset(pbFmt, 0xff, 7);
+									pbFmt += 7;
+									memset(pbFmt, 0xff, 7);
+									pbFmt += 7;
+	
+									tTaskCfg.tiExe;
+									*pbFmt++ = tTaskCfg.tiExe.bUnit;
+									OoWordToOi(tTaskCfg.tiExe.wVal, pbFmt);
+									pbFmt += 2;
+	
+									memcpy(pbFmt, pbMsd, sizeof(bFmtBuf)-(pbFmt-bFmtBuf));
+#endif									
+									
+									
+								}
+								
+								switch (bMethod)
+								{
+								case 0:
+									pRSD[0] = 10;	//RSD=10
+									pRSD[1] = 1;	//上1条记录
+									pbMsd = pRSD+2;
+									pbMsd[0] = DT_MS;
+									pbMsd[1] = 0x01; //所有表
+									break;
+								case 4:
+								case 5:
+									pbMsd = pRSD + (1+7);	//1+7:RSD类型+格式date_time_s 
+									ParserMsParam(pbMsd, bMtrMask, sizeof(bMtrMask));
+									if (m_iStart < 0)
+									{
+										if ((m_iRdPn=SearchNextPnFromMask(bMtrMask, m_iRdPn)) < 0)
+										{
+											WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
+											goto NEXT_TASK;
+										}
+									}
+									GetMeterInfo(m_iRdPn, &tMtrInfo);
+									*pbMsd++ = 0x04;	//MS“一组配置序号”
+									*pbMsd++ = 0x01;	//1个表序号
+									pbMsd += OoWordToOi(tMtrInfo.wMtrSn, pbMsd);
+									DTRACE(DB_FAPROTO, ("###TaskRpt bMethod=%d, wTaskId=%d, wSn=%d.\n", bMethod, m_wCurTaskId, tMtrInfo.wMtrSn));
+									break;
+								case 6:
+								case 7:
+									pbMsd = pRSD + (1+7+7+3);// 1+7+7+3: RSD类型+date_time_s+date_time_s+TI, 
+									pTime = pRSD+1;
+									if (IsAllAByte(pTime, 0xff, 7)) //起始时间
+									{
+										dwStartSec -= TiToSecondes(&(tTaskCfg.tiExe));
+										SecondsToTime(dwStartSec, &tTime);
+										OoTimeToDateTimeS(&tTime, pTime);
+									}
+									if (IsAllAByte(pTime+7, 0xff, 7))	//结束时间
+									{
+										dwEndSec -= TiToSecondes(&(tTaskCfg.tiExe));
+										dwEndSec -= 60;
+										SecondsToTime(dwEndSec, &tTime);
+										OoTimeToDateTimeS(&tTime, pTime+7);
+									}
+									ParserMsParam(pbMsd, bMtrMask, sizeof(bMtrMask));
+									if (m_iStart < 0)
+									{
+#ifdef REPORT_FORWARD
+										if (n > 1)
+										{
+											if (m_iRPFWPn <= 0)
+											{
+												m_iRdPn = SearchNextPnFromMask(bMtrMask, m_iRdPn);
+												m_iRPFWPn = m_iRdPn;
+												if (m_iRdPn < 0)
+												{
+													WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
+													goto NEXT_TASK;
+												}	
+											}
+										}
+										else
+#endif
+										{
+#ifdef REPORT_FORWARD									
+											if (m_iRPFWPn <= 0)//对于补报的在上边已取到了pn号
+#endif											
+											{//这里为无需补报的情况下
+												if ((m_iRdPn=SearchNextPnFromMask(bMtrMask, m_iRdPn)) < 0)
+												{
+													WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
+													goto NEXT_TASK;
+												}	
+											}
+										}
+									}
+									GetMeterInfo(m_iRdPn, &tMtrInfo);
+									*pbMsd++ = 0x04;	//MS“一组配置序号”
+									*pbMsd++ = 0x01;	// 1个表序号
+									pbMsd += OoWordToOi(tMtrInfo.wMtrSn, pbMsd);
+									DTRACE(DB_FAPROTO, ("###TaskRpt bMethod=%d, wTaskId=%d, wSn=%d.\n", bMethod, m_wCurTaskId, tMtrInfo.wMtrSn));
+									break;
+								case 8:
+									pbMsd = pRSD+(1+7+7+3);//1+7+7+3: RSD类型+date_time_s+date_time_s+TI, 
+									pTime = pRSD+1;
+	
+									char szRptStartTime[32];
+									char szRptEndTime[32];
+									memset(szRptStartTime, 0, sizeof(szRptStartTime));
+									memset(szRptEndTime, 0, sizeof(szRptEndTime));
+	
+									if (IsAllAByte(pTime, 0xff, 7)) //起始时间
+									{
+										dwStartSec -= 2*TiToSecondes(&(tTaskCfg.tiExe));
+										SecondsToTime(dwStartSec, &tTime);
+										OoTimeToDateTimeS(&tTime, pTime);
+										TimeToStr(tTime, szRptStartTime);
+									}
+									if (IsAllAByte(pTime+7, 0xff, 7))	//结束时间
+									{
+										dwEndSec -= 2*TiToSecondes(&(tTaskCfg.tiExe));
+										SecondsToTime(dwEndSec, &tTime);
+										OoTimeToDateTimeS(&tTime, pTime+7);
+										TimeToStr(tTime, szRptEndTime);
+									}
+	
+									DTRACE(DB_FAPROTO, ("------TaskRpt bMethod=%d, wTaskId=%d, RptStartTime:%s, RptEndTime:%s.-------\n", bMethod, m_wCurTaskId, szRptStartTime, szRptEndTime));
+									break;
+								case 10:
+									pbMsd = pRSD + 2;	//1+2: 上n条记录  unsigned”
+									ParserMsParam(pbMsd, bMtrMask, sizeof(bMtrMask));
+									if (m_iStart < 0)
+									{
+#ifdef REPORT_FORWARD									
+										if (m_iRPFWPn <= 0)//无补报时才需要执行下边这个
+#endif										
+										if ((m_iRdPn=SearchNextPnFromMask(bMtrMask, m_iRdPn)) < 0)
+										{
+											WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
+											goto NEXT_TASK;
+										}	
+									}
+									GetMeterInfo(m_iRdPn, &tMtrInfo);
+									*pbMsd++ = 0x04;	//MS“一组配置序号”
+									*pbMsd++ = 0x01;	//1个表序号
+									pbMsd += OoWordToOi(tMtrInfo.wMtrSn, pbMsd);
+									DTRACE(DB_FAPROTO, ("###TaskRpt bMethod=%d, wTaskId=%d, wSn=%d.\n", bMethod, m_wCurTaskId, tMtrInfo.wMtrSn));
+									break;
+								default:
+									DTRACE(DB_FAPROTO, ("###TaskRpt wTaskId=%d, Nonsupport bMethod=%d.\n", m_wCurTaskId, bMethod));
+									WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
+									goto NEXT_TASK;
+								}
+	
+								*pApdu++ = REPORT_NOTI; //上报
+								*pApdu++ = GET_NORMAL_LIST;
+								pTmp = pApdu;//先记录PIID的位置，组帧发送时再获取PIID
+								*pApdu++ = 0;//PIID;
+								*pApdu++ = 1;//SEQUENCE OF OAD 个数=1,暂不考虑分帧
+								memcpy(pApdu, bOAD, 4);
+								pApdu += 4;
+	
+								iRCSDLen = ScanRCSD(pRCSD, false);	
+								if (iRCSDLen != 1)	//RCSDLen=1表示无RCSD
+								{
+									memcpy(pApdu, pRCSD, iRCSDLen); 
+									pApdu += iRCSDLen;
+								}
+								*pApdu++ = 0x01;	//Data
+								nRet = ReadRecord(bOAD, pRSD, pRCSD, &iTabIdx, &m_iStart, pApdu+1, 2500, &wRetNum);//APDUSIZE,ESAM那边给的空间有限
+								pRecBuf = pApdu+1;
+								switch (bMethod)
+								{
+								case 0:
+									if (m_iStart <= -1)
+									{
+										WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
+										if (nRet <= 0)
+											goto NEXT_TASK;
+									}
+									break;
+								case 4:
+								case 5:
+								case 6:
+								case 7:
+								case 10:
+									if (m_iStart <= -1) //表示所有的表地址都上报完成了，切到下一个任务
+									{
+										int iTmpPn = m_iRdPn;
+										iTmpPn = SearchNextPnFromMask(bMtrMask, iTmpPn);	
+#ifdef REPORT_FORWARD
+										if (n > 1)
+										{
+											dwCurSec -= TiToSecondes(&(tTaskCfg.tiExe));
+											WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);
+											if (nRet < 0)
+												goto NEXT_PN;//此时只是为了退出去，因为该笔数据没有
+										}
+										else if ((m_iRdPn == m_iRPFWPn && (m_iRPFWPn > 0)))//说明前面有补报只是到了最近一笔了，m_iRdPn是有效的
+										{
+											m_iRPFWPn = 0;
+											if (iTmpPn < 0)
+											{
+												
+												WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);
+												if (nRet <= 0)
+													goto NEXT_TASK;
+											}
+											else
+											{
+												//把该任务最开始测量点补报的最远一笔的时间复过来。
+												WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&m_dwRPFWTimes[0]);
+												if (nRet <= 0)
+													goto NEXT_PN;
+											}
+										}
+										else	
+#endif
+										{
+											if (iTmpPn < 0)
+											{
+												WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
+												if (nRet <= 0)
+													goto NEXT_TASK;
+											}
+											if (nRet <= 0)
+												goto NEXT_PN;
+										}
+									}
+	
+									break;
+								case 8:
+									if (m_iStart <= -1)
+									{
+										WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
+										if (nRet < 0)
+											goto NEXT_TASK;
+									}
+									break;
+								default:
+									DTRACE(DB_FAPROTO, ("###TaskRpt read task-db wTaskId=%d, Error: bMethod=%d unsupport.\n", m_wCurTaskId, bMethod));
+									WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
+									goto NEXT_TASK;
+								}
+	
+								//浙江要求数据上报需判断冻结时间，时间不对直接回NULL
+								iDayFrzState = DayFrzTimeMatch(pRecBuf, pRCSD);
+								if (iDayFrzState >= 1)	
+								{
+									*pApdu = wRetNum;
+									pApdu += nRet+1;
+									*pApdu++ = 0x00;	//无上报信息
+									*pApdu++ = 0x00;	//无时标		
+									*pTmp = GetMyPIID();					
+									m_TxAPdu.wLen = pApdu - pApdu0;
+								}
+								else if (iDayFrzState == 0)
+								{
+									*pApdu++ = 0;
+									*pApdu++ = 0x00;	//无上报信息
+									*pApdu++ = 0x00;	//无时标		
+									*pTmp = GetMyPIID();					
+									m_TxAPdu.wLen = pApdu - pApdu0;
+								}
+								else
+								{
+									*pApdu = wRetNum;
+									pApdu += nRet+1;
+									*pApdu++ = 0x00;	//无上报信息
+									*pApdu++ = 0x00;	//无时标		
+									*pTmp = GetMyPIID();					
+									m_TxAPdu.wLen = pApdu - pApdu0;
+								}
+								DTRACE(DB_FAPROTO, ("TaskRpt Record bOAD=0x%08x  nRet=%d  wRetNum=%d\r\n", OoOadToDWord(bOAD), nRet,wRetNum));	
+	
+							
+								//return ToLnkLayer();
+								//WORD wSigFrmSize = m_LnkComm.tTxTrsPara.tConnPara.wSenFrmMaxLen;
+								//if (pApdu->wLen <= wSigFrmSize)	//如果在链路一帧就可以发送完，就无需分帧了
+								{
+									m_LnkComm.fIsSegSend = false;
+									//加密处理
+									BYTE bSecBuf[APDUSIZE];
+									int wSecLen;
+									WORD wApduLen = 0;
+									BYTE * pSec = NULL;
+									
+									memset(bSecBuf, 0, sizeof(bSecBuf));
+									if (m_TxAPdu.wLen >= APDUSIZE-32)
+										m_TxAPdu.wLen = APDUSIZE-32;
+									wSecLen = Rpt_SecureLayer(pApdu0,  m_TxAPdu.wLen, bSecBuf);
+									if (wSecLen < 0)
+										return;
+									else if (wSecLen > 0)
+									{
+										wApduLen = wSecLen;
+										pSec = bSecBuf;
+									}
+									else
+									{
+										wApduLen = m_TxAPdu.wLen;
+										pSec = pApdu0;
+									}
+									ret = MakeFrm(pSec, wApduLen);
+									//ret = MakeFrm(pApdu0, m_TxAPdu.wLen);
+									if (ret > 0)//m_bTxBuf
+									{
+										//发送成功，把该帧放入确认区
+										//注意，如果上报的信息不需要确认的就不用走下边的流程了
+										if ((pbTaskCSD=OoGetField(pbSchCfg, p->pFmt+2, p->wFmtLen-2, 3, &wLen, &bType)) != NULL)
+											bTxCnt = pbTaskCSD[1];//取得最大上报次数
+										else
+											bTxCnt = 1;
+										
+										if ((pbTaskCSD=OoGetField(pbSchCfg, p->pFmt+2, p->wFmtLen-2, 2, &wLen, &bType)) != NULL)
+										{
+											pbTaskCSD ++;
+											TTimeInterv Interv;
+											Interv.bUnit = pbTaskCSD[0];
+											Interv.wVal = OoOiToWord(&pbTaskCSD[1]);
+											dwCycTime = TiToSecondes(&Interv);//,取得上报响应超时时间
+										}
+										else
+										{
+											dwCycTime = 0;
+										}
+	
+										WaitQue(GB_DATACLASS2, bTxCnt, dwCycTime, m_wCurTaskId, m_bTxBuf, ret);
+										
+										*pbNSend = *pbNSend + 1;
+										Sleep(50);
+										if (*pbNSend >= RPTMAXFRM_EVERYSEND)
+											return;
+										return;
+									}							
+								}
+	
+	NEXT_PN:
+							break;
+	NEXT_TASK:
+							;
+							}
 						}
-
-NEXT_PN:
-						break;
-NEXT_TASK:
-						;
 					}
 				}
 			}
 		}
-	}
+
 }
 
 //描述：暂存待确认的上报帧

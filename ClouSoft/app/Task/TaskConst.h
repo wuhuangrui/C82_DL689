@@ -12,6 +12,8 @@
 #define TASKCONST_H
 
 #define TASK_NUM   		256
+#define TASK_NUM_MASK	(TASK_NUM/8+1)
+
 
 //任务配置单元、采集方案内存映射：
 #define TASK_ID_NUM		256
@@ -30,5 +32,12 @@
 #define TASK_MONIINDEX_SUCNUM	5
 #define TASK_MONIINDEX_SENDNUM	6
 #define TASK_MONIINDEX_RCVNUM	7
+
+//任务数据入库状态
+#define TASK_DATA_NONE			0	//未入库
+#define TASK_DATA_PART			1	//部分入库
+#define TASK_DATA_FULL			2	//完整或结束强制入库
+
+
 #endif //TASKCONST_H
 

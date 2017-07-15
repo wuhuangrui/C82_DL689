@@ -374,12 +374,11 @@ bool AsciiToByte(BYTE* pBufAscii, WORD wAsciiLen, BYTE* bOutBuf)
 {
 	if(pBufAscii==NULL || bOutBuf==NULL || wAsciiLen==0)
 		return false;
-
+    
 	for(WORD i=0;i<wAsciiLen/2;i++)
 	{
-       *bOutBuf++ = AsciiToByte(&pBufAscii);
+       *bOutBuf++ = AsciiToByte(&pBufAscii);       
 	}
-
 }
 
 bool IsAllAByte(const BYTE* p, BYTE b, WORD len)
@@ -1176,7 +1175,11 @@ void TimeToIntervS(TTime time, BYTE bType, DWORD& dwStartS, DWORD& dwEndS, DWORD
 
 bool WriteFile(char* pszPathName, BYTE* pbData, DWORD dwLen)
 {
+	BYTE bBuf[1024];
+	DWORD dwBytesToRead;
+	int iRet;
 	bool fRet = true;
+	bool fWrite = false;
 	int f = open(pszPathName, O_CREAT|O_RDWR|O_BINARY, S_IREAD|S_IWRITE);  
 			//windows下必须使用O_BINARY,否则读出来的长度为空,其它系统下O_BINARY为空
     
@@ -1198,6 +1201,32 @@ bool WriteFile(char* pszPathName, BYTE* pbData, DWORD dwLen)
 		}
 		else
 		{
+			if (nFileSize == (int )dwLen) //写文件优化：文件变小了重新创建文件再写，文件增大了更新文件，文件大小不变需要判断是否有修改再更新
+			{
+				lseek(f, 0, SEEK_SET);
+				dwBytesToRead = 0;
+
+				while (dwBytesToRead < nFileSize)
+				{      
+					memset(bBuf, 0, sizeof(bBuf));
+					iRet = read(f, bBuf, sizeof(bBuf));
+					if (iRet<=0 || (iRet>0 && memcmp(bBuf, pbData+dwBytesToRead, iRet)!=0)) //iRet<=0时写文件：防止文件突然删除了或读失败造成死循环
+					{
+						fWrite = true;
+						break;
+					}
+					dwBytesToRead += iRet;
+
+				}
+
+				if (!fWrite)
+				{
+					DTRACE(DB_GLOBAL, ("WriteFile : Don't need to write %s.\r\n", pszPathName));
+					close(f);
+					return true; //返回写成功
+				}
+			}
+
 			lseek(f, 0, SEEK_SET);
 		}
 
@@ -1212,9 +1241,13 @@ bool WriteFile(char* pszPathName, BYTE* pbData, DWORD dwLen)
     return fRet;
 }
 
-bool PartWriteFile(char* pszPathName, DWORD dwOff,BYTE* pbData, DWORD wLen)
+bool PartWriteFile(char* pszPathName, DWORD dwOff,BYTE* pbData, DWORD dwLen)
 {
 	bool fRet = true;
+	bool fWrite = false;
+	BYTE bBuf[1024];
+	DWORD dwBytesToRead;
+	int iRet;
 
 	int f = open(pszPathName, O_CREAT|O_RDWR|O_BINARY, S_IREAD|S_IWRITE);
     if (f < 0)
@@ -1224,8 +1257,34 @@ bool PartWriteFile(char* pszPathName, DWORD dwOff,BYTE* pbData, DWORD wLen)
 	}
 	else
 	{
+		if (dwLen > 0) //写文件优化：判断是否有修改再更新
+		{
+			lseek(f, dwOff, SEEK_SET);
+			dwBytesToRead = 0;
+
+			while (dwBytesToRead < dwLen)
+			{      
+				memset(bBuf, 0, sizeof(bBuf));
+				iRet = read(f, bBuf, sizeof(bBuf));
+				if (iRet<=0 || (iRet>0 && memcmp(bBuf, pbData+dwBytesToRead, iRet)!=0)) //iRet<=0时写文件：防止文件突然删除了或读失败造成死循环
+				{
+					fWrite = true;
+					break;
+				}
+				dwBytesToRead += iRet;
+
+			}
+
+			if (!fWrite)
+			{
+				DTRACE(DB_GLOBAL, ("PartWriteFile : Don't need to write %s.\r\n", pszPathName));
+				close(f);
+				return true; //返回写成功
+			}
+		}
+
 		lseek(f, dwOff, SEEK_SET);
-	    if (write(f, pbData, wLen) != (int )wLen)
+	    if (write(f, pbData, dwLen) != (int )dwLen)
 		{			
 			DTRACE(DB_GLOBAL, ("SaveFile : error:  fail to write %s .\r\n", pszPathName));
 			fRet = false;
@@ -1240,7 +1299,7 @@ bool PartWriteFile(char* pszPathName, DWORD dwOff,BYTE* pbData, DWORD wLen)
 		if( (p=fopen(name,"w+"))!=NULL )
 		{
 			fseek(p,dwOff,SEEK_SET);
-			fwrite(pbData,1,wLen,p);
+			fwrite(pbData,1,dwLen,p);
 			fclose(p);
 		}
 #endif
@@ -2616,3 +2675,68 @@ BYTE BitReverse(BYTE b)
 
 	return bTemp;
 }
+
+const unsigned char HexData[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
+unsigned char asctohex(unsigned char asciidata)
+{
+	unsigned int i;
+
+	for (i = 0; i < 16; i++)
+	{
+		if (HexData[i] == asciidata)
+		{
+			return i;
+		}
+	}
+
+	return 0;
+}
+
+void ASCIIToHex(unsigned char * pAsciiData, unsigned short len, unsigned char * pHexBuff)
+{
+	unsigned int i;
+
+	if (len == 0)
+	{
+		return;
+	}
+	if (len % 2)
+	{
+		len += 1;
+
+		for (i=0; i<len/2; i++)
+		{
+			pHexBuff[i] = asctohex(pAsciiData[i * 2]);
+			pHexBuff[i] = (pHexBuff[i] << 4) & 0xf0;
+			pHexBuff[i] += asctohex(pAsciiData[i * 2 + 1]);
+		}
+		pHexBuff[i-1] |= 0x0F; 
+	}
+	else
+	{
+		for (i=0; i<len/2; i++)
+		{
+			pHexBuff[i] = asctohex(pAsciiData[i * 2]);
+			pHexBuff[i] = (pHexBuff[i] << 4) & 0xf0;
+			pHexBuff[i] += asctohex(pAsciiData[i * 2 + 1]);
+		}
+	}
+}
+
+void HexToASCII(unsigned char * pHexBuff, unsigned short len, unsigned char * pAsciiData)
+{
+	unsigned int i;
+
+	if (len == 0)
+	{
+		return;
+	}
+	for (i = 0; i < len; i++)
+	{
+		pAsciiData[i * 2] = HexData[((pHexBuff[i] >> 4) & 0x0f)];
+		pAsciiData[i * 2 + 1] = HexData[(pHexBuff[i] & 0x0f)];
+		pAsciiData[i * 2 + 2] = 0;
+	}
+}
+
+
