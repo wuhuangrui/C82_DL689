@@ -19,6 +19,7 @@
 //#define VER_STD     //±ê×¼°æ
 
 #define USER_PATH  "d:\\fafiles-45\\"
+#define USER_APP_PATH  "d:\\fafiles-45\\app\\"
 #define USER_PARA_PATH  "d:\\fafiles-45\\para\\"
 #define USER_DATA_PATH  "d:\\fafiles-45\\data\\"
 #define USER_CFG_PATH   USER_PARA_PATH
