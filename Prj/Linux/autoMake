@@ -1,13 +1,18 @@
+#make clean
 echo "make 2>&1 |tee err"
 make 2>&1 |tee err
 
-echo "arm-linux-strip clmain"
-arm-linux-strip bin/clmain
+echo "arm-none-linux-gnueabi-strip clmain"
+arm-none-linux-gnueabi-strip bin/clmain
 
 #echo "cp *"
 rm -f clou/lib/*
 cp -f lib/*.so clou/lib/
+arm-none-linux-gnueabi-strip -v clou/lib/*.so
 cp -f bin/clmain ./clou/
+chmod 777 -R ./clou/ppp
+chmod 777 -R ./clou/ppp-off
+chmod 777 ./clou/clmain
 
 echo "rm clou.tgz"
 rm -f clou.tgz
@@ -18,3 +23,8 @@ tar zcvf clou.tgz clou/
 echo "chmod 777 clou.tgz"
 chmod 777 clou.tgz
 
+echo "tar zcvf clmain.tgz clou/clmain"
+tar zcvf clmain.tgz clou/clmain
+ls -l bin
+grep -i 'error' err
+grep -i '´íÎó' err
