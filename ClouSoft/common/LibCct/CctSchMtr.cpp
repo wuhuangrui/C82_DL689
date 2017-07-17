@@ -1570,7 +1570,7 @@ void CCctSchMeter::CheckMeterSearchTime()
 	char szCurTime[64];
 	char szBuf[32] = {0};
 	char szAcqBuf[32] = {0};
-	bool fUpdMtrFlg = false;
+	
 	
 	dwDelTimeout = 30*24*60*60;	//30Ìì
 	dwCurTime = GetCurTime();
@@ -1592,6 +1592,13 @@ void CCctSchMeter::CheckMeterSearchTime()
 				TimeToStr(dwCurTime, szCurTime),
 				abs(dwCurTime-dwLastSchTime)));
 
+			
+			int iPn = GetMeterPn(tMtrRlt.bMtr, tMtrRlt.bMtrLen);
+			if (iPn > 0)
+			{
+				SetRdMtrCtrlMask(iPn);
+			}
+
 			DelMeterInfo(tMtrRlt.bMtr, tMtrRlt.bMtrLen);
 
 			memset(tMtrRlt.bMtr, 0, sizeof(tMtrRlt.bMtr));
@@ -1599,10 +1606,7 @@ void CCctSchMeter::CheckMeterSearchTime()
 			memset(tMtrRlt.bAcqAddr, 0, sizeof(tMtrRlt.bAcqAddr));
 			tMtrRlt.bAcqLen = 0;
 			ReplaceOneSchMtrResult(index, &tMtrRlt);
-			fUpdMtrFlg = true;
+			
 		}
 	}while (iStart != -1);
-
-	if (fUpdMtrFlg)
-		SetInfo(INFO_MTR_INFO_UPDATE);
 }
