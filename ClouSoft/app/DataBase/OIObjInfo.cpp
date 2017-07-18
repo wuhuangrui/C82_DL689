@@ -4283,7 +4283,7 @@ const TOmMap* GetOmMap(DWORD dwOIMethod)
 //描述:获得OI列表中各对象的各种信息，包括描述串,内部ID等
 //		@wOI:对象标识
 //返回：正确返回wOI对应的类，否则返回0
-BYTE GetOiClass(WORD wOI)
+WORD GetOiClass(WORD wOI)
 {
 	DWORD dwOI = ((DWORD )wOI<<16) + 0x0200;	//所有ID必然有属性2，且属性2需要配置到映射表中
 	ToaMap* pOAMap = NULL;
@@ -4604,7 +4604,6 @@ int DoClass11Method128_AddMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 	int iScanLen;
 	WORD wLen, wMtrNum;
 	BYTE bType;
-	BYTE *pbPara0 = pbPara;
 
 	if (*pbPara++ == DT_ARRAY)
 	{
@@ -4753,9 +4752,8 @@ int DoClass11Method130_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 int DoClass11Method131_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	WORD wMtrSn, wPn;
-	BYTE *pbPara0 = pbPara;
 	BYTE bBuf[256];
-	BYTE bMtrCtrlMask[PN_MASK_SIZE];
+
 
 	*piRetLen = 3;
 
@@ -5223,15 +5221,12 @@ int ClrCommonMethod129(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 int AddAcqRuleMethod129(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	TTabCtrl TabCtrl;
-	TAcqRuleTable tAcqRuleTable;
 	TTdbSchRule tTdbSchRule[2];
 	TAcqRuleInfo tAcqRuleInfo;
-	DWORD dwOAD, dwROAD, dwLnkOAD;
 	int fd, iRet;
 	char szTabName[ACQRULE_TABLE_NAME_LEN];
 	BYTE bArryNum;
 	BYTE bBuf[1024];
-	BYTE *pbPara0 = pbPara;
 	BYTE *pOneRule;
 
 	if (*pbPara++ == DT_ARRAY)
@@ -5400,7 +5395,6 @@ int UdpTaskState130(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPar
 	BYTE bSetBuf[16] = {0};
 	BYTE *pbSet = bSetBuf;
 	BYTE bTaskId;
-	BYTE *pbPara0 = pbPara;
 	BYTE *pbTaskFmt = g_bTskUnitFmtDesc;
 	BYTE bIndex;
 	BYTE bSetTaskStateFlg;	//正常（1），停用（2）
@@ -5797,10 +5791,10 @@ int ResetSchRecordCSD(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iP
 	TTdbReadCtrl TdbReadCtrl;
 	TTdbSchCtrl	SchCtrl; 
 	char pszTabName[32];
-	int fd, iRet, schID, iSchRecs;
+	int fd, iRet, schID;
 	BYTE bSchNo, bRdDbBuf[TASK_CFG_REC_LEN] = {0};
 	WORD wLen;
-	BYTE *pbPara0 = pbPara;
+
 
 	if (*pbPara++ != DT_STRUCT)
 		return -1;
@@ -6139,8 +6133,7 @@ int GetEvtTaskTableName(BYTE bSchNo, BYTE bCSDIndex, char* pszTableName)
 int ComPortParaCfgMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	BYTE *pbPtr = pbPara;
-	BYTE bPn, bNum, bTurn, bBuf[32];
-	int iLen = iParaLen;
+	BYTE bPn, bBuf[32];
 	WORD wDI;
 	BYTE *pbDat =bBuf;
 
@@ -6268,8 +6261,7 @@ int ComPortParaCfgMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, 
 int RelayParaCfgMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	BYTE *pbPtr = pbPara;
-	BYTE bPn, bNum, bTurn, bBuf[32];
-	int iLen = iParaLen;
+	BYTE bPn,  bBuf[32];
 	WORD wDI;
 	BYTE *pbDat =bBuf;
 
@@ -6333,8 +6325,7 @@ int RelayParaCfgMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, in
 int MulPortCfgMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	BYTE *pbPtr = pbPara;
-	BYTE bPn, bNum, bTurn, bBuf[32];
-	int iLen = iParaLen;
+	BYTE bPn, bBuf[32];
 	WORD wDI;
 	BYTE *pbDat =bBuf;
 

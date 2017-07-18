@@ -221,13 +221,13 @@ public:
 
 protected:
 
-	virtual bool StartBoardCast(int iMin) {return -1;};
+	virtual bool StartBoardCast(int iMin) { iMin; return false;};
 
 	virtual int StartSchMtr(){return -1;};
 
-	virtual bool StartNodeActive(){return -1;}
+	virtual bool StartNodeActive(){return false;}
 
-	virtual bool WaitMtrReport(){return -1;};
+	virtual bool WaitMtrReport(){return false;};
 
 	virtual int FinishSchMtr(){return -1;};
 

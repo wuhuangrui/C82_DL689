@@ -2,7 +2,7 @@
 #include "GUI.H"
 
 
-char iconMsg[32] =
+unsigned char iconMsg[32] =
 {
     ________,________,
     ________,________,
@@ -22,7 +22,7 @@ char iconMsg[32] =
     ________,________
 };
 
-char iconBat[][32] =
+unsigned char iconBat[][32] =
 {
 	{
 		________,________,
@@ -136,7 +136,7 @@ char iconBat[][32] =
 };
 
 
-char iconAlarm[32] =
+unsigned char iconAlarm[32] =
 {
     ________,________,
     _____XXX,XXX_____,
@@ -156,7 +156,7 @@ char iconAlarm[32] =
     ________,________
 };
 
-char iconBY[][32] =
+unsigned char iconBY[][32] =
 {
     {
 		________,________,
@@ -233,7 +233,7 @@ char iconBY[][32] =
 };
 
 
-char iconOnline[16] =
+unsigned char iconOnline[16] =
 {
     ________,
     XXXXXXX_,
@@ -253,7 +253,7 @@ char iconOnline[16] =
     ________,
 };
 
-char iconRssi[5][32] =
+unsigned char iconRssi[5][32] =
 {
     {
         ________,________,
@@ -347,7 +347,7 @@ char iconRssi[5][32] =
     }
 };
 
-char iconSess[13][32] =
+unsigned char iconSess[13][32] =
 {
     {
         ________,________,
@@ -585,7 +585,7 @@ char iconSess[13][32] =
 	}
 };
 
-char iconSessA[2][32] =
+unsigned char iconSessA[2][32] =
 {
     {
 		________,________,
@@ -625,7 +625,7 @@ char iconSessA[2][32] =
 	}
 };
 
-char iconRoll[][32] =
+unsigned char iconRoll[][32] =
 {
 #if 0
     {
@@ -833,7 +833,7 @@ char iconRoll[][32] =
 
 
 
-char iconKeepSupply[32] =
+unsigned char iconKeepSupply[32] =
 {
     ________,________,
     __XXXXXX,XXXXXX__,
@@ -853,7 +853,7 @@ char iconKeepSupply[32] =
     ________,________
 };
 
-char iconArrow[][32] =
+unsigned char iconArrow[][32] =
 {
     {
 		________,________,
@@ -930,7 +930,7 @@ char iconArrow[][32] =
 };
 
 
-char arrowR[5] =
+unsigned char arrowR[5] =
 {
     _____X__,
     ______X_,
@@ -939,7 +939,7 @@ char arrowR[5] =
     _____X__
 };
 
-char arrowR0[8] = 
+unsigned char arrowR0[8] = 
 {
 	____X___,
 	____XX__,
@@ -951,7 +951,7 @@ char arrowR0[8] =
 	________,
 };
 
-char arrowU[8] =
+unsigned char arrowU[8] =
 {
     ____X___,
     ___XXX__,
@@ -963,7 +963,7 @@ char arrowU[8] =
 	________,
 };
 
-char iconBatLow[32] =
+unsigned char iconBatLow[32] =
 {
     ________,________,
     ________,________,

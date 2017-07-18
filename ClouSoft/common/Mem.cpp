@@ -216,7 +216,6 @@ int WriteMem(TAllocTab* pAllocTab, WORD wTabNum, BYTE* pbMem, BYTE bType, DWORD 
 //返回：正确则返回动态内存的有效数据长度，否则-1
 int GetMemLen(TAllocTab* pAllocTab, WORD wTabNum, BYTE bType, DWORD dwId)
 {
-	WORD wIndex;
 	DWORD dwTmpId = MemTypeIdToId(bType, dwId);
 
 	for (int i=0; i<wTabNum; i++)

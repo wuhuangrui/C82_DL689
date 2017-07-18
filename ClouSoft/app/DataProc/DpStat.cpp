@@ -86,12 +86,16 @@ CDpStat::~CDpStat()
 
 //描述:初始化函数
 void  CDpStat::Init(BYTE  bPn)
-{}
+{
+	bPn;  //编译占位语句,消除编译告警   added by whr 20170718
+}
 
 
 //描述:装载参数
 void  CDpStat::LoadLimitPara(BYTE bLimitType)
-{}
+{
+	bLimitType; //编译占位语句,消除编译告警   added by whr 20170718
+}
 #if 0
 //描述:参数初始化函数
 inline void CDpStat::SchedParaInit(TSchedPara * pSchedPara, TStatCtrl *pStatCtrl, BYTE bPn)
@@ -166,6 +170,7 @@ void CDpStat::DoDataStat()
 
 BYTE CDpStat::GetStatIdFromBN11(WORD wBn11ID)
 {
+	wBn11ID;  //编译占位语句,消除编译告警   added by whr 20170718
 	return 0;
 }
 
@@ -286,7 +291,7 @@ void CDpStat::SwapBank21(BYTE bPn, WORD wBnOldID, WORD wBnNewID, DWORD dwOldSec)
 {
 	int iBuf[128]		=	{0};
 	int iLen			=	 0;
-	DWORD dwSec = GetCurTime();
+	//DWORD dwSec = GetCurTime();
 
 	if (wBnOldID > 0)
 	{
@@ -860,6 +865,8 @@ void  CDpStat::DoDemandStat( int *piData, int iLen,DWORD  dwCurMin, DWORD dwInte
 	DWORD	dwMonEndS			=		60*GetEndM(	dwCurMin, MONTH );
 	BYTE	bMaskProp			=		(BYTE)((1 << m_bPnProp) & wNeedToPnType);
 
+	dwIntervM; //编译占位语句,消除编译告警   added by whr 20170718
+
 	if (dwCurMin!=0 && dwCurMin==GetStartM(dwCurMin, DAY)) //日零点，即日切换
 	{
 		dwDayEndS = dwDayStartS;
@@ -965,7 +972,14 @@ void  CDpStat::DoDemandStat( int *piData, int iLen,DWORD  dwCurMin, DWORD dwInte
 //返回:无
 //备注:		
 void  CDpStat::DoVoltStat(int *piData, int iLen,DWORD  dwCurMin, DWORD dwIntervM,WORD wNeedToPnType)
-{}
+{
+	 //编译占位语句,消除编译告警   added by whr 20170718
+	 piData;
+	 iLen;
+	 dwCurMin;
+	 dwIntervM;
+	 wNeedToPnType;
+}
 
 
 //描述:日/月不平衡度越限累计时间,C2F28(0x013f)   C2F36(0x01Af)
@@ -1300,7 +1314,14 @@ int  CDpStat::GetUnbValue(int iAvr, int iVal)
 //返回:无
 //备注:		
 void  CDpStat::DoCurrentStat(int * piData, int iLen, DWORD  dwCurMin, DWORD dwIntervM,WORD wNeedToPnType)
-{}
+{
+	 //编译占位语句,消除编译告警   added by whr 20170718
+	piData;
+	iLen;
+	dwCurMin;
+	dwIntervM;
+	wNeedToPnType;
+}
 
 //描述:日/月视在功率越限时间统计 C2F30(0x015f)  C2F38(0x01cf)
 //参数:@piData		指向需求数据项数组的指针,
@@ -2000,7 +2021,14 @@ void  CDpStat::SetDcDataInvalid(int *piDcDay, int *piDcMon,DWORD dwCurMin)
 
 
 void   CDpStat::DoDcStat(int *piData, int iLen,DWORD  dwCurMin, DWORD dwIntervM,WORD wNeedToPnType)
-{}
+{
+	 //编译占位语句,消除编译告警   added by whr 20170718
+	piData;
+	iLen;
+	dwCurMin;
+	dwIntervM;
+	wNeedToPnType;
+}
 
 
 //描述:日/月负载率统计,C2F31(0x0a0f)   C2F39(0x0a1f)
@@ -2010,9 +2038,12 @@ void   CDpStat::DoDcStat(int *piData, int iLen,DWORD  dwCurMin, DWORD dwIntervM,
 //	   @dwIntervM	间隔
 void  CDpStat::DoLoadStat(int *piData, int iLen, DWORD  dwCurMin, DWORD dwIntervM, WORD wNeedToPnType)
 {
-	int	i = 0;
+	//int	i = 0;
 	if (iLen == 0)
 		return;
+
+	wNeedToPnType;  //编译占位语句,消除编译告警   added by whr 20170718
+	dwIntervM;
 
 	int	iCurDayLoad[4] = {0};
 	int	iCurMonLoad[4] = {0};
@@ -2020,7 +2051,7 @@ void  CDpStat::DoLoadStat(int *piData, int iLen, DWORD  dwCurMin, DWORD dwInterv
 	DWORD dwDayEndS = 60*GetEndM(dwCurMin, DAY );
 	DWORD dwMonStartS =	60*GetStartM(dwCurMin, MONTH );
 	DWORD dwMonEndS = 60*GetEndM(dwCurMin, MONTH );
-	BYTE bMaskProp = (BYTE)((BYTE)((1 << m_bPnProp) & wNeedToPnType));
+	//BYTE bMaskProp = (BYTE)((BYTE)((1 << m_bPnProp) & wNeedToPnType));
 	int iTmpData[8] = { 0 };	
 	int iPwrRating = 0;
 	int iCurLoad = 0;
@@ -2347,7 +2378,7 @@ void CDpStat::SetClearFlag(int iStatId,bool fZero,BYTE bDayOrMon)
 WORD CDpStat::GetStatIntervV(int iStatId)
 {	
 
-
+	iStatId;  //编译占位语句,消除编译告警   added by whr 20170718
 	return 0;
 
 }
@@ -2356,7 +2387,7 @@ void CDpStat::DoHamornicTransfer(DWORD dwOldSec)
 	BYTE bBuf[1+2*3+2*18+2+2*18];
 //	BYTE bZeroBuf[310];
 	WORD wTmp[75];
-	WORD *wBuf,wNum=0,wProMax=0,iRet, wflag = 0;
+	WORD wNum=0, iRet, wflag = 0;
 	memset(bBuf, 0, sizeof(bBuf));
 	memset(wTmp, 0, sizeof(wTmp));
 	int bPhase,i,j;
@@ -2497,7 +2528,7 @@ void CDpStat::DoUnbalanceTransfer(BYTE bChgFlg, DWORD dwOldSec)
 	WORD wTmp[1119];
 //	BYTE bMonTmp[2236];
 //	BYTE bMonZero[2236];
-	WORD *wBuf,wNum=0,wProMax=0,iRet,wflag=0;
+	WORD wNum=0, iRet, wflag=0;
 	DWORD dwMonNum=0;
 	memset(bBuf, 0, sizeof(bBuf));
 	memset(wTmp, 0, sizeof(wTmp));

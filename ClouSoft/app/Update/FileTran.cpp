@@ -254,7 +254,7 @@ int FileBlkTransMethod7(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 	int iScanLen;
 	WORD wLen;
 	BYTE bType;
-	DWORD dwOAD = 0xF0010700;
+
 
 	if (pbPara == NULL)
 		return -1;
@@ -455,10 +455,8 @@ int FileBlkTransMethod8(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 int FileBlkTransMethod9(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	WORD dwOff = 2;//指向块序号
-	BYTE iLenArea = 0;
 	int iDataLen = 0;
 	BYTE bBuf[2048];
-	WORD wDtaLen = 0;
 	BYTE bLength;
 	BYTE* pbRes0 = pbRes;
 	
@@ -513,7 +511,7 @@ int UpdFile()
 {
 
 	BYTE bFileHead[2048];
-	WORD i = 0, j = 0, wCrc = 0;//配合2048最大可以达到127M大小
+	WORD  wCrc = 0;//配合2048最大可以达到127M大小
 	memset(bFileHead, 0x00, sizeof(bFileHead));
 	DTRACE(DB_FAPROTO, ("TransFile:Be in the Area!!!\r\n"));
 #ifndef SYS_WIN		

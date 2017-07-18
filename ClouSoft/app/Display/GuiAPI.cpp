@@ -230,7 +230,7 @@ void ClearScreenRec(int x0, int y0, int x1, int y1)
 	}
 	LcdUnLock();
 }
-void DrawBmp16x16(const char text[], int x, int y)
+void DrawBmp16x16(const unsigned char text[], int x, int y)
 {
 	LcdLock();
 	for (int i = 0; i < 32; i += 2)
@@ -244,7 +244,7 @@ void DrawBmp16x16(const char text[], int x, int y)
 	LcdUnLock();
 }
 
-void DrawBmp8x16(const char text[], int x, int y)
+void DrawBmp8x16(const unsigned char text[], int x, int y)
 {
 	LcdLock();
 	for (int i = 0; i < 16; i += 1)
@@ -259,7 +259,7 @@ void DrawBmp8x16(const char text[], int x, int y)
 }
 
 
-void DrawBmp8x8(const char text[], int x, int y)
+void DrawBmp8x8(const unsigned char text[], int x, int y)
 {
 	LcdLock();
 	for (int i = 0; i < 8; i += 1)

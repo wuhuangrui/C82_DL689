@@ -1138,8 +1138,7 @@ int DL645V07TxRx(struct TMtrPro* pMtrPro, TV07Tmp* pTmpV07, TItemList* ptItem, W
 {	
 	bool fReadSuccess;
 	BYTE mBuf[100];
-	TMtrPara* pMtrPara = pMtrPro->pMtrPara;
-	//TV07Priv* pMtrV07 = (TV07Priv* )pMtrPro->pvMtrPro;	
+	
 	BYTE* pbRxBuf = pMtrPro->pbRxBuf;
 	BYTE* pbTxBuf = pMtrPro->pbTxBuf;
 	memset(mBuf, 0, sizeof(mBuf));
@@ -1200,13 +1199,11 @@ int GetDataVal(TItemList* ptItem, BYTE* pbSrcBuf, BYTE* pbDstBuf, WORD wSrcLen)
 { 
 	WORD wId = ptItem->wDL645Id;
 	WORD woLen = 0, wnLen = 0;	//旧645分项长度，新645分项长度
-	WORD wmLen = 0, wtLen = 0;	//公共格式分项长度，公共格式块长度
+	WORD wtLen = 0;	//公共格式分项长度，公共格式块长度
 	BYTE bSign = 0;//符号位
-	int32 iVal32;
 	BYTE i;	
 	WORD n = 0, m = 0, wNum = 0;
 	WORD weLen = 0;
-	BYTE bBuf[100];
     WORD wLoc = 0;
 
 	if (ptItem->wDL645Id == 0xd800)
@@ -1412,7 +1409,7 @@ int DL645V07AskItem1(struct TMtrPro* pMtrPro, TV07Tmp* pTmpV07, WORD wID, BYTE* 
 {		
 	int iRet, iLen;
 	TItemList tItem;
-	BYTE eLen, bCmd, n;	
+	BYTE bCmd, n;	
 	WORD wFrmLen, wRxPtr=0;
 	WORD wTmpId = wID;
 	DWORD dwProId; 
@@ -2004,12 +2001,11 @@ int DL645V07AskItemErc(struct TMtrPro* pMtrPro, DWORD dwOAD, BYTE* pbData, BYTE*
 {		
 	int iRet;
 	TTime tmHap, tmEnd;
-	WORD wOI;
-	BYTE bRcsdNum, bChnNum;
+	BYTE bRcsdNum;
 	DWORD dwRelaOAD;
 	BYTE i, *pbTmp = pbData;
 	DWORD dwVal=0, dwCurVal=0;
-	BYTE mBuf[MTR_FRM_SIZE], bTmpBuf[60];		
+	BYTE mBuf[MTR_FRM_SIZE];		
 
 	TErcRdCtrl* pErcRdCtrl = GetOad07645ErcMap(dwOAD);
 
@@ -2552,8 +2548,6 @@ static int ReadOneOADFromMeter07(struct TMtrPro* pMtrPro,  BYTE* pbTx, WORD wTxL
 	DWORD dwOAD;
 	BYTE *pbTxTmp = pbTx;
 	BYTE *pbDataTmp = pbData;
-	BYTE *pRCSD, *pRSD;
-	int iRCSDLen, iRSDLen;
 	//BYTE bNum = *pbTxTmp++;
 
 
@@ -2647,7 +2641,6 @@ int DL645V07pfnWriteItem(struct TMtrPro* pMtrPro, DWORD dwOAD, DWORD dwId, WORD 
 
 	bool fReadSuccess;
 	BYTE mBuf[100];
-	TMtrPara* pMtrPara = pMtrPro->pMtrPara;
 	BYTE* pbRxBuf = pMtrPro->pbRxBuf;
 	BYTE* pbTxBuf = pMtrPro->pbTxBuf;
 	memset(mBuf, 0, sizeof(mBuf));

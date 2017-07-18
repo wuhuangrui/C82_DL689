@@ -146,8 +146,6 @@ int DoTransMethod127_Add(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int
 	char pszAllTableName[PER_TABLE_NAME_SIZE];
 	char pszTabName[PER_TABLE_NAME_SIZE];
 	BYTE bSchNo;
-	BYTE *pbPara0 = pbPara;
-	BYTE bArryNum;
 	TransFilePara tTransFilePara;
 	TTransMsg tTransMsg;
 
@@ -375,8 +373,6 @@ int DoTransDelSchMtrAddrMethod129(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pb
 int DoTransDelGroupSchMethod130(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	char pszAllTableName[PER_TABLE_NAME_SIZE];
-	BYTE bTsaLen;
-	BYTE bTsa[16];
 	BYTE *pbPara0 = pbPara;
 	BYTE bSchNo;
 

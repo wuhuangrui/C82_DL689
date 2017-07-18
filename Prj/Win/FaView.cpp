@@ -85,7 +85,7 @@ void CFaView::DisplayImage()
 
 		for (int i=0; i<160; i++)
 		{
-			for (int j=0; j<160; j++)
+			for (BYTE j=0; j<160; j++)
 			{
 				BYTE pos = j>>3;
 				BYTE mask = SysBitsPattern[j&0x07];
@@ -105,9 +105,7 @@ void CFaView::DisplayImage()
 
 LRESULT CFaView::OnSysNotify(WPARAM wParam, LPARAM lParam)
 {
-
-	int   nMin,nMax;   
-  
+    
 	BYTE* p = (BYTE* )wParam;
 	DWORD dwLen = (DWORD) lParam;
 	if (dwLen + m_dwSysBufPtr >= SYS_BUF_SIZE - 1)

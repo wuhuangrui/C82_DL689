@@ -10293,9 +10293,7 @@ int SetTermiCommPort(void *arg)
 	TRS232Type tRS232;
 	CListBoxEx listbox;
 	DWORD IRBaundrate;
-	BYTE IRCheckBit;
 	DWORD Baundrate232;
-	BYTE CheckBit232;
 	char *pszBaudrate[] = { "300bps","600bps","1200bps",
 						"2400bps","4800bps","7200bps",
 						"9600bps","19200bps","38400bps",
@@ -10466,8 +10464,6 @@ int SetTermiCommPort(void *arg)
 			}
 			else if (listbox.item == 1 || listbox.item == 2)
 			{
-				BYTE *pbFmt = NULL;
-				WORD wFmtLen = 0;
 				int j = 0;
 				BYTE bPort;
 				BYTE bTmpBaudrate = 0;
@@ -10741,7 +10737,6 @@ int TermiManageOpt(void *arg)
 	BYTE bBuf[256];
 	char menuitem[8][32];
 	int i = 0;
-	bool fOk = false;
 	memset(bBuf,0,sizeof(bBuf));
 	memset(menuitem,0,sizeof(menuitem));
 	if (bType != 4)
@@ -11294,7 +11289,6 @@ int TermCommpAndVersion(void *arg)
 	CListBoxEx listbox;
 	char menuitem[10][32];
 	//BYTE TmpBuff[110];
-	TTime tmNow = {0};
 	DWORD dwKeySec = 0;
 	DWORD dwKeySec1 = 0;
 	BYTE i = 0;
@@ -11349,12 +11343,7 @@ int TermCommpAndVersion(void *arg)
 			{
 				BYTE bSoftInfo[25] = {0};
 				CListBoxEx listboxTmp1;
-				struct ListBoxExItem tmp[] = { 
-					{menuitem[0],0xFE,Dummy,(void*)1},
-					{menuitem[1],0xFE,Dummy,(void*)2},
-					{menuitem[2],0xFE,Dummy,(void*)3},
-					{ NULL, 0xFF, NULL, NULL }, //
-				};
+			
 				
 				ReadItemEx(BN2, PN0, 0x2107, bSoftInfo);
 				dwKeySec = GetClick();
@@ -11421,9 +11410,7 @@ int IPAddrInfo(void *arg)
 {
 	char menuitem[20][32];
 	BYTE i = 0;
-	BYTE bMaster[65];
-	//BYTE bBuf[35];
-	WORD wPort = 0;
+
 
 	WORD wGprsPort = 0;
 	WORD wEthPort = 0;
@@ -11798,7 +11785,6 @@ int ReadBatVol(void)
 	float delpower=0.0;
 	BYTE bBuf[8];
 
-	char logBuf[30];
 
 	ReadItemEx(BN2, PN0, 0x1028, bBuf);
 	power = (BcdToDWORD(bBuf, 2))/100.0;
@@ -11860,8 +11846,6 @@ int DrawStateTask()
 	static int sessNo = 2;
 	
 	static BYTE bNum = 0;
-	char mp[5] = {0};
-	BYTE eventNum = 0;
 	TTime tmNow;
 
 	BYTE bBuf[2] = {0};
@@ -12085,7 +12069,6 @@ int BuyEngInfo(void *arg)
 		{
 			i = 0;
 			char str[30];
-			double dVauleEng = 0;
 			DWORD dwSheetNo = 0;
 			ReadItemEx(BN0, iGroupNum, 0x02ff,TmpBuff);
 			//TraceFrm("goudiandan---------------------------",TmpBuff,10);
@@ -12740,8 +12723,6 @@ int SetCommunicationStatePara(void *arg)
 	};
 
 	BYTE i = 0;
-	BYTE pbBuf[10];
-	BYTE tmpBuf[10];
 	char szInput[20];
 	CListBoxEx listbox;
 	//char *LinkType[] = {"TCP方式","UDP方式"};
@@ -13096,9 +13077,9 @@ int SetPulseMtrAddr(void *arg)
 }
 
 int SetPulsePTCT(void *arg)
-					{
-	BYTE *pbFmt3 = NULL;
-	WORD wFmt3Len = 0;
+{
+	
+
 	int i = 0;
 	typedef struct 
 					{
@@ -13504,7 +13485,6 @@ int QueryTaskCfgUnit(void *arg)
 	TTaskCfg tTaskCfg;
 	int i = 0;
 	char szInput[32] = {0};
-	char Tmp[16] = {0};
 	BYTE bIndex;
 	char menuitem[16][32];
 	struct ListBoxExItem tmpS[] = { 
@@ -13844,7 +13824,7 @@ flag2:			CListBoxEx listbox8;
 			else if (listbox.item == 13) //任务运行时段 */
 			if (listbox.item == 13)
 			{
-				int i = 0, CurItem = 0;
+				int  CurItem = 0;
 				//int PeriodNum = tTaskCfg.bPeriodNum;
 				char *title[] = {"时段一", "时段二", "时段三", "时段四"};
 				struct ListBoxExItem tmp13[] = {
@@ -14376,13 +14356,11 @@ int SetStatusPara(void *arg)
 	};
 	CListBoxEx listbox;
 	int iPageNum = 0;
-	int iAnalogNum;
 	char *cStatusFlag[] = {"未接入","接入"};
 	char *cStatusAttrib[] = {"常闭触点","常开触点"};
 	
 	BYTE *pbFmt4;
 	WORD wFmt4Len;
-	int iStart = -1;
 	typedef struct {
 		BYTE bStructType;
 		BYTE bparserNum;
@@ -14658,8 +14636,6 @@ int SetMPBasicPara(void *arg)
 
 	char menuitem[22][32];
 	BYTE i = 0;
-	BYTE j = 0;
-	BYTE bLen = 0;
 	char szInput[33] = {0};
 	int iMpNo = 1;
 
@@ -15298,7 +15274,6 @@ int SetTermiPwd(void *arg)
 int ExeMaintenanceCmd(void *arg)
 {
 	BYTE buff[512] = {0};
-	char title[128];
 	WORD wPn;
 	char szInput[33] = {0};
 	int iMpNo = 1;
@@ -15419,7 +15394,6 @@ int ProtocolSwitch(void *arg)
 	BYTE bType = 0;
 	WORD wItemOffSet = 0;
 	WORD wItemLen = 0;
-	char cInput[5] = {0};
 	DWORD dwOAD;
 	WORD wFmtLen;
 	BYTE *pbFmt;
@@ -15598,7 +15572,7 @@ int ProtoCtrl(void *arg)
 				{
 					break;
 				}
-				else if (listboxs.key = KEY_OK)
+				else if (listboxs.key == KEY_OK)
 				{
 					if (listboxs.item == 0 || listboxs.item == 1)
 					{
@@ -15755,15 +15729,7 @@ int DeletePn(void *arg)
 	BYTE TmpBuf[20];
 	//int i = 0;
 	memset(menuitem,0,sizeof(menuitem));
-	struct ListBoxExItem items[] = {
-		{menuitem[0],0xFE,Dummy,(void*)1},
-		{menuitem[1],0xFE,Dummy,(void*)2},
-		{menuitem[2],0xFE,Dummy,(void*)1},
-		{menuitem[3],0xFE,Dummy,(void*)1},
-		{menuitem[4],0xFE,Dummy,(void*)2},
-		{menuitem[5],0xFE,Dummy,(void*)2},
-		{NULL,0xFE,NULL,(void*)4},
-	};
+
 
 	CListBoxEx listbox;
 
@@ -15832,7 +15798,6 @@ int SetLoopDisplay(void *arg)
 		return -1;
 
 	char menuitem[15][32];
-	char szInput[20] = {0};
 	BYTE TmpBuf[10];
 	BYTE bTemp = 0;
 	BYTE i = 0;
@@ -16099,8 +16064,6 @@ bool IsAlertChange()
 void CtrlAlertDisp(void)
 {
 	BYTE bBuf[16];
-	int iLen;
-	float fPower;
 	BYTE bAlrBuf[25];
 	char title[20];
 	static unsigned long lDispAlrInfTm = 0;
@@ -16134,7 +16097,7 @@ void CtrlAlertDisp(void)
 		return;
 
 	char cTemp1[30], cTemp2[30];
-	BYTE bTmpBuf[2], bLine = 1;
+	BYTE bTmpBuf[2];
 	memset(cTemp1,  0, sizeof(cTemp1));
 	memset(cTemp2,  0, sizeof(cTemp2));
 	memcpy(bTmpBuf, bAlrBuf+1+g_bCurAlrPt*2, 2);
@@ -16539,7 +16502,6 @@ TThreadRet DisplayThread(void* pvArg)
 	int iYpos;
 	char szMsg[32];
 	struct KeyState keyState;
-	char *Svrinfo[] = {"","中国移动","中国联通","中国电信"};
 	BYTE bBuf[2] = {0};
 	//BYTE szName[128];
 
@@ -16733,7 +16695,7 @@ int LoopDisplay(void *arg)
 
 	//BYTE bNum = 0;
 	//char dir = 1;
-	WORD wBn = BN0, wAcPn = GetAcPn();
+	WORD  wAcPn = GetAcPn();
 	char title[20] = {0};
 	char menuitem[8][24];
 	dwLoopClick = dwStartSecond;

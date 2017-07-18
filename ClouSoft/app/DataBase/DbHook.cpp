@@ -160,9 +160,9 @@ int PostWriteItemExHook(WORD wBank, WORD wPn, WORD wID, BYTE* pbBuf, BYTE bPerm,
 //参数:@nRet 在调用ReadItemEx()时的返回值,应该为正数
 int PostReadItemExHook(WORD wBank, WORD wPn, WORD wID, BYTE* pbBuf, int nRet)
 {
-	BYTE bBuf[90], bProp, bNum=0;
-	BYTE* pbTmp = pbBuf;
-	WORD i,j;
+	//BYTE bBuf[90];
+	//BYTE* pbTmp = pbBuf;
+	WORD j;
 	int len;
 
 	if (wBank==BN0 && wID==0x4010) //SAP要与逻辑设备名相关联

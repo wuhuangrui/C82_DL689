@@ -27,6 +27,7 @@ void SelectCtCn(WORD wCn);
 //本函数为原DSP工程MENU.cpp中函数，为是VC下调试异常任务方便，在VC工程中定义同名替代
 inline void SetAlertNum(unsigned short num)
 {
+	num;
 }
 
 inline WORD GetPhaseStatus(void)

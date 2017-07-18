@@ -152,7 +152,6 @@ bool EsamInit()
 {
     int iDataLen;
 	BYTE bBuf1[2048],bBuf2[2048];
-	BYTE bcont = 0;
 	BYTE bOctLen;
 
 	g_semEsam = NewSemaphore(1);
@@ -323,7 +322,6 @@ bool EsamReInit()
 {
     int iDataLen;
 	BYTE bBuf1[2048],bBuf2[2048];
-	BYTE bcont = 0;
 	BYTE bOctLen;
 
 	//批量获取安全芯片信息:

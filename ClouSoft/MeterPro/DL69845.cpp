@@ -253,9 +253,6 @@ int GetResponseRecord(DWORD dwOAD, BYTE* pbSrcBuf, WORD wSrcLen, BYTE* pbRCSD, B
 //描述：组发送帧
 WORD DL69845MakeFrm(WORD wPn, BYTE* pbAddr, BYTE* pbTxBuf, BYTE* pbAPDU, WORD wAPDULen)
 {
-	int iLen;
-	BYTE bSecurity[2];
-	BYTE bEsamBuf[32], bBuf[256];
 	WORD wLen, wCrc, wPtr = 0;
 	BYTE bAddrLen = pbAddr[0];
 
@@ -331,11 +328,7 @@ WORD DL69845MakeFrm(WORD wPn, BYTE* pbAddr, BYTE* pbTxBuf, BYTE* pbAPDU, WORD wA
 //描述：帧解析
 int DL69845TxRx(struct TMtrPro* pMtrPro, T698Tmp* pTmp698, WORD wLen)
 {
-	int iLen;
 	bool fReadSuccess;
-	BYTE bSecurity[2], bDataLen, bMacLen, bMAC[20], bEsamBuf[20];
-	TMtrPara* pMtrPara = pMtrPro->pMtrPara;
-	BYTE* pbRxBuf = pMtrPro->pbRxBuf;
 	BYTE* pbTxBuf = pMtrPro->pbTxBuf;
 
 	if (MtrProSend(pMtrPro->pMtrPara->pComm, pbTxBuf, wLen) != wLen)
@@ -382,7 +375,7 @@ int DL69845TxRx(struct TMtrPro* pMtrPro, T698Tmp* pTmp698, WORD wLen)
 //描述：接收验证
 bool DL69845RcvBlock(struct TMtrPro* pMtrPro, void* pTmpInf, BYTE* pbBlock, DWORD dwLen, DWORD dwBufSize)
 {
-	WORD i, wCrc;
+	WORD wCrc;
 	BYTE b; 
 
 	T698Tmp* pTmp698 = (T698Tmp* )pTmpInf;

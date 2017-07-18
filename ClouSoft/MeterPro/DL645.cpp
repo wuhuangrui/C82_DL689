@@ -250,7 +250,6 @@ int DL645TxRx(struct TMtrPro* pMtrPro, T645Tmp* pTmp645, WORD wID, WORD wLen, BY
 	bool fReadSuccess = false;
 
 	//T645Priv* pMtr645 = (T645Priv* )pMtrPro->pvMtrPro;	
-	TMtrPara* pMtrPara = pMtrPro->pMtrPara;
 	CComm* pComm = pMtrPro->pMtrPara->pComm;
 	BYTE* pbRxBuf = pMtrPro->pbRxBuf;
 	BYTE* pbTxBuf = pMtrPro->pbTxBuf;
@@ -460,8 +459,7 @@ int AskItem1BID(struct TMtrPro* pMtrPro, WORD wID, BYTE* pbBuf, BYTE bReTryTimes
 {
 	BYTE find = 0, i;
 	int iRet = -1, iLen;
-	WORD wtID;
-	BYTE mBuf[80], eLen, bRxLen, bItemLen;
+	BYTE mBuf[80], bRxLen, bItemLen;
 
 	TMtrPara* pMtrPara = pMtrPro->pMtrPara;	
 	//BYTE* pbTxBuf = pMtrPro->pbTxBuf;
@@ -670,7 +668,7 @@ int AskItem1SID(struct TMtrPro* pMtrPro, WORD wID, BYTE* pbBuf, BYTE bReTryTimes
 {
 	BYTE find = 0, i;
 	int iRet = -1, iLen;
-	WORD wtID;
+
 
 	TMtrPara* pMtrPara = pMtrPro->pMtrPara;	
 	//BYTE* pbTxBuf = pMtrPro->pbTxBuf;
@@ -866,7 +864,6 @@ int DL645pfnWriteItem(struct TMtrPro* pMtrPro, DWORD dwOAD, DWORD dwId, WORD wLe
 	T645Tmp tTmp645; 
 	T645Tmp* pTmp645 = &tTmp645;
 
-	TMtrPara* pMtrPara = pMtrPro->pMtrPara;
 	CComm* pComm = pMtrPro->pMtrPara->pComm;
 	BYTE* pbRxBuf = pMtrPro->pbRxBuf;
 	BYTE* pbTxBuf = pMtrPro->pbTxBuf;

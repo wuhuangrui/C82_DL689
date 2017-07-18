@@ -22,11 +22,13 @@ typedef u_long ULONG;
 
 inline int SocketGetLastError(int s)
 {
+	s;
 	return WSAGetLastError();
 }
 
 inline void SocketSetLastError(int s, int iError)
 {
+	s;
 	return WSASetLastError(iError);
 }
 

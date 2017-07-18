@@ -8197,7 +8197,7 @@ int EncodeGb2Uni(const BYTE* pbSrc, BYTE* pbDst, int iSrcLen)
     int i, j;
     const BYTE* pbData;
     BYTE bUnicode[512];
-    char temp;
+
 
     pbData = pbSrc;
     j = 0;

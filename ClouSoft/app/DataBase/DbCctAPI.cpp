@@ -127,6 +127,7 @@ bool IsCctClass1MtrId(WORD wPn, WORD wID)
 //描述:确定是否是集抄测量点数据BANK的ID
 bool IsCctDataBankId(WORD wBn, WORD wID)
 {
+	wID;
 	if (/*wBn==CCT_BN_SPM ||*/ wBn==CCT_BN_MFM)
 		return true;
 	else
@@ -264,7 +265,7 @@ bool IsAcqNodeExist(BYTE* pbNodeMask, BYTE* pbAddr)
 //描述:重点户测量点屏蔽位
 void UpdateVipMask()
 {	
-	WORD wPn, wSn;
+	WORD wSn;
 	WORD wPos;
 	BYTE bMask;
 	BYTE bNum;
@@ -336,7 +337,7 @@ void InitPnProp()
 		bPort = GetPnPort(wPn);
 		if(bPort>=LOGIC_PORT_MIN && bPort<=LOGIC_PORT_MAX) //只影响逻辑端口2、3、4
 		{
-			bPortFun = GetLogicPortFun(bPort);
+			bPortFun = (BYTE)GetLogicPortFun(bPort);
 			if(GetPnProp(wPn)==PN_PROP_METER && (bPortFun==PORT_FUN_ACQ||bPortFun==PORT_FUN_JC485)) //负控测量点配的逻辑端口功能为集抄485
 		   {
                bProp = PN_PROP_CCT;
@@ -355,7 +356,7 @@ void InitPnProp()
 //描述:清集抄测量点数据
 void CctClrPnData(WORD wPn)
 {
-	WORD i;						
+						
 	BYTE bBuf[PN_MASK_SIZE+10];
 	if (wPn >= POINT_NUM)
 		return;

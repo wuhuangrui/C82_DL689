@@ -160,8 +160,8 @@ public:
 	virtual void OnRcvFrm();
 			//在通信协议收到正确帧时调用,主要更新链路状态,比如心跳等
 	
-	virtual bool SetUnrstPara(void *pvPara) { return false;};	//装载非复位参数
-	virtual bool GetUnrstPara(void *pvPara) { return false;};	//获得非复位参数
+	virtual bool SetUnrstPara(void *pvPara) { pvPara; return false;};	//装载非复位参数
+	virtual bool GetUnrstPara(void *pvPara) { pvPara; return false;};	//获得非复位参数
 	virtual bool IsIfValid() { return false; };
 protected:
 	

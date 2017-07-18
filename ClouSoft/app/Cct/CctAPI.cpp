@@ -250,6 +250,7 @@ bool DelMeterInfo(BYTE *pbTsa, BYTE bTsaLen)
 {
 	TOobMtrInfo tMtrInfo;
 	WORD wPn;
+	bool fRet=false;
 
 	for (wPn=0; wPn<POINT_NUM; wPn++)
 	{
@@ -260,9 +261,12 @@ bool DelMeterInfo(BYTE *pbTsa, BYTE bTsaLen)
 			BYTE bBuf[256] = {0};
 			WriteItemEx(BANK0, wPn, 0x6000, bBuf);
 			TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
-			return true;
+			fRet = true;
+			break;
 		}
 	}
+
+	return fRet;
 }
 
 bool DelMeterInfo(WORD wPn)
@@ -1204,7 +1208,7 @@ bool SetMeterCT(WORD wMtrSn, WORD wCT)
 //ÃèÊö£ºdata_time_s ×ªÏµÍ³time
 DWORD DataTimeToSysTime(BYTE *pbBuf, TTime &tTime)
 {
-	DWORD dwTime;
+
 	BYTE *pbPtr = pbBuf;
 
 	memset((BYTE*)&tTime, 0, sizeof(tTime));
@@ -1285,7 +1289,7 @@ int GetTaskCurExeTime(TTaskCfg* pTaskCfg, DWORD* pdwCurSec, DWORD* pdwStartSec, 
 	TTime tDayStartTime;
 	TTimeInterv tiExe = pTaskCfg->tiExe;
 	DWORD dwDelaySec = TiToSecondes((TTimeInterv*)&pTaskCfg->tiDelay);
-	DWORD dwCurSec, dwIntervSec;
+	DWORD dwCurSec, dwIntervSec=0;
 	int nInterv = 0;
 
 	if (pTaskCfg->bState == 2)

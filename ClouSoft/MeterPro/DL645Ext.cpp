@@ -119,13 +119,12 @@ int DL645ExtDirAskItem(struct TMtrPro* pMtrPro, DWORD dwID, BYTE* pbBuf)
 //描述：接收验证
 bool DL645ExtRcvBlock(struct TMtrPro* pMtrPro, void* pTmpInf, BYTE* pbBlock, DWORD dwLen, DWORD dwBufSize)
 {
-	WORD i;
 	BYTE b; 
 
 	//TV07Priv* pMtrV07 = (TV07Priv* )pMtrPro->pvMtrPro;
 	T645ExtTmp* pTmpV07 = (T645ExtTmp* )pTmpInf;
 	BYTE* pbRxBuf = pMtrPro->pbRxBuf; 
-	BYTE* pbTxBuf = pMtrPro->pbTxBuf; 
+
 
 	for ( ; dwLen; dwLen--)
 	{
@@ -584,7 +583,6 @@ int DL645ExtAskItem1(struct TMtrPro* pMtrPro, T645ExtTmp* pTmpV07, DWORD dwOad, 
 	CComm* pComm = pMtrPro->pMtrPara->pComm;
 	//TV07Priv* pMtrV07 = (TV07Priv* )pMtrPro->pvMtrPro;	
 	BYTE* pbTxBuf = pMtrPro->pbTxBuf; 
-	BYTE* pbRxBuf = pMtrPro->pbRxBuf; 
 	
 	if ( !MtrProOpenComm(pMtrPro->pMtrPara->pComm, &pMtrPro->pMtrPara->CommPara) )
 		return 0;
@@ -785,7 +783,6 @@ BYTE Make188AskItemFrm(BYTE bMtrType, BYTE* pbAddr, DWORD dwID, BYTE bSER, BYTE*
 //组江苏君达水表抄读帧
 BYTE MakeJsJdAskItemFrm(BYTE bMtrType, BYTE* pbAddr, DWORD dwID, BYTE bSER, BYTE* pbFrm)
 {	
-	WORD i;
 	BYTE bCS = 0;
 	BYTE bOffset = 2;
 	BYTE bDataLen;

@@ -54,7 +54,7 @@ public:
 	virtual void OnBroken() { };
 	virtual bool AutoSend() { return true; };
 	virtual bool IsNeedAutoSend() { return false; }; //是否需要主动上报
-	virtual void PrintFrmCmd(char* pszMsg, BYTE* pbFrm) { };
+	virtual void PrintFrmCmd(char* pszMsg, BYTE* pbFrm) {pszMsg; pbFrm;};
 	virtual void LoadUnrstPara() { };	//装载非复位参数
 	virtual void DoProRelated() { };	//做一些协议相关的非标准的事情
 	virtual bool Send(BYTE* pbTxBuf, WORD wLen);
@@ -80,8 +80,8 @@ protected:
 	WORD GetLoopBufLen();
 
 	//虚函数
-	virtual int RcvBlock(BYTE* pbBlock, int nLen){ return 0; };
-	virtual int SingleRcvBlock(BYTE* pbBlock, int nLen){ return 0; };
+	virtual int RcvBlock(BYTE* pbBlock, int nLen){ pbBlock; nLen; return 0; };
+	virtual int SingleRcvBlock(BYTE* pbBlock, int nLen){ pbBlock; nLen; return 0; };
 	virtual bool HandleFrm(){ return false; };
 };
 	

@@ -80,8 +80,8 @@ int GetMaxCharPerLine(void);
 int GetMaxLinePerScreen(void);
 int GetFontWidth();
 int GetFontHeight();
-void DrawBmp16x16(const char text[], int x, int y);
-void DrawBmp8x16(const char text[], int x, int y);
+void DrawBmp16x16(const unsigned char text[], int x, int y);
+void DrawBmp8x16(const unsigned char text[], int x, int y);
 void DrawBmp8x8(const char text[], int x, int y);
 
 

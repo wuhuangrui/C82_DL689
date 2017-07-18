@@ -58,7 +58,7 @@ TItemDesc* BinarySearchItem(TItemDesc* pItemDesc, WORD num, WORD wID)
 }
 
 
-int BinarySearchIndex(TItemDesc* pItemDesc, WORD num, WORD wID)
+int BinarySearchIndex(TItemDesc* pItemDesc, DWORD num, WORD wID)
 {
     int little, big, mid;
 	if (wID<pItemDesc[0].wID  || wID>pItemDesc[num-1].wID)
@@ -173,7 +173,7 @@ bool InitItemDesc(TBankCtrl* pBankCtrl)
 	WORD wID2 = 0;       //2级数据块的数据项标识高两位
     WORD wBlockLen1 = 0;
     WORD wBlockLen2 = 0;
-	int iRealNum;
+	//int iRealNum;
 
 	DWORD dwBlkIndex1=0, dwBlkIndex2=0;
 	BYTE bBlkIndexNum1=0, bBlkIndexNum2=0, bInnerIndex=0;

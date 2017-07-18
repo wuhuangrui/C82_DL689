@@ -23,7 +23,9 @@ Purpose     : Draw stream data bitmaps
 #include "GUI_Private.h"
 #include "Guidebug.h"
 
+#ifndef BI_RGB
 #define BI_RGB  0   /* Windows define */
+#endif
 
 
 static void StreamU16 (U16 Data, GUI_CALLBACK_VOID_U8_P* pfStream, void* p) {

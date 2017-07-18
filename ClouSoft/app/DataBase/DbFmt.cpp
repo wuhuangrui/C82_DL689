@@ -54,6 +54,8 @@ int64 Fmt3ToVal64(BYTE* pbBuf, WORD wLen)
 {	
 	int64 iVal = BcdToDWORD(pbBuf, 3);
 	pbBuf += 3;
+
+	wLen;  //编译占位语句,消除编译告警   added by whr 20170718
  
 	iVal += (*pbBuf & 0x0f) * 1000000;
 	
@@ -73,7 +75,9 @@ int Fmt3ToVal(BYTE* pbBuf, WORD wLen)
 
 int Fmt4ToVal(BYTE *pbBuf, WORD wLen)
 {
-	int64 iVal = BcdToByte(*pbBuf & 0x7f);
+	int iVal = BcdToByte(*pbBuf & 0x7f);
+
+	wLen;  //编译占位语句,消除编译告警   added by whr 20170718
 	
 	if (*pbBuf & 0x80)
 		iVal = -iVal;
@@ -88,8 +92,9 @@ int64 Fmt4ToVal64(BYTE *pbBuf, WORD wLen)
 
 int Fmt5ToVal(BYTE *pbBuf, WORD wLen)
 {
-	int64 iVal = BcdToByte(*pbBuf);
+	int iVal = BcdToByte(*pbBuf);
 	pbBuf++;
+	wLen;  //编译占位语句,消除编译告警   added by whr 20170718
 	
 	iVal += (int )BcdToByte(*pbBuf & 0x7f) * 100;
 	
@@ -107,6 +112,7 @@ int64 Fmt5ToVal64(BYTE *pbBuf, WORD wLen)
 int Fmt6ToVal(BYTE *pbBuf, WORD wLen)
 {
 	int iVal = BcdToByte(*pbBuf);
+	wLen;
 	pbBuf++;
 	
 	iVal += (int )BcdToByte(*pbBuf & 0x7f) * 100;
@@ -124,6 +130,7 @@ int64 Fmt6ToVal64(BYTE *pbBuf, WORD wLen)
 }
 int Fmt25ToVal(BYTE *pbBuf, WORD wLen)
 {
+	wLen;
 	int iVal = BcdToByte(*pbBuf);
 	pbBuf++;
 	iVal += (int )BcdToByte(*pbBuf) * 100;
@@ -143,23 +150,27 @@ int64 Fmt25ToVal64(BYTE *pbBuf, WORD wLen)
 }
 int Fmt7ToVal(BYTE *pbBuf, WORD wLen)
 {
+	wLen;  //编译占位语句,消除编译告警   added by whr 20170718
 	return BcdToDDWORD(pbBuf, 2);
 }
 
 
 int64 Fmt7ToVal64(BYTE *pbBuf, WORD wLen)
 {
+	wLen; //编译占位语句,消除编译告警   added by whr 20170718
 	return BcdToDDWORD(pbBuf, 2);
 }
 
 int Fmt8ToVal(BYTE *pbBuf,WORD wLen)
 {
+	wLen;  //编译占位语句,消除编译告警   added by whr 20170718
 	return BcdToDDWORD(pbBuf, 2);
 }
 
 
 int64 Fmt8ToVal64(BYTE *pbBuf,WORD wLen)
 {
+	wLen;  //编译占位语句,消除编译告警   added by whr 20170718
 	return BcdToDDWORD(pbBuf, 2);
 }
 
@@ -167,6 +178,8 @@ int Fmt9ToVal(BYTE* pbBuf, WORD wLen)
 {
 	int iVal = BcdToDDWORD(pbBuf, 2);
 	pbBuf += 2;
+
+	 wLen; //编译占位语句,消除编译告警   added by whr 20170718
 	
 	iVal += (int )BcdToByte(*pbBuf & 0x7f) * 10000;
 	
@@ -178,16 +191,19 @@ int Fmt9ToVal(BYTE* pbBuf, WORD wLen)
 
 int64 Fmt9ToVal64(BYTE* pbBuf, WORD wLen)
 {
+	wLen;  //编译占位语句,消除编译告警   added by whr 20170718
 	return Fmt9ToVal(pbBuf, wLen);	
 }
 
 int Fmt10ToVal(BYTE* pbBuf, WORD wLen)
 {
+	wLen;  //编译占位语句,消除编译告警   added by whr 20170718
 	return BcdToDDWORD(pbBuf, 3);
 }
 
 int64 Fmt10ToVal64(BYTE* pbBuf, WORD wLen)
 {
+	wLen;  //编译占位语句,消除编译告警   added by whr 20170718
 	return BcdToDDWORD(pbBuf, 3);
 }
 
@@ -377,7 +393,7 @@ void Val64ToBCD(int64 val, BYTE* bcd, WORD len)
 	}
 
 	power *= 10;  
-	BYTE  tmp = val / power;      //最高字节含两个BCD位
+	int64  tmp = val / power;      //最高字节含两个BCD位
 	val %= power;
 	power /= 10;
 
@@ -413,7 +429,7 @@ void ValToFmt2(int val, BYTE* pbBuf, WORD  wLen)
 		return;
 	}
 
-	int  iBase = Pow(10, wLen*2-1);
+	int64  iBase = Pow(10, wLen*2-1);
 	bool fNeg = false;
 	if (val < 0)
 	{		

@@ -259,7 +259,6 @@ bool SyncDocsToCvt(TAllCvtInfo *ptAllCvt)
 	TCvtInfo tCvt;
 	TAllCvtInfo tBackCvt;
 	TAllCvtInfo tClearCvt;
-	BYTE bCvtBackNum = 0;
 	BYTE bCvtClearNum = 0;
 	BYTE bCvtNum = ptAllCvt->bCvtNum;
 	BYTE bAddrOffSet = offsetof(TAllCvtInfo, bAllCvtAddr);
@@ -447,7 +446,6 @@ int GetAllDocs(TCvtInfo *tpCvtInfo, BYTE *pbTxBuf)
 void DoSyncDocs()
 {
 	int i;
-	BYTE bCvtNum = 0;
 	TAllCvtInfo tAllCvt;
 
 	memset(&tAllCvt, 0, sizeof(TAllCvtInfo));

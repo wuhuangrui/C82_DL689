@@ -100,8 +100,8 @@ public:
 	//bool RcvSYSINFO();
 	bool UpdateMyTime();
 	//Ðéº¯Êý
-	virtual bool Connect(bool fUdp, DWORD dwRemoteIP, WORD wRemotePort) { return false; };
-	virtual int InitAPN(char *cAPN){ return MODEM_NO_ERROR; };
+	virtual bool Connect(bool fUdp, DWORD dwRemoteIP, WORD wRemotePort) { wRemotePort; dwRemoteIP; fUdp; return false; };
+	virtual int InitAPN(char *cAPN){ cAPN; return MODEM_NO_ERROR; };
 	virtual bool TestModem() { return false; };
 	virtual int ResetModem(){ return MODEM_NO_ERROR; };
 	virtual bool ResetEmbed() { return false; };
@@ -111,10 +111,10 @@ public:
 	virtual int RxSmsFrm(BYTE* pbSms, WORD wSmsLen, BYTE* pbSmsc, BYTE* pbSmscLen, BYTE* pbSender, BYTE* pbSenderLen, BYTE* pbFrm);
     virtual bool SendSms(BYTE* pbTxBuf, WORD wLen);
     virtual bool SendTextSms(BYTE* pbSmsAddr, BYTE bSmsAddrLen, BYTE* pbTxBuf, WORD wLen);
-	virtual bool SendEmbed(BYTE* pbTxBuf, WORD wLen) { return false; };
-	virtual WORD ReceiveEmbed(BYTE* pbRxBuf, WORD wBufSize) { return 0; };
+	virtual bool SendEmbed(BYTE* pbTxBuf, WORD wLen) {pbTxBuf; wLen; return false; };
+	virtual WORD ReceiveEmbed(BYTE* pbRxBuf, WORD wBufSize) {pbRxBuf; wBufSize; return 0; };
     virtual WORD ReceiveSms(BYTE* pbRxBuf, WORD wBufSize, bool fQuerySms);
-	virtual BYTE* RxSmsHead(BYTE* bBuf, WORD wLen){ return 0; };
+	virtual BYTE* RxSmsHead(BYTE* bBuf, WORD wLen){bBuf; wLen; return 0; };
 #ifdef SYS_LINUX
 	virtual void PowerOff() { ModemPowerOff(); };
 	virtual void PowerOn() { ModemPowerOn(); };
@@ -122,21 +122,21 @@ public:
 	virtual void PowerOff() { ; };
 	virtual void PowerOn() { ; };
 #endif
-	BYTE GetModuleType() { return m_wModuleType; };
-	BYTE GetModulemRegion(){ return m_wModuleregion; };
+	WORD GetModuleType() { return m_wModuleType; };
+	WORD GetModulemRegion(){ return m_wModuleregion; };
 	virtual int UpdateSignStrength();
 	virtual bool IsSignValid(WORD wSignStrength);// { return m_fSignValid; };
-	virtual WORD Send(BYTE* pbTxBuf, WORD wLen) { return wLen; };
-	virtual int Receive(BYTE* pbRxBuf, WORD wBufSize) { return 0; }
+	virtual WORD Send(BYTE* pbTxBuf, WORD wLen) { pbTxBuf; wLen; return wLen; };
+	virtual int Receive(BYTE* pbRxBuf, WORD wBufSize) { pbRxBuf; wBufSize; return 0; }
 	virtual bool Close() { return true; };
 	virtual bool DisConnect() { return true; };
-	virtual bool PPPOpen(char* pszNum, char* pszName, char* pszPass) { return true; };
+	virtual bool PPPOpen(char* pszNum, char* pszName, char* pszPass) { pszNum; pszName; pszPass; return true; };
 	virtual bool PPPClose() { return true; };
 	//virtual bool GetCID(TDataItem diCID) { return true; };
-	virtual int GetNetInfo(TNetInfo *pNetInfo) { return 0; };
+	virtual int GetNetInfo(TNetInfo *pNetInfo) {pNetInfo; return 0; };
     virtual bool GetIMSI(TDataItem diIMSI);
     virtual bool GetGMR(TDataItem diCGMR);	
-    virtual bool GetGPS(TDataItem diGPS) { return true; };
+    virtual bool GetGPS(TDataItem diGPS) {diGPS; return true; };
 	virtual bool GetSYSINFO(){ return true; };
     DWORD GetRxSmsClick();
     int GetRxSmsAddr(unsigned char* pbBuf);

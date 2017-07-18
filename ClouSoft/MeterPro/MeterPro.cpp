@@ -418,7 +418,7 @@ int64 Round(int64 iVal64)
 void CheckDecimal(BYTE bToltLen, BYTE bItemLen, BYTE bNewDec, BYTE bOldDec, BYTE* pbBuf)
 {
 	int64 iVal64;
-	float f;
+	float f=0;
 	BYTE i,j;
 
 	if (bOldDec == bNewDec) //如果小数位与缺省的相同则不用转换

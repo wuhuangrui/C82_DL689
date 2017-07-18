@@ -594,10 +594,7 @@ int GetEthernetStat()
 int CheckPppoeStat()
 {
 	char    buffer[1000];//BUFSIZ
-	FILE    *read_fp;
-	int        chars_read;
 	int        iret = -1;
-	int   iCnt = 1;
 	string str ="";
 	memset( buffer, 0, 1000 );
 

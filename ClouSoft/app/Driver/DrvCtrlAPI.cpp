@@ -394,7 +394,6 @@ void DoYk(bool fOpen, BYTE bId, BYTE bMode)
 BYTE MakeSendFrm(BYTE *pbTx, BYTE *pbRx, BYTE bFN)
 {
 	BYTE bCmdFrm[7];
-	int i = 0;
 	WORD wCrc = 0;
 	memset(bCmdFrm, 0, sizeof(bCmdFrm));
 
@@ -414,7 +413,7 @@ BYTE MakeSendFrm(BYTE *pbTx, BYTE *pbRx, BYTE bFN)
 
 BYTE TxRxComm(BYTE *pbTx, BYTE *pbRx)
 {
-	WORD wLen = 0, i = 0;
+	WORD wLen = 0;
 	BYTE bDebug = pbRx[0];
 
 	WaitSemaphore(g_semRWCtrlModl);
@@ -470,8 +469,9 @@ BYTE TxRxComm(BYTE *pbTx, BYTE *pbRx)
 
 BYTE ReadCtrlLoop(BYTE &bRx)
 {
+
 	BYTE bRxBuf[20];
-	BYTE bLen = 0, i = 0, bH =0, bL = 0;
+	BYTE bLen = 0, i=0;
 	BYTE bFN = 0xa5;
 	//BYTE bCmdFrm[7] = {0x68, 0x9c, 0xff, 0xff, 0xfe, 0xdd, 0x16};
 	BYTE bTxBuf[2] = {0, 0};
@@ -694,8 +694,6 @@ void DoTurnLedCtrl()
 
 void DoLoopLed(BYTE &bFrm)
 {
-	//return ;
-	BYTE bRxBuf[20];
 	static bool fN1 = true;
 	static bool fN2 = true;
 	static bool fErrN1 = true;

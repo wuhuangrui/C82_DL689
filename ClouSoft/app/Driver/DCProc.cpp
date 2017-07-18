@@ -151,7 +151,7 @@ WORD g_wDcDLMSVal[2] = {0};
 int CDCProc::DoDCProc()
 {
 	WORD i;
-	int64 iVal, iDbVal;
+	int64 iDbVal;
 	BYTE bBuf[16];
 	static DWORD dwLastClick=0;
 	if (GetInfo(INFO_DC_SAMPLE))	//配置参数8904更改

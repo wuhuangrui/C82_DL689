@@ -318,13 +318,7 @@ int MtrBroadcast_485(BYTE bThrId)
 	TRdItem tRdItem;
 	int m_iPn = 0;
 	int iRet;
-	int iApduLen;
-	int iLen69845;
-	int iRespLen;;
 	BYTE bRespData[512];
-	BYTE bCn = 0;
-	BYTE bCheckCnt = 0;
-	WORD wPlcNum;
 	TTime tmTm;
 	BYTE bBuf1[100];
 	int iStep = -1;
@@ -406,12 +400,6 @@ int BroadcastAdjustTime_485(BYTE bThrId)
 	TRdItem tRdItem;
 	int m_iPn = 0;
 	int iRet;
-	int iApduLen;
-	int iLen69845;
-	int iRespLen;;
-	BYTE bCn = 0;
-	BYTE bCheckCnt = 0;
-	WORD wPlcNum;
 	TTime tmTm;
 	BYTE bBuf1[100];
 	int iStep = -1;

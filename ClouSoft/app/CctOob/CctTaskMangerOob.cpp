@@ -82,10 +82,8 @@ const BYTE * GetMtrMask(BYTE bBank, WORD wPn, WORD wID)
 //描述：初始化任务配置单元映射
 void InitTaskMap()
 {
-	WORD wTotalOffset = 0;
 	int iRetLen;
 	BYTE bBuf[1024];
-	BYTE bTaskId;
 
 	WaitSemaphore(g_semTskCfg);
 	for (WORD i=0; i<TASK_ID_NUM; i++)
@@ -228,7 +226,6 @@ BYTE* GetSchCfg(BYTE bIndex, int *iLen)
 //返回: 任务配置的个数
 int GetTaskNum()
 {
-	TTaskCfg tTaskCfg;
 	WORD wNum = 0;
 
 	WaitSemaphore(g_semSchCfg);
@@ -327,9 +324,6 @@ bool GetCommonSchCfg(TTaskCfg* pTaskCfg, TCommAcqSchCfg* pTCommAcqSchCfg, BYTE *
 {
 	int iSchCfgLen = 0;
 	const BYTE *pbPtr = NULL;
-	const BYTE *pbMtrMaskPtr = GetMtrMask(BANK17, PN0, 0x6001);
-	BYTE bCsdNUM;
-	BYTE bBuf[256] = {0};
 
 	memset((BYTE*)pTCommAcqSchCfg, 0, sizeof(TCommAcqSchCfg));
 	
@@ -1032,9 +1026,7 @@ bool MtrMaskCompare(BYTE *pbSrcMask, WORD wSrcSize, BYTE *pbDstMask, WORD wDstSi
 //返回:如果正确则返回true,否则返回false
 bool OoParseField(TFieldParser* pParser, BYTE* pFmt, WORD wFmtLen, bool fParseItem)
 {
-	BYTE *pbPtr1 = pFmt;
 	BYTE *pbPtr2 = pParser->pbCfg;
-	WORD wCfgLen = pParser->wCfgLen;
 	int iRet;
 
 	if (*pbPtr2!=1 && *pbPtr2!=2 && *pbPtr2!=DT_FRZRELA)	//只对struct and array
@@ -1084,10 +1076,9 @@ bool OoParseField(TFieldParser* pParser, BYTE* pFmt, WORD wFmtLen, bool fParseIt
 int FieldCmp(BYTE bCmpType, BYTE* pbCmpField, BYTE bSrcType, BYTE* pbSrcField)
 {
 	int iRet;
-	BYTE *pbCmpField0 = pbCmpField;
 	BYTE *pbSrcField0 = pbSrcField;
-	BYTE bSrcRelaNum, bCmpRelaNum, bNum, i, j, k;
-	BYTE bArryNum, bCSDNum, bRCSDNum;
+	BYTE bSrcRelaNum, bCmpRelaNum, bNum, i, j;
+	BYTE bArryNum,  bRCSDNum;
 	BYTE bCmpFmtType, bSrcFmtType;
 	BYTE bInNum=0, bEQNum=0;
 
@@ -1659,7 +1650,6 @@ bool SaveRecord(char* pszTableName, BYTE* pbRec)
 bool SaveRecordByPhyIdx(char* pszTableName, WORD wPhyIdx, BYTE* pbRec)
 {
 	int fd = -1;
- 	int iRet;
 
 	//wPhyIdx++;
 	
@@ -1748,9 +1738,8 @@ void InitSchTable()
 {
 	TTaskCfg tTaskCfg;
 	TFieldParser tFixFields, tDataFields;
-	int iRet, iIndex, iArryOff, iMs, iSchCfgLen;
-	DWORD dwOMD;
-	WORD wLen, wStgCnt, wPnNum, wFmtLen;
+	int iRet, iIndex, iArryOff=0, iMs=0, iSchCfgLen;
+	WORD wLen, wStgCnt=0, wPnNum, wFmtLen;
 	char pszTableName[32];
 	BYTE bType; 
 	BYTE *pbFmt, *pbDataFmt, *pbSch;
@@ -1939,7 +1928,7 @@ bool WriteCacheDataToTaskDB(BYTE bSchNo, BYTE bSchType, BYTE *pbRecBuf, WORD wRe
 		}
 	}
 
-	return false;
+	//return false;
 }
 
 //描述：是否是特殊的属性描述符OAD
@@ -1970,15 +1959,11 @@ bool IsSpecOobAttrDescOAD(BYTE* pbOAD)
 
 static int selector2_60000200(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, BYTE* pbBuf, WORD wBufSize, WORD* pwRetNum)
 {
-	TTime tStartTime;
-	TTime tEndTime;
-	DWORD dwStartSec;
-	DWORD dwEndSec;
 	DWORD dwOAD;
 	DWORD dwSubOAD;
 	BYTE  bSubIdx=0, bType=0, *p=0;
 	BYTE bBuf[1024], bDataType=0;
-	WORD wFmtLen=0, wDataLen=0;
+	WORD wDataLen=0;
 	int iRet=0, iTotalLen=0, iStartValue=0, iEndValue=0, iUnitValue=0, iDataLen=0, iTmpValue=0;
 	BYTE *pbStart = pbBuf;
 
@@ -2081,9 +2066,9 @@ int SpecReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int* piStart, BYTE* p
 {
 		int iRet;
 	DWORD dwOAD, dwSubOAD;
-	WORD wFmtLen, wDataLen;
+	WORD  wDataLen;
 	BYTE bBuf[1024];
-	BYTE *pbFmt, *p, bType;
+	BYTE *p, bType;
 	BYTE bSubIdx, bSchType;
 	BYTE *pbBuf0 = pbBuf;
 	BYTE bRSD;
@@ -2250,7 +2235,7 @@ int SpecReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int* piStart, BYTE* p
 		dwSubOAD = OoOadToDWord(pbRSD);
 		pbRSD += 4;
 		bSubIdx = dwSubOAD & 0xff;
-		BYTE  *pbStart;
+
 
 		const ToaMap* pOI = GetOIMap(dwOAD & 0xFFFFFF00);
 		if (pOI == NULL)
@@ -2392,13 +2377,11 @@ int ReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int *piTabIdx, int* piSta
 	BYTE bTmpBuf[FRZRELA_ID_LEN];	//EVT_ATTRTAB_LEN
 	TFieldParser tFixFields, tDataFields;
 	int iRet, iRecLen;
-	int iLstRet, iLstStart;
 	int iRetNum;
 	WORD wSucRetNum, wScanNum = 0;
 	WORD wSchNum, i, wRcsdIdx, wRcsdNum, wRcsdLen;
 	char pszTableName[64];
 	BYTE bTmpRcsd[128];
-	BYTE *pbRCSD0 = pbRCSD;
 	BYTE *pbBuf0 = pbBuf;
 
 	memset((BYTE*)&tFixFields, 0x00, sizeof(TFieldParser));
@@ -2686,7 +2669,7 @@ int FmtArryData(BYTE *pbDst, BYTE *pbSrc, WORD *pwRetSrcLen /*WORD wSrcLen, BYTE
 	WORD wDstLen;
 	WORD wRetSrcLen;
 
-	if (*pbSrc = DT_ARRAY)
+	if (*pbSrc == DT_ARRAY)
 	{
 		*pbDst++ = *pbSrc++;
 		bArryNum = *pbSrc++;
@@ -2740,7 +2723,6 @@ int FmtArryData(BYTE *pbDst, BYTE *pbSrc, WORD *pwRetSrcLen /*WORD wSrcLen, BYTE
 int OoCopyDataROADLinkOAD(BYTE *pbDst, WORD *pwRetDstLen, BYTE *pbSrc, WORD *pwRetSrcLen, BYTE *pbFmt, WORD wFmtLen)
 {
 	int iLen;
-	DWORD dwLkOAD;
 	WORD wRetSrcLen;
 	BYTE *pbDst0 = pbDst;
 	BYTE *pbSrc0 = pbSrc;
@@ -3531,9 +3513,8 @@ int SearchTable(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, WORD wRcsdIdx, int *piTa
 	TFieldParser tDataFields;
 	int iSchCfgLen;
 	DWORD dwOAD = OoOadToDWord(pbOAD);
-	WORD wIdx, wFmtLen, wLen, wMchNum, wMaxMchNum;
-	BYTE *pbFmt, *pbRec;
-	BYTE *pbRCSD0 = pbRCSD;
+	WORD wIdx, wFmtLen,  wMchNum, wMaxMchNum;
+	BYTE *pbFmt;
 	BYTE bArryIdx, bType;
 	BYTE *pbFixFmt, *pbDataFmt, *pbSch;
 	WORD wFixFmtLen, wDataFmtLen;
@@ -3581,7 +3562,7 @@ int SearchTable(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, WORD wRcsdIdx, int *piTa
 				int iCfgLen, iLen;
 				WORD wIdx, wNum;
 				BYTE *pbArryROAD;
-				bool fIsSchField = false;
+
 				
 				memset((BYTE*)&tDataFields, 0, sizeof(TFieldParser));
 				pbArryROAD = OoGetField(pbSch, pbFmt, wFmtLen, bArryIdx, &tDataFields.wCfgLen, &bType);
@@ -4393,8 +4374,8 @@ bool MsMatch(BYTE* pbMS, BYTE* pbFieldData)
 bool TiMatch(BYTE* pbStartTime, BYTE* pbEndTime, BYTE* pbTI, BYTE* pbFieldData)
 {
 		TTime tStartTime, tEndTime, tFieldTime;
-	DWORD dwStartSec, dwEndSec, dwFieldSec;
-	DWORD dwTiSec, dwIntervSec;
+	DWORD dwStartSec=0, dwEndSec=0, dwFieldSec;
+	DWORD  dwIntervSec;
 	WORD wIntervV;
 	BYTE bIntervU;
 	BYTE *pbPtr = pbTI;
@@ -4897,9 +4878,11 @@ int GetOneAcqRuleInfo(BYTE *pbPara, char *pszTabName, WORD wTabNameLen, TAcqRule
 				}
 			}
 		}
+
+		return pOneRule - pbPara + 2;
 	}
 
-	return pOneRule - pbPara + 2;
+	
 
 ERR_RET:
 	return -1;
@@ -5025,7 +5008,6 @@ bool DeleteAcqRuleTableName(char *pszDelTabName)
 	MK_ACQRULE_TABLE_NAME(szRuleTableName);
 	if (PartReadFile(szRuleTableName, 0, (BYTE*)&tAcqRuleTable, ACQRULE_FILE_HEAD_LEN))	//对应的文件不存在
 	{
-		BYTE *pMsk = tAcqRuleTable.bMsk;
 		for (BYTE bMskIdx=0; bMskIdx<sizeof(tAcqRuleTable.bMsk); bMskIdx++)
 		{
 			if (tAcqRuleTable.bMsk[bMskIdx] != 0)
@@ -5092,7 +5074,6 @@ bool GetAcqRuleTableName(int *piStart, char *pbRespTab, WORD wMaxTabNameLen)
 	MK_ACQRULE_TABLE_NAME(szRuleTableName);
 	if (PartReadFile(szRuleTableName, 0, (BYTE*)&tAcqRuleTable, ACQRULE_FILE_HEAD_LEN))	//对应的文件不存在
 	{
-		BYTE *pMsk = tAcqRuleTable.bMsk;
 		for (bMskIdx=0; bMskIdx<sizeof(tAcqRuleTable.bMsk); bMskIdx++)
 		{
 			if (tAcqRuleTable.bMsk[bMskIdx] != 0)
@@ -5162,7 +5143,7 @@ int GetAllAcqRuleInfo(int *piStart, BYTE *pRespBuf, WORD wMaxLen)
 		if (*piStart < 0)
 			goto OK_RET;
 
-		if (!(pszOAD=strstr(szTabName, pSchData)))
+		if ((pszOAD=strstr(szTabName, pSchData)) == NULL)
 			goto OK_RET;
 
 		pszOAD += strlen(pSchData);

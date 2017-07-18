@@ -200,7 +200,6 @@ bool CParaMgr::ParseExtID(BYTE *pbData, DWORD dwLen)
 {
 	WORD wBn, wPn, wID;
 	int iRet;
-	bool fRet;
 	BYTE *pbTmp = pbData;
 
 	memcpy((BYTE*)&wID, (BYTE*)pbTmp, 2);
@@ -361,11 +360,6 @@ DWORD CParaMgr::Search_OMD_from_OAD(DWORD dwOAD)
 //??:??OI??,?????????,???,??????????
 int CParaMgr::OIWrite_Spec_dft(const ToaMap* pOI, BYTE* pbBuf)
 {
-	BYTE *pbBuf0 = pbBuf;
-
-	BYTE bMaxPortNum, bPortNum, bPortSn;
-	BYTE bType;
-	WORD wTotalLen = 0;
 	int iRet = -1;
 	DWORD dwOMD;
 
@@ -418,7 +412,6 @@ int CParaMgr::OoProWriteAttr_dft(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbBuf,
 	BYTE bDbBuf[3000];
 	BYTE *pbTmpBuf = bTmpBuf;
 	BYTE bPerm = 0x11;
-	ToaMap* pOI = NULL;
 	WORD wID, wDataLen;
 	int iLen = -1;
 	int iLen0;
@@ -712,7 +705,6 @@ int GprsMastCommParaToOob(BYTE *pBuf)
 	int iLen = 0;
 	BYTE *p = pBuf;
 	BYTE bBuf[128];
-	DWORD dwTmp = 0;
 
 //	//4501 公网通信模块1——主站通信参数表
 //	DT_ARRAY, 2,
@@ -767,7 +759,6 @@ int SmsCommParaToOob(BYTE *pBuf)
 	int iLen = 0;
 	BYTE *p = pBuf;
 	BYTE bBuf[128];
-	DWORD dwTmp = 0;
 
 //	//4502 公网通信模块1——短信通信参数
 //		DT_STRUCT, 0x03,
@@ -938,7 +929,6 @@ int EthMastCommParaToOob(BYTE *pBuf)
 	int iLen = 0;
 	BYTE *p = pBuf;
 	BYTE bBuf[128];
-	DWORD dwTmp = 0;
 
 //	//4501 公网通信模块1——主站通信参数表
 //	DT_ARRAY, 2,
@@ -993,7 +983,6 @@ int EthNetParaToOob(BYTE *pBuf)
 	BYTE *p = pBuf;
 	BYTE bNetConType = 0;
 	BYTE bBuf[128];
-	DWORD dwTmp = 0;
 
 //	//0x4510~0x4517 以太网模块属性4——网络配置
 //	DT_STRUCT, 0x06,
@@ -1069,7 +1058,6 @@ int EthMacParaToOob(BYTE *pBuf)
 	int iLen = 0;
 	BYTE *p = pBuf;
 	BYTE bBuf[128];
-	DWORD dwTmp = 0;
 
 //	//0x4510~0x4517 以太网模块属性5——MAC地址
 //	DT_MAC, 0x06,
@@ -1720,7 +1708,6 @@ int TermEthIpModeTo13761(BYTE *pBuf)
 	BYTE *p = pBuf;
 	BYTE bBuf[256];
 	BYTE *pDat = bBuf;
-	DWORD dwTmp =0;
 //	//0x4510~0x4517 以太网模块属性4——网络配置
 //	DT_STRUCT, 0x06,
 //		DT_ENUM, 0x01,	//IP配置方式 DHCP（0）,静态（1），PPPoE（2）
@@ -1796,16 +1783,9 @@ T13761FmtMap g_13761ParaTransTbl[] =
 //opt:0 to oob; 1:to1376.1
 int CParaMgr::OobParaTrans(char* pUserDir, BYTE opt, BYTE* pbPara)
 {
-    int i, f;
-    char szName[255];
-	char command[255] = {0};;
-	BYTE bBuf[512];
-    int iFileLen = 0;
+    int i;
     int iDataLen = 0;
-    int iLen = 0;
     int iRet = 0;
-    WORD wMycrc;
-	DWORD dwOff = 0;
 	
 #ifdef SYS_LINUX
 	DIR* dir;
