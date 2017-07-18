@@ -595,6 +595,12 @@ int CheckPppoeStat()
 {
 	char    buffer[1000];//BUFSIZ
 	int        iret = -1;
+
+#ifdef SYS_LINUX
+	FILE    *read_fp;
+	int        chars_read;
+	int   iCnt = 1;
+#endif	
 	string str ="";
 	memset( buffer, 0, 1000 );
 
