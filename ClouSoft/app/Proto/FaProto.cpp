@@ -2160,9 +2160,11 @@ int CFaProto::Get_request_next()
 int CFaProto::Set_response(BYTE* pApdu, WORD wApduLen)
 {
 	WORD wIdx,wOI;
+	BYTE bGetCmd = *pApdu++;
 	m_AppComm.bAnsCmdMod = *pApdu++;
 	m_AppComm.bPIID = *pApdu++;
 	BYTE  bIdx;
+	bGetCmd;
 
 
 	m_AppComm.bServer = SET_REQ;
