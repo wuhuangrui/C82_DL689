@@ -1782,12 +1782,18 @@ T13761FmtMap g_13761ParaTransTbl[] =
 //+数据项ID(2个字节)+数据项BANK(2个字节)+数据项Point(2个字节)+数据项内容
 //opt:0 to oob; 1:to1376.1
 int CParaMgr::OobParaTrans(char* pUserDir, BYTE opt, BYTE* pbPara)
-{
-    int i;
-    int iDataLen = 0;
-    int iRet = 0;
-	
+{	
+	int iRet = 0;
 #ifdef SYS_LINUX
+	int i, f;
+    char szName[255];
+	char command[255] = {0};;
+	BYTE bBuf[512];
+    int iFileLen = 0;
+    int iDataLen = 0;
+    int iLen = 0;
+    WORD wMycrc;
+	DWORD dwOff = 0;
 	DIR* dir;
 	char bUserPath[128] = {0};
 	//先建立目录

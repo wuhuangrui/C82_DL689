@@ -886,6 +886,7 @@ void DoYX()
 		return ;
     
 #ifdef SYS_LINUX
+	 BYTE bDoorStat = 0;
 	 bDoorStat = GetDoorStatus(); //门节点分状态为高电平
 #endif
     int nRead = ReadItemEx(BN2, PN0, 0x1100, &bYxVal);
@@ -1360,6 +1361,7 @@ TThreadRet DriverThread(void* pvPara)
 	DTRACE(DB_CRITICAL, ("DriverThread : started!\n"));
 	
 #ifdef SYS_LINUX
+	WORD  wCnt=0, wCheck=0;
 	CDCSample dcSample;
 //		InitDrvPara();
 	CDCProc dcProc;
