@@ -1205,6 +1205,8 @@ int CFaProto::Get_response(BYTE* pApdu)
 	int iRet;
 	WORD wBlkNo;
 	WORD wLen;
+	BYTE bGetCmd = *pApdu++;
+	bGetCmd;
 
 
 	m_AppComm.bAnsCmdMod = *pApdu++;
