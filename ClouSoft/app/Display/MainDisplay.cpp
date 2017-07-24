@@ -10034,7 +10034,7 @@ void TermiUpdate(BYTE bType)
 
 	sprintf(str, "/mnt/usb/%s", szList[iIndex]);
 	memset(command, 0, sizeof(command));
-	sprintf(command, "cp -f %supdate %s", str, USER_APP_PATH);
+	sprintf(command, "cp -f %s/update %s", str, USER_APP_PATH);
 	system(command);
 
 	memset(command, 0, sizeof(command));
