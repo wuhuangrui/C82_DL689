@@ -266,6 +266,7 @@ bool CProto::RcvFrm(bool fSingleMode)
 			}
 			else if (nScanLen < 0)   //不全的报文
 			{
+				i = 0;	//zhq add 170721
 				while(len > 0)
 				{
 					nScanLen = SingleRcvBlock(&bBuf[i], len);	//尝试单帧解析
@@ -296,7 +297,7 @@ bool CProto::RcvFrm(bool fSingleMode)
 						nScanLen = 0;
 						i = i + 1;
 						len = len - 1;
-						while(bBuf[i] != 0x68 && len > 0)//扫除前面不是以0x68开始的内容，重新解析以0x68开始后面的数据
+						while(i<PRO_FRM_SIZE && bBuf[i]!=0x68 && len>0)//扫除前面不是以0x68开始的内容，重新解析以0x68开始后面的数据
 						{
 							i ++;
 							nScanLen ++;
@@ -306,7 +307,8 @@ bool CProto::RcvFrm(bool fSingleMode)
 						if (m_pProPara->fUseLoopBuf)
 							DeleteFromLoopBuf(nScanLen + 1); //删除已经扫描的数据
 
-						//break;
+						if (i >= PRO_FRM_SIZE)
+							break;
 					}
 				}
 			}
@@ -318,8 +320,19 @@ bool CProto::RcvFrm(bool fSingleMode)
 	}
 	
 	return fRet;
-
 }
+
+
+bool CProto::RcvSms(BYTE* pbBuf, WORD wLen)
+{
+	int nScanLen = RcvBlock(pbBuf, wLen);
+	if (nScanLen > 0)
+	{
+		return HandleFrm();   //帧处理
+	}
+	return false;
+}
+
 
 bool CProto::Login()
 {

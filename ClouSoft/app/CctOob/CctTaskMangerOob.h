@@ -253,7 +253,7 @@ int GetSchParamFromMemory(BYTE bSchNo, BYTE *pbBuf);
 
 int GetTaskNum(); 
 
-bool GetTaskCfg(BYTE bIndex, TTaskCfg *pTaskCfg); 
+bool GetTaskCfg(BYTE bIndex, TTaskCfg *pTaskCfg, bool bIsRdTab = false); 
 
 //描述：取得普通采集方案参数
 //参数: @pTaskCfg任务的配置

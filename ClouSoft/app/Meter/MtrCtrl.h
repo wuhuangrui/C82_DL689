@@ -21,13 +21,14 @@ extern BYTE g_bMtrRdStep[LOGIC_PORT_NUM];
 extern BYTE g_bMtrRdStatus[PN_MASK_SIZE];
 //extern TSem g_semMtrCtrl;
 extern TSem g_semMtrCacheCtrl;
-
+extern TSem g_semMtrExc;
 extern TSem g_semRdMtr[LOGIC_PORT_NUM];
 extern bool g_f485SchMtr;
 
 void StopMtrRd(WORD wStopSec);
 void GetDirRdCtrl(BYTE bThrId);	//取得直抄的控制权
 void ReleaseDirRdCtrl(BYTE bThrId); //释放直抄的控制权
+BYTE GetRdMtrState(BYTE bThrId);
 
 int DirAskMtrData(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bAddrLen, BYTE* pApdu, WORD wApduLen, WORD wTimeOut, BYTE* pbData);
 int MtrDoFwd(TCommPara CommPara, BYTE* pTx, WORD wTxLen, BYTE* pbData, WORD wBufSize, WORD wFrmTimeOut, WORD wByteTimeOut);

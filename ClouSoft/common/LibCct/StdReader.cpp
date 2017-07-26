@@ -3069,7 +3069,7 @@ bool CStdReader::QueryFrzTaskReadState()
 					if (wPnToAllTaskNum==0 || wPnToSucTaskNum==wPnToAllTaskNum)	
 						wSucPnNum++;
 
-					PutMtrRdCtrl(wPn, bTsa, true);
+					PutMtrRdCtrl(wPn, bTsa, false);
 				}
 			}
 		}
@@ -3676,8 +3676,8 @@ int CStdReader::FinishSchMtr()
 	SetSchMtrState(false);
 	if (GetUdpMtrFlg())
 	{
-		DTRACE(DB_FAPROTO, ("FinishSchMtr(): SetDelayInfo INFO_MTR_INFO_UPDATE.\n"));
-		SetDelayInfo(INFO_MTR_INFO_UPDATE);
+		DTRACE(DB_FAPROTO, ("FinishSchMtr(): SetDelayInfo INFO_MTR_UPDATE.\n"));
+		SetDelayInfo(INFO_MTR_UPDATE);
 	}
 	return true;
 }
@@ -5449,9 +5449,9 @@ int CStdReader::ReadDLT_645(TMtrRdCtrl* pMtrRdCtrl, TRdItem* pRdItem, TMtrPara* 
 					if (dwRealOAD < 0x20000000) //电量和需量
 					{
 						if (pRdItem->dwOAD == 0x50040200)
-							dwRealOAD += 4;
+							dwRealOAD += 0x14;
 						else
-							dwRealOAD += 5;
+							dwRealOAD += 0x15;
 					}
 				}
 

@@ -70,6 +70,8 @@ void InitMtrMask()
 	WriteItemEx(BANK17, PN0, 0x6002, b485MtrMask);
 	WriteItemEx(BANK17, PN0, 0x6003, bPlcMtrMask);
 	WriteItemEx(BANK17, PN0, 0x6004, bPlcAcqMask);
+
+	DTRACE(DB_CRITICAL, ("InitMtrMask(): Init meter mask complete.\r\n"));
 }
 
 //描述：获取电表屏蔽字
@@ -243,13 +245,25 @@ int GetTaskNum()
 //参数： @bIndex 任务ID的索引
 //	    @pTaskCfg用来返回任务的配置，如果
 //返回:如果读到正确任务配置则返回true，否则返回false
-bool GetTaskCfg(BYTE bIndex, TTaskCfg *pTaskCfg)
+bool GetTaskCfg(BYTE bIndex, TTaskCfg *pTaskCfg, bool bIsRdTab)
 {
-		const BYTE *pbPtr = NULL;
+	BYTE bBuf[1024];
+	const BYTE *pbPtr = NULL;
 
 	memset((BYTE*)pTaskCfg, 0, sizeof(TTaskCfg));
 
-	pbPtr = GetTaskCfgTable(bIndex);
+	if (bIsRdTab)
+	{
+		memset(bBuf, 0, sizeof(bBuf));
+		if ((GetTaskConfigFromTaskDb(bIndex, bBuf)) <= 0)
+			return false;
+		pbPtr = bBuf;
+	}
+	else
+	{
+		pbPtr = GetTaskCfgTable(bIndex);
+	}
+
 	if (pbPtr == NULL)
 		return false;
 
@@ -528,7 +542,7 @@ BYTE GetTaskCfgSn()
 {
 	BYTE bTaskSN = 0;
 
-	ReadItemEx(BANK2, PN0, 0x6005, &bTaskSN);
+	//ReadItemEx(BANK16, PN0, 0x6011, &bTaskSN);
 
 	return bTaskSN;
 }
@@ -1733,17 +1747,27 @@ bool SaveHisRecord(char* pszTableName, int index, BYTE* pbRec)
 	return false;	
 }
 
+#define SIZE_1M	(1024*1024)
+#define SCH_FILE_MAX_SIZE	(40*SIZE_1M)	//每个方案文件最大空间40M
+#define SCH_FILE_TOTAL_MAX_SIZE	(80*SIZE_1M)	//总的方案文件最大空间80M
+
 //描述：初始化采集方案，建任务库表
 void InitSchTable()
 {
+	const char *pszUnitName[] = {"UNIT_SEC", "UNIT_MIN", "UNIT_HOUR", "UNIT_DAY", "UNIT_MONTH", "UNIT_YEAR"};
 	TTaskCfg tTaskCfg;
 	TFieldParser tFixFields, tDataFields;
-	int iRet, iIndex, iArryOff=0, iMs=0, iSchCfgLen;
-	WORD wLen, wStgCnt=0, wPnNum, wFmtLen;
+	int iRet, iIndex, iArryOff, iMs, iSchCfgLen;
+	DWORD dwOMD, dwStgCnt;
+	DWORD dwFileSize, dwFileTotalSize, dwFieldDataLen;
+	WORD wLen, wPnNum, wFmtLen;
 	char pszTableName[32];
 	BYTE bType; 
 	BYTE *pbFmt, *pbDataFmt, *pbSch;
 	WORD wDataFmtLen;
+	
+
+	dwFileTotalSize = 0;
 
 	for (WORD wIndex=0; wIndex<TASK_ID_NUM; wIndex++)
 	{
@@ -1780,7 +1804,7 @@ void InitSchTable()
 				break;
 			case SCH_TYPE_TRANS:	
 				iIndex = -1;
-				wStgCnt = 1;
+				dwStgCnt = 1;
 				break;
 // 			case SCH_TYPE_REPORT:	//备注：上报采集方案待处理。。。
 // 				break;
@@ -1802,27 +1826,66 @@ void InitSchTable()
 					DTRACE(DB_TASK, ("InitSchTable: pbMs is error, bTaskId=%d.\n", tTaskCfg.bTaskId));
 					continue;
 				}
-				wPnNum = MsToMtrNum(pbMs);
+				//wPnNum = MsToMtrNum(pbMs);
 				if ((iRet=OoScanData(pbSch, pbFmt, wFmtLen, false, iIndex, &wLen, &bType)) > 0)	
-					wStgCnt = OoOiToWord(&pbSch[iRet+1]);
-				//存在先后问题，如果先配置了任务、方案，在配置电表档案，会导致任务库的存储笔数不确定，这里用最大默认值代替
-				if (wPnNum == 0)
-					wPnNum = POINT_NUM;
-				if (wStgCnt == 0)
+					dwStgCnt = OoOiToWord(&pbSch[iRet+1]);
+
+				switch (tTaskCfg.tiExe.bUnit)
 				{
-					if (tTaskCfg.tiExe.bUnit == TIME_UNIT_MINUTE)
-						wStgCnt = 96*3;	//密度最小5分钟，存储3天数据
-					else if (tTaskCfg.tiExe.bUnit == TIME_UNIT_HOUR)
-						wStgCnt = 24*30;	//密度最小1个小时，保存30天数据
-					else if (tTaskCfg.tiExe.bUnit == TIME_UNIT_DAY)
-						wStgCnt = 90;	//密度最小为1天，保存90天数据
-					else if (tTaskCfg.tiExe.bUnit == TIME_UNIT_MONTH)
-						wStgCnt = 12;	//密度最小为1个月，保存12个月数据
-					else 
-						wStgCnt = 100;	//其他定义为100
+				case TIME_UNIT_MINUTE:
+#if FA_TYPE == FA_TYPE_K32
+					dwStgCnt = 96*5;	//密度最小15分钟，保存5天数据
+					wPnNum = POINT_NUM;
+#else	//C82/D82
+					dwStgCnt = 96*5;	//密度最小15分钟，保存5天数据
+					wPnNum = 20;
+#endif
+					break;
+				case TIME_UNIT_HOUR:
+#if FA_TYPE == FA_TYPE_K32
+					dwStgCnt = 24*7;	//密度最小1个小时，保存7天数据
+					wPnNum = POINT_NUM;
+#else	//C82/D82
+					dwStgCnt = 24*7;	//密度最小1个小时，保存7天数据
+					wPnNum = 20;
+#endif
+					break;
+				case TIME_UNIT_DAY:
+					dwStgCnt = 60;	//密度最小为1天，保存60天数据
+					wPnNum = POINT_NUM;
+					break;
+				case TIME_UNIT_MONTH:
+					dwStgCnt = 12;	//密度最小为1个月，保存12个月数据
+					wPnNum = POINT_NUM;
+					break;
+				default:
+					dwStgCnt = 100;	//其他定义为100
+					wPnNum = POINT_NUM;
 				}
 
-				wStgCnt = wPnNum * wStgCnt;
+				dwStgCnt = wPnNum * dwStgCnt;
+
+				dwFieldDataLen = tFixFields.wTotalLen + tDataFields.wTotalLen;
+				dwFileSize = dwStgCnt * dwFieldDataLen;
+				if (dwFileSize > SCH_FILE_MAX_SIZE)	//方案存储空间大于SCH_FILE_MAX_SIZE，将对该空间减半
+				{
+					DTRACE(DB_CRITICAL, ("InitSchTable(): Over file Size: bTaskId=%d, bSchNo=%d, Unit=%s, dwCurFileSize=%.2fM > %dM.\r\n",
+						tTaskCfg.bTaskId, tTaskCfg.bSchNo, pszUnitName[tTaskCfg.tiExe.bUnit], (float)dwFileSize/SIZE_1M, SCH_FILE_MAX_SIZE/SIZE_1M));
+
+					dwStgCnt = (SCH_FILE_MAX_SIZE/2)/dwFieldDataLen + 1;
+					dwFileTotalSize += dwStgCnt*dwFileTotalSize;
+				}
+				else
+				{
+					dwFileTotalSize += dwFileSize;
+				}
+
+				if (dwFileTotalSize >= SCH_FILE_TOTAL_MAX_SIZE)	//方案创建的文件空间超过SCH_FILE_TOTAL_MAX_SIZE就停止方案再创建?
+				{
+					DTRACE(DB_CRITICAL, ("InitSchTable(): Over total file Size: bTaskId=%d, bSchNo=%d, Unit=%s, dwTotalFileSize=%.2fM > %dM.\r\n",
+						tTaskCfg.bTaskId, tTaskCfg.bSchNo, pszUnitName[tTaskCfg.tiExe.bUnit], (float)dwFileTotalSize/SIZE_1M, SCH_FILE_TOTAL_MAX_SIZE/SIZE_1M));
+					return;
+				}
 			}
 
 			if (tTaskCfg.bSchType == SCH_TYPE_EVENT)
@@ -1865,7 +1928,7 @@ void InitSchTable()
 
 						memset(pszTableName, 0, sizeof(pszTableName));
 						sprintf(pszTableName, "%s_%03d_%02d.dat", GetSchTableName(tTaskCfg.bSchType), tTaskCfg.bSchNo, i);
-						CreateTable(pszTableName, &tFixFields, &tDataFields, wStgCnt);	
+						CreateTable(pszTableName, &tFixFields, &tDataFields, dwStgCnt);	
 
 						pbArryROAD++;
 						pbArryROAD += ScanROAD(pbArryROAD, false);
@@ -1879,8 +1942,14 @@ void InitSchTable()
 				{
 					memset(pszTableName, 0, sizeof(pszTableName));
 					sprintf(pszTableName, "%s_%03d.dat", GetSchTableName(tTaskCfg.bSchType), tTaskCfg.bSchNo);
-					CreateTable(pszTableName, &tFixFields, &tDataFields, wStgCnt);
+					CreateTable(pszTableName, &tFixFields, &tDataFields, dwStgCnt);
 				}
+			}
+
+			if (iIndex != -1)
+			{
+				DTRACE(DB_CRITICAL, ("InitSchTable(): bTaskId=%d, bSchNo=%d, pszTableName=%s, Unit=%s, dwFileSize=%.2fM, dwTotalFileSize=%.2fM.\r\n",
+					tTaskCfg.bTaskId, tTaskCfg.bSchNo, pszTableName, pszUnitName[tTaskCfg.tiExe.bUnit], (float)dwFileSize/SIZE_1M, (float)dwFileTotalSize/SIZE_1M));
 			}
 		}
 	}
@@ -1928,7 +1997,7 @@ bool WriteCacheDataToTaskDB(BYTE bSchNo, BYTE bSchType, BYTE *pbRecBuf, WORD wRe
 		}
 	}
 
-	//return false;
+	return false;
 }
 
 //描述：是否是特殊的属性描述符OAD
@@ -2409,19 +2478,25 @@ int ReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int *piTabIdx, int* piSta
 		wSucRetNum = 0;
 		wRcsdNum = *pbRCSD;
 		wSchNum = wBufSize/(tFixFields.wTotalLen + tDataFields.wTotalLen);	//最大支持的内存空间
-		DTRACE(DB_TASK, ("###wBufSize=%d, wFieldsLen=%d, wSchNum=%d.\n", wBufSize, tFixFields.wTotalLen + tDataFields.wTotalLen, wSchNum));
+		DTRACE(DB_TASK, ("###1-wBufSize=%d, wFieldsLen=%d, wSchNum=%d.\n", wBufSize, tFixFields.wTotalLen + tDataFields.wTotalLen, wSchNum));
 
 		if (wRcsdNum == iRetNum)	//完全匹配，只有一张表
 		{
+			DTRACE(DB_TASK, ("###2-wBufSize=%d, wFieldsLen=%d, wSchNum=%d.\n", wBufSize, tFixFields.wTotalLen + tDataFields.wTotalLen, wSchNum));
+
 NEXT_ONE_TABLE:	//为了解决普通采集方案里跨表MS问题
-			iRet=ReadTable(pszTableName, &tFixFields, &tDataFields, pbOAD, pbRSD, pbRCSD, piStart, wSchNum-wSucRetNum, pwRetNum, pbBuf);
+			if (wSchNum > wSucRetNum)
+				iRet = ReadTable(pszTableName, &tFixFields, &tDataFields, pbOAD, pbRSD, pbRCSD, piStart, wSchNum-wSucRetNum, pwRetNum, pbBuf);
+			else
+				iRet = -1;
+
 			if (iRet > 0)
 			{
 				wSucRetNum += *pwRetNum;
 				pbBuf += iRet;
 			}
 
-			if((wSchNum-wSucRetNum) != 0)	//缓冲未满，继续检索数据
+			if (wSchNum > wSucRetNum)	//缓冲未满，继续检索数据
 			{
 				if (*piTabIdx != 0)	//所有表还未遍历完
 				{
@@ -2435,7 +2510,14 @@ NEXT_ONE_TABLE:	//为了解决普通采集方案里跨表MS问题
 							wRcsdIdx = 1;	//协议层中RCSD第一个字节为CSD个数，跳过，即索引初始化为1
 							iRetNum = SearchTable(pbOAD, pbRSD, pbRCSD, wRcsdIdx, piTabIdx, pszTableName, &tFixFields, &tDataFields);
 							if (iRetNum == wRcsdNum)	//搜表成功
+							{
+								wBufSize = wBufSize - (pbBuf-pbBuf0);
+								wSchNum = wBufSize/(tFixFields.wTotalLen + tDataFields.wTotalLen) + wSucRetNum;	//最大支持的内存空间
+								DTRACE(DB_TASK, ("###3-wBufSize=%d, wFieldsLen=%d, wSchNum=%d.\n", wBufSize, tFixFields.wTotalLen + tDataFields.wTotalLen, wSchNum));
+
 								goto NEXT_ONE_TABLE;
+							}
+
 							if (*piTabIdx == 0)	//表检索结束，直接退出
 								break;
 						}while (iRetNum != wRcsdNum);
@@ -2447,6 +2529,8 @@ NEXT_ONE_TABLE:	//为了解决普通采集方案里跨表MS问题
 		}
 		else	//部分匹配，存在多张表
 		{
+			DTRACE(DB_TASK, ("###4-wBufSize=%d, wFieldsLen=%d, wSchNum=%d.\n", wBufSize, tFixFields.wTotalLen + tDataFields.wTotalLen, wSchNum));
+
 			i = 0;
 			wSucRetNum = 0;
 			wScanNum = 0;
@@ -2547,11 +2631,18 @@ int ReadTable(char* pszTableName, TFieldParser* pFixFields, TFieldParser* pDataF
 		bRecNo = 1;
 		fFromEnd = true;	
 	}
+		
 
 	wRetNum = 0;
 	wRecLen = pFixFields->wTotalLen + pDataFields->wTotalLen;
 	memset(bRecBuf, 0, sizeof(bRecBuf));
 	DTRACE(DB_TASK, ("###ReadTable1:%s,  piStart=%d, MaxBuf size=%d.\n", pszTableName, *piStart, wSchNum*wRecLen));
+	if (wSchNum*wRecLen > sizeof(bRecBuf))
+	{
+		DTRACE(DB_TASK, ("###ReadTable1-1: Error %s,  piStart=%d, MaxBuf size=%d.\n", pszTableName, *piStart, wSchNum*wRecLen));
+		return -1;
+	}
+		
 	while (TdbReadRec(fd, piStart, bRecBuf, (wSchNum-wRetNum)*wRecLen, fFromEnd, pwRetNum) >= 0)
 	{
 		DTRACE(DB_TASK, ("###ReadTable2:%s piStart=%d, MaxBuf size=%d, pwRetNum=%d.\n", pszTableName, *piStart, (wSchNum-wRetNum)*wRecLen, *pwRetNum));
@@ -3562,7 +3653,7 @@ int SearchTable(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, WORD wRcsdIdx, int *piTa
 				int iCfgLen, iLen;
 				WORD wIdx, wNum;
 				BYTE *pbArryROAD;
-
+				bool fIsSchField = false;
 				
 				memset((BYTE*)&tDataFields, 0, sizeof(TFieldParser));
 				pbArryROAD = OoGetField(pbSch, pbFmt, wFmtLen, bArryIdx, &tDataFields.wCfgLen, &bType);
@@ -4878,11 +4969,9 @@ int GetOneAcqRuleInfo(BYTE *pbPara, char *pszTabName, WORD wTabNameLen, TAcqRule
 				}
 			}
 		}
-
-		return pOneRule - pbPara + 2;
 	}
 
-	
+	return pOneRule - pbPara + 2;
 
 ERR_RET:
 	return -1;
@@ -5008,6 +5097,7 @@ bool DeleteAcqRuleTableName(char *pszDelTabName)
 	MK_ACQRULE_TABLE_NAME(szRuleTableName);
 	if (PartReadFile(szRuleTableName, 0, (BYTE*)&tAcqRuleTable, ACQRULE_FILE_HEAD_LEN))	//对应的文件不存在
 	{
+		BYTE *pMsk = tAcqRuleTable.bMsk;
 		for (BYTE bMskIdx=0; bMskIdx<sizeof(tAcqRuleTable.bMsk); bMskIdx++)
 		{
 			if (tAcqRuleTable.bMsk[bMskIdx] != 0)
@@ -5074,6 +5164,7 @@ bool GetAcqRuleTableName(int *piStart, char *pbRespTab, WORD wMaxTabNameLen)
 	MK_ACQRULE_TABLE_NAME(szRuleTableName);
 	if (PartReadFile(szRuleTableName, 0, (BYTE*)&tAcqRuleTable, ACQRULE_FILE_HEAD_LEN))	//对应的文件不存在
 	{
+		BYTE *pMsk = tAcqRuleTable.bMsk;
 		for (bMskIdx=0; bMskIdx<sizeof(tAcqRuleTable.bMsk); bMskIdx++)
 		{
 			if (tAcqRuleTable.bMsk[bMskIdx] != 0)

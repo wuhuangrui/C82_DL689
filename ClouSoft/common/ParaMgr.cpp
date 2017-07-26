@@ -332,6 +332,7 @@ static DWORD dwDftOam2OmdMap[][2] = {
 	{0x500A0300, 0x500A0700},
 	{0x500B0300, 0x500B0700},
 	//?????
+	{0x60000200, 0x60008000},
 	{0x60120200, 0x60127f00},
 	{0x60140200, 0x60147f00},
 	{0x60160200, 0x60167f00},
@@ -557,6 +558,179 @@ bool CParaMgr::IsNeedWrSpec_dft(const ToaMap* pOI)
 		fRet = false;
 
 	return fRet;
+}
+
+// 参数初始化时，将需要保持的OAD 存盘
+int CParaMgr::ReSetParamKeepSaveFile(BYTE* pbPara)
+{
+	BYTE bOADNum = 0;
+	TApduInfo tApduInfo;
+	int iStart = -1;
+	BYTE bBuf[APDUSIZE];
+	BYTE bBufFileHead[16];
+	BYTE bBuftemp[2];
+	int iReadLen = 0;
+	DWORD dwOffSet = 0;
+	DWORD TempOffSet;
+
+	if (*pbPara++ == DT_ARRAY) // 数组
+	{
+		bBufFileHead[0] = DT_ARRAY;
+		bOADNum = *pbPara++; // 数组元素个数
+		bBufFileHead[1] = bOADNum;
+		PartWriteFile(USER_PARA_PATH "KeepOAD.dat", 0, bBufFileHead, 2);
+		dwOffSet += 2; 
+		for(int i=0; i<bOADNum;i++)
+		{
+			DWORD iRet =0;
+			TempOffSet = dwOffSet;
+			dwOffSet += 2; //跳过一个OAD或OMD的总长度
+			if(*pbPara++==DT_OAD)
+			{
+				tApduInfo.wOI = OoOiToWord(pbPara);
+				pbPara += 2;
+				tApduInfo.bAttr = *pbPara++;
+				tApduInfo.bIndex = *pbPara++;  
+				memset(bBuf,0,sizeof(bBuf));
+				//判断是否为特殊OAD，特殊OAD需要转成OMD存储
+				DWORD dwOIAtt = ((DWORD)tApduInfo.wOI<<16)+((DWORD)tApduInfo.bAttr<<8);
+				DWORD dwOMD = Search_OMD_from_OAD(dwOIAtt);
+				if (dwOMD != 0)
+				{
+					bBuf[0] = DT_OMD;
+					DWordToByte(dwOMD,&bBuf[1]);
+				}
+				else
+				{			
+					bBuf[0] = DT_OAD;
+					DWordToByte(dwOIAtt,&bBuf[1]);
+				}
+				Swap(&bBuf[1],4);
+
+				DWORD dwClick = GetClick();
+				do 
+				{
+					//iRet += 7;
+					iReadLen = OoProReadAttr(tApduInfo.wOI, tApduInfo.bAttr, tApduInfo.bIndex, bBuf+7, sizeof(bBuf)-7, &iStart);
+					if(iReadLen>0)
+					{
+						iRet += iReadLen;             
+					}
+					else
+					{
+						iReadLen = 0;
+						iRet += iReadLen;
+					}
+					WordToByte((WORD)iReadLen,bBuf+5);
+					PartWriteFile(USER_PARA_PATH "KeepOAD.dat", dwOffSet, bBuf, iReadLen+7);
+					dwOffSet += iReadLen+7;
+				} while ((iStart != -1)&&(GetClick()-dwClick<60));
+
+				WordToByte((WORD)iRet,bBuftemp);  //一个OAD的数据总长度
+				PartWriteFile(USER_PARA_PATH "KeepOAD.dat", TempOffSet, bBuftemp, 2);
+			} 
+		}
+	}
+
+	return 0;
+}
+
+// 参数初始化后，将需要保持的OAD写入bank及文件
+int CParaMgr::ReSetParamKeepReadFile()
+{
+	BYTE bOADNum = 0;
+	TApduInfo tApduInfo;
+	int iStart = -1;
+	BYTE bBuf[APDUSIZE];
+	BYTE bBufFileHead[16];
+	BYTE bBuftemp[2];
+	WORD wReadLen = 0;
+	DWORD dwOffSet = 0;
+	WORD wOI1;
+	BYTE bMath,bMode;
+	BYTE bRes[100];
+	int iRet, iRetParaLen;
+	bool fIsOk = false;
+
+	DWORD dwClick = GetClick();
+	fIsOk = PartReadFile(USER_PARA_PATH "KeepOAD.dat", 0, bBufFileHead, 2);
+	dwOffSet+=2;
+
+	if (fIsOk  && bBufFileHead[0] == DT_ARRAY) // 数组
+	{
+		bOADNum = bBufFileHead[1]; // 数组元素个数        
+
+		for(int i=0; i<bOADNum;i++)
+		{		
+			fIsOk = PartReadFile(USER_PARA_PATH "KeepOAD.dat", dwOffSet, bBuftemp, 2);
+			dwOffSet += 2;
+			WORD wDataLen = 0;
+			if(fIsOk)
+			{
+				wDataLen = ByteToWord(bBuftemp);  //某一个OAD或OMD的总长度
+				while((wDataLen > 0)&&(GetClick()-dwClick < 60)) 
+				{
+					memset(bBuf,0,sizeof(bBuf));
+					fIsOk = PartReadFile(USER_PARA_PATH "KeepOAD.dat", dwOffSet, bBuf, 7);
+					dwOffSet += 7;
+					if (bBuf[0] ==DT_OAD)
+					{
+						tApduInfo.wOI = OoOiToWord(bBuf+1);
+						tApduInfo.bAttr = bBuf[3];
+						tApduInfo.bIndex = bBuf[4];                  
+						wReadLen = ByteToWord(bBuf+5);
+						if (wReadLen > (sizeof(bBuf)-7))   
+						{
+							fIsOk = false;
+						}
+						else
+							fIsOk = PartReadFile(USER_PARA_PATH "KeepOAD.dat", dwOffSet, bBuf+7, wReadLen);
+						dwOffSet += wReadLen;
+						if(fIsOk)
+						{
+							OoProWriteAttr(tApduInfo.wOI, tApduInfo.bAttr, tApduInfo.bIndex, bBuf+7, wReadLen, &iStart);
+						} 
+
+						if  (wDataLen > wReadLen)
+						{
+							wDataLen = wDataLen - wReadLen;
+						}
+						else
+							wDataLen = 0;
+					}
+					else if (bBuf[0] ==DT_OMD)
+					{
+						wOI1 = OoOiToWord(bBuf+1);
+						bMath = bBuf[3];
+						bMode = bBuf[4];
+						wReadLen = ByteToWord(bBuf+5);
+						if (wReadLen > (sizeof(bBuf)-7))
+						{
+							fIsOk = false;
+						}
+						else
+							fIsOk = PartReadFile(USER_PARA_PATH "KeepOAD.dat", dwOffSet, bBuf+7, wReadLen);
+						dwOffSet += wReadLen;
+						if(fIsOk)
+						{
+							iRet = DoObjMethod(wOI1, bMath, bMode, bBuf+7, &iRetParaLen, NULL, bRes);
+						} 
+						if  (wDataLen > wReadLen)
+						{
+							wDataLen = wDataLen - wReadLen;
+						}
+						else
+							wDataLen = 0;
+					} 		
+				}
+			} 
+		}            
+
+	}
+
+	DeleteFile(USER_PARA_PATH "KeepOAD.dat");  
+
+	return 0;
 }
 
 int GprsCommCfgParaToOob(BYTE *pBuf)

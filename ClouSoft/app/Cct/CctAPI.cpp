@@ -549,7 +549,8 @@ bool SetMeterInfo(WORD wPn, TOobMtrInfo tTMtrInfo)
 	*p++ = 4;	//+struct 成员个数
 	*p++ = DT_LONG_U;	//long-unsigned
 	//WordToByte(tTMtrInfo.wMtrSn, p);	p += 2;
-	OoWordToLongUnsigned(tTMtrInfo.wMtrSn, p);    p += 2;
+	OoWordToLongUnsigned(tTMtrInfo.wMtrSn, p);    
+	p += 2;
 
 	//基本信息
 	*p++ = DT_STRUCT;	//struct	
@@ -645,9 +646,13 @@ bool SetMeterInfo(WORD wPn, TOobMtrInfo tTMtrInfo)
 			TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
 			return true;
 		}
+		else
+		{
+			return false;
+		}
 	}
 
-	return false;
+	return true;
 }
 
 //描述：判断表序号是否有效
@@ -878,7 +883,7 @@ bool SetMeterPro(WORD wMtrSn, BYTE bPro)
 //参数：@wMtrSn 表序号
 //		@tTPORT_PARAM 端口号参数
 //返回：端口类型
-extern BYTE GetMeterPort(WORD wMtrSn, TPORT_PARAM &tTPORT_PARAM)
+BYTE GetMeterPort(WORD wMtrSn, TPORT_PARAM &tTPORT_PARAM)
 {
 	TOobMtrInfo tMtrInfo;
 
@@ -907,7 +912,7 @@ extern BYTE GetMeterPort(WORD wMtrSn, TPORT_PARAM &tTPORT_PARAM)
 			tTPORT_PARAM.tTCOM_PARAM.bFlowCtrl = *pbPtr;	pbPtr++;
 		}
 
-		if (0xf2070200 == (tMtrInfo.dwPortOAD&0xffffff00))	//0xf201 属性02	
+		if (0xf2010200 == (tMtrInfo.dwPortOAD&0xffffff00))	//0xf201 属性02	
 		{
 			return PORT_GB485;
 		}
@@ -1313,30 +1318,18 @@ int GetTaskCurExeTime(TTaskCfg* pTaskCfg, DWORD* pdwCurSec, DWORD* pdwStartSec, 
 		tDayStartTime.nSecond = pTaskCfg->tmStart.nSecond;
 		break;
 	case TIME_UNIT_HOUR:
-		dwIntervSec = tiExe.wVal*60*60;
-		if (tiExe.wVal > 1)
-			tDayStartTime.nHour = pTaskCfg->tmStart.nHour;
-		
-		tDayStartTime.nMinute = pTaskCfg->tmStart.nMinute;
-		tDayStartTime.nSecond = pTaskCfg->tmStart.nSecond;
-		break;
 	case TIME_UNIT_DAY:
-		dwIntervSec = tiExe.wVal*24*60*60;
-		tDayStartTime.nHour = pTaskCfg->tmStart.nHour;
-		tDayStartTime.nMinute = pTaskCfg->tmStart.nMinute;
-		tDayStartTime.nSecond = pTaskCfg->tmStart.nSecond;
-		break;
 	case TIME_UNIT_MONTH:
 		tStartTime = pTaskCfg->tmStart;
-		nInterv = IntervsPast(tStartTime, tNowTime, TIME_UNIT_MONTH, tiExe.wVal);
+		nInterv = IntervsPast(tStartTime, tNowTime, tiExe.bUnit, tiExe.wVal);
 		if (nInterv > 0)
-			AddIntervs(tStartTime, TIME_UNIT_MONTH, nInterv*tiExe.wVal);	//起始时间按间隔归整
+			AddIntervs(tStartTime, tiExe.bUnit, nInterv*tiExe.wVal);	//起始时间按间隔归整		
 
 		if (tStartTime.nDay > DaysOfMonth(tStartTime))
 			tStartTime.nDay = DaysOfMonth(tStartTime);
 
 		tEndTime = tStartTime;
-		AddIntervs(tEndTime, TIME_UNIT_MONTH, tiExe.wVal);
+		AddIntervs(tEndTime, tiExe.bUnit, tiExe.wVal);
 		if (tEndTime.nDay > DaysOfMonth(tEndTime))
 			tEndTime.nDay = DaysOfMonth(tEndTime);
 
@@ -1371,17 +1364,17 @@ int GetTaskCurExeTime(TTaskCfg* pTaskCfg, DWORD* pdwCurSec, DWORD* pdwStartSec, 
 			return -1;
 	}
 	
-	if (tiExe.bUnit>=TIME_UNIT_SECONDS && tiExe.bUnit<=TIME_UNIT_DAY)
+	if (tiExe.bUnit>=TIME_UNIT_SECONDS && tiExe.bUnit<=TIME_UNIT_MINUTE)//TIME_UNIT_DAY
 	{
 		*pdwCurSec = dwCurSec/dwIntervSec * dwIntervSec;	//间隔起始时间
 		*pdwStartSec = *pdwCurSec + dwDelaySec;	//间隔起始时间+延时时间
 		*pdwEndSec = *pdwCurSec + dwIntervSec;	//间隔结束时间
 
-		if (tiExe.bUnit==TIME_UNIT_HOUR && tiExe.wVal>1)	//间隔单位为小时且间隔大于1时，间隔起始和结束时间需把基准时间里的小时加上
-		{
-			*pdwStartSec += (tDayStartTime.nHour*60*60+tDayStartTime.nMinute*60+tDayStartTime.nSecond);
-			*pdwEndSec  += (tDayStartTime.nHour*60*60+tDayStartTime.nMinute*60+tDayStartTime.nSecond);
-		}
+		//if (tiExe.bUnit==TIME_UNIT_HOUR && tiExe.wVal>1)	//间隔单位为小时且间隔大于1时，间隔起始和结束时间需把基准时间里的小时加上
+		//{
+		//	*pdwStartSec += (tDayStartTime.nHour*60*60+tDayStartTime.nMinute*60+tDayStartTime.nSecond);
+		//	*pdwEndSec  += (tDayStartTime.nHour*60*60+tDayStartTime.nMinute*60+tDayStartTime.nSecond);
+		//}
 	}
 	else
 	{

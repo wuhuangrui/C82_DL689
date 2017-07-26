@@ -645,7 +645,7 @@ int DL645V07AskItem(struct TMtrPro* pMtrPro, WORD wID, BYTE* pbBuf)
 					if (bNum == 5) //电量、需量、需量时间之类的数据
 					{
 						if (iRv<0 && i==0) //如果第一个子ID就不支持，则块ID视作不支持
-							return -1;
+							return -2;
 						else
 							iLen = wIdLen;
 						break;
@@ -661,7 +661,7 @@ int DL645V07AskItem(struct TMtrPro* pMtrPro, WORD wID, BYTE* pbBuf)
 								if ( bfind ) //表示总已经回OK了
 									iLen = wIdLen;
 								else
-									return -1;
+									return -2;
 							}
 							else
 								iLen = wIdLen;
@@ -826,6 +826,10 @@ bool DL645V07RcvBlock(struct TMtrPro* pMtrPro, void* pTmpInf, BYTE* pbBlock, DWO
 	TV07Tmp* pTmpV07 = (TV07Tmp* )pTmpInf;
 	BYTE* pbRxBuf = pMtrPro->pbRxBuf; 
 	BYTE* pbTxBuf = pMtrPro->pbTxBuf; 
+
+#ifdef FRM_SEG_FLG
+	memset((BYTE*)pTmpV07, 0, sizeof(TV07Tmp));
+#endif
 
 	for ( ; dwLen; dwLen--)
 	{
@@ -1425,7 +1429,7 @@ int DL645V07AskItem1(struct TMtrPro* pMtrPro, TV07Tmp* pTmpV07, WORD wID, BYTE* 
 		return 0;
 	
 	if ( !DL645toDL645V07(pMtrPara->wPn, wTmpId, &tItem) ) 
-		return -1;
+		return -2;
 	
 	memset(mBuf, 0, MTR_FRM_SIZE);
 
@@ -2018,9 +2022,23 @@ int DL645V07AskItemErc(struct TMtrPro* pMtrPro, DWORD dwOAD, BYTE* pbData, BYTE*
 	iRet = DL645V07ProIdTxRx(pMtrPro, pErcRdCtrl->dwErcNumID, mBuf);
 	if (iRet > 0)
 		dwCurVal = BcdToDWORD(mBuf, iRet);
+	else if (iRet == 0)
+		return iRet;
 
 	if (dwVal == dwCurVal)
-		return -1;
+	{
+		if (iRet > 0)
+		{
+			pbTmp += 2; //预留存实际长度
+			*pbTmp++ = DT_DB_LONG_U;
+			pbTmp += OoDWordToDoubleLongUnsigned(dwCurVal, pbTmp);
+			iRet = pbTmp - pbData - 2;
+			memcpy(pbData, &iRet, 2);
+			return iRet+2;
+		}
+		else
+			return iRet;
+	}
 
 	bRcsdNum = *pbRCSD++;
 	pbRCSD += 5;
@@ -2179,7 +2197,6 @@ int DL645V07AskItemErc(struct TMtrPro* pMtrPro, DWORD dwOAD, BYTE* pbData, BYTE*
 
 WORD GetCurveData(Toad645Map tOad645Map, BYTE* pbSrcBuf, BYTE* pbDstBuf)
 {
-	int iRet = -1;
 	BYTE bBuf[64];
 
 	memset(bBuf, INVALID_DATA, sizeof(bBuf));
@@ -2190,7 +2207,6 @@ WORD GetCurveData(Toad645Map tOad645Map, BYTE* pbSrcBuf, BYTE* pbDstBuf)
 	case 0x3703:
 	case 0x3704:
 		memcpy(bBuf, pbSrcBuf+(tOad645Map.wID-0x3701)*4, 4);
-		iRet = 20;
 		break;
 
 	case 0x3745:
@@ -2198,32 +2214,26 @@ WORD GetCurveData(Toad645Map tOad645Map, BYTE* pbSrcBuf, BYTE* pbDstBuf)
 	case 0x3747:
 	case 0x3748:
 		memcpy(bBuf, pbSrcBuf+(tOad645Map.wID-0x3745)*4, 4);
-		iRet = 20;
 		break;
 
 	case 0x3705:
 		memcpy(bBuf, pbSrcBuf, 8);
-		iRet = 8;
 		break;
 
 	case 0x3681:
 		memcpy(bBuf, pbSrcBuf, 12);
-		iRet = 12;
 		break;
 
 	case 0x3685:
 		memcpy(bBuf, pbSrcBuf+12, 12);
-		iRet = 12;
 		break;
 
 	case 0x3689:
 		memcpy(bBuf, pbSrcBuf, 6);
-		iRet = 6;
 		break;
 
 	case 0x3692:
 		memcpy(bBuf, pbSrcBuf+6, 9);
-		iRet = 9;
 		break;
 
 	default:
@@ -2258,7 +2268,7 @@ int DL645V07AskItemCurve(struct TMtrPro* pMtrPro, TV07Tmp* pTmpV07, DWORD dwOAD,
 
 	wID = pOad645Map->wID;
 	if ( !DL645toDL645V07(pMtrPara->wPn, wID, &tItem) ) 
-		return -1;
+		return -2;
 
 	if (!IsAllAByte(pbCurve, 0, MTR_FRM_SIZE))
 	{
@@ -2429,7 +2439,7 @@ int DL645V07AskItemRecord(struct TMtrPro* pMtrPro, DWORD dwOAD,  BYTE* pbData, B
 						dwRelaOAD += 0x12;
 					//else	//电能需量类ID映射
 					//	dwRelaOAD += 0x2;
-					
+
 					iRet = DL645V07AskItemCurve(pMtrPro, &tTmpV07, dwRelaOAD, pbTmp);
 				}
 				else
@@ -2481,7 +2491,7 @@ int DL645V07AskItemRecord(struct TMtrPro* pMtrPro, DWORD dwOAD,  BYTE* pbData, B
 		break;
 
 	default:
-		return -1;
+		return -2;
 	}
 
 	return pbTmp - pbData;
@@ -2512,19 +2522,21 @@ int DL645V07AskItemEx(struct TMtrPro* pMtrPro, BYTE bRespType, DWORD dwOAD,  BYT
 	if (bRespType == 1) //读实时数据
 	{
 		iRet = DL645V07AskItem(pMtrPro, pOad645Map->wID, bBuf);
-
-		if (pOad645Map->wID == 0xc010)
+		if (iRet >0)
 		{
-			BYTE bTmpBuf[10];
-			if (iRet > 0)
-				memcpy(&bTmpBuf[3], bBuf+1, iRet-1);
-			iRet += DL645V07AskItem(pMtrPro, 0xc011, bTmpBuf);
-			TTime tm;
-			Fmt1ToTime(bTmpBuf, tm);
-			pbData[0] = DT_DATE_TIME_S;
-			iRet = 1;
-			iRet += OoTimeToDateTimeS(&tm, pbData+1);
-			return iRet;
+			if (pOad645Map->wID == 0xc010)
+			{
+				BYTE bTmpBuf[10];
+				if (iRet > 0)
+					memcpy(&bTmpBuf[3], bBuf+1, iRet-1);
+				iRet += DL645V07AskItem(pMtrPro, 0xc011, bTmpBuf);
+				TTime tm;
+				Fmt1ToTime(bTmpBuf, tm);
+				pbData[0] = DT_DATE_TIME_S;
+				iRet = 1;
+				iRet += OoTimeToDateTimeS(&tm, pbData+1);
+				return iRet;
+			}
 		}
 
 		if (iRet > 0)
@@ -2537,7 +2549,7 @@ int DL645V07AskItemEx(struct TMtrPro* pMtrPro, BYTE bRespType, DWORD dwOAD,  BYT
 		return DL645V07AskItemRecord(pMtrPro, dwOAD, pbData, pbRSD, bLenRSD, pbRCSD, bLenRCSD);
 	}
 
-	return -1;
+	return iRet;
 }
 
 

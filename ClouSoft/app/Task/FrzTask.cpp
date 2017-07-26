@@ -365,7 +365,7 @@ bool InitTask(bool fInit)
 	
 	if (fInit)
 	{
-		memset(g_FrzCtrl, 0, sizeof(g_FrzCtrl));	//只有上电才初始化，避免任务存储位置变化
+		memset(g_FrzCtrl, 0, sizeof(g_FrzCtrl));	//上电或数据区初始化(需要重新建表时)，避免任务存储位置变化
 
 		for (wPn=0; wPn<FRZ_TASK_NUM; wPn++)
 		{

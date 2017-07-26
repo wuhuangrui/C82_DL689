@@ -152,22 +152,7 @@ BYTE g_bRptFlowFlg[] = {DT_BOOL};	//电气设备——允许跟随上报
 BYTE g_bRptFlg[] = {DT_BOOL};	//电气设备——允许主动上报
 BYTE g_bMastCall[] = {DT_BOOL};	//电气设备——允许与主站通话
 BYTE g_bMasRptCn[] = {DT_ARRAY, CN_RPT_NUM, DT_OAD};	//电气设备——上报通道，hyl目前0x430a的空间是按CN_RPT_NUM开的，为17个字节
-/*
-DT_ARRAY,0x04, 
-    DT_STRUCT,0x02,
-        DT_OI,
-        DT_STRUCT, 0x02, 
-            DT_ARRAY, 0x04, 
-                DT_STRUCT, 0x02,DT_UNSIGN,DT_ENUM,
-                DT_STRUCT, 0x02,DT_UNSIGN,DT_ENUM,
-                DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,
-                DT_STRUCT, 0x02,DT_UNSIGN, DT_ENUM,
-            DT_ARRAY, 0x04, 
-                DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,
-                DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,
-                DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,
-                DT_STRUCT, 0x02,DT_UNSIGN, DT_BOOL,	
-*/
+
 
 BYTE g_bApplyConnectObList[] = {DT_ARRAY,0x04,
     DT_STRUCT,0x02,
@@ -4465,11 +4450,11 @@ int DoDevInterfaceClass19(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, in
 		SetInfo(INFO_CLASS19_METHOD_EXE);
 		break;
 	case 0x43000300:	//设备接口类19--数据初始化
-		SetInfo(INFO_CLASS19_METHOD_DATA_INIT);
+		SetDelayInfo(INFO_CLASS19_METHOD_DATA_INIT);
 		break;
 	case 0x43000400:	//设备接口类19--恢复出厂参数
 		//将需要保留的参数做成配置文件
-        ReSetParamKeepSaveFile(pbPara);		
+        g_pmParaMgr.ReSetParamKeepSaveFile(pbPara);		
 		SetInfo(INFO_CLASS19_METHOD_RST_FACT_PARA);
 		break;
 	case 0x43000500:	//设备接口类19--事件初始化
@@ -4574,7 +4559,7 @@ int DoClass11Method127_AddMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 		{
 			SetMtrSnToPn(wPn, wSn);
 			TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
-			SetDelayInfo(INFO_MTR_INFO_UPDATE);
+			SetDelayInfo(INFO_MTR_UPDATE);
 		}
 		
 #ifdef EN_SBJC_V2_CVTEXTPRO
@@ -4690,6 +4675,7 @@ int DoClass11Method129_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 		return 1;
 	}
 
+	DTRACE(DB_FAPROTO, ("Update meter failed.\n"));
 	return -1;
 }
 
@@ -4737,13 +4723,13 @@ int DoClass11Method130_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 	
 	if (SetMeterInfo(wPn, tMtrInfo))
 	{
+		DTRACE(DB_FAPROTO, ("Update meter successful.\n"));
 		pbRes[0] = DAR_SUCC;
 		return 1;
 	}
 
-	TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
 
-	DTRACE(DB_FAPROTO, ("Update meter successful.\n"));
+	DTRACE(DB_FAPROTO, ("Update meter failed.\n"));
 
 	return -1;
 }
@@ -5087,21 +5073,35 @@ int AddCommonMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 		pbPara += iLen;
 	
 		if (fSameData)
-			DTRACE(DB_FAPROTO, ("AddCommonMethod127(): Same param TableName=%s.\n", pszTabName));
+			DTRACE(DB_FAPROTO, ("AddCommonMethod127(): Same param TableName=%s, fSameData=%d.\n", pszTabName, fSameData));
+		else
+			DTRACE(DB_FAPROTO, ("AddCommonMethod127(): Add  TableName=%s, fSameData=%d.\n", pszTabName, fSameData));
 
 		if (wOI==0x6012)
 		{
 			if (!fSameData)
 			{
+				SetSchUpdateMask(wOI, bId);
 				SetDelayInfo(INFO_TASK_CFG_UPDATE);
+				DTRACE(DB_FAPROTO, ("AddCommonMethod127(): Setinfo INFO_TASK_CFG_UPDATE.\n"));
 			}
 		}
-		else if (wOI==0x6014 || wOI==0x6016 || wOI==0x601C|| wOI==0x6051)
+		else if (wOI==0x6014 || wOI==0x6016 || wOI==0x6051)
 		{
 			if (!fSameData)
 			{
 				SetSchUpdateMask(wOI, bId);
 				SetDelayInfo(INFO_ACQ_SCH_UPDATE);
+				DTRACE(DB_FAPROTO, ("AddCommonMethod127(): Setinfo INFO_ACQ_SCH_UPDATE.\n"));
+			}
+		}
+		else if (wOI == 0x601C)
+		{
+			if (!fSameData)
+			{
+				SetSchUpdateMask(wOI, bId);
+				SetDelayInfo(INFO_RP_SCH_UPDATE);
+				DTRACE(DB_FAPROTO, ("AddCommonMethod127(): Setinfo INFO_RP_SCH_UPDATE.\n"));
 			}
 		}
 	}
@@ -5138,6 +5138,7 @@ int DelCommonMethod128(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 		bId = *pbPara0++;
 		memset(pszTabName, 0, sizeof(pszTabName));
 		sprintf(pszTabName, "%s_%03d.para", (char*)pvAddon, bId);
+		DTRACE(DB_FAPROTO, ("DelCommonMethod128(): Delete TableName=%s.\n", pszTabName));
 		if ((fd=TdbOpenTable(pszTabName, O_RDWR|O_BINARY)) < 0)
 		{
 			TdbCloseTable(fd);
@@ -5159,16 +5160,25 @@ int DelCommonMethod128(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 		}
 		pbPara0 += wLen;
 
-		DTRACE(DB_FAPROTO, ("DelCommonMethod128(): Delete TableName=%s.\n", pszTabName));
+		
 
 		if (wOI==0x6012)
 		{
+			SetSchUpdateMask(wOI, bId);
 			SetDelayInfo(INFO_TASK_CFG_UPDATE);
+			DTRACE(DB_FAPROTO, ("DelCommonMethod128(): SetInfo INFO_TASK_CFG_UPDATE.\n"));
 		}
-		else if (wOI==0x6014 || wOI==0x6016 || wOI==0x6051 || wOI==0x601c)
+		else if (wOI==0x6014 || wOI==0x6016 || wOI==0x6051)
 		{
 			SetSchUpdateMask(wOI, bId);
 			SetDelayInfo(INFO_ACQ_SCH_UPDATE);
+			DTRACE(DB_FAPROTO, ("DelCommonMethod128(): SetInfo INFO_ACQ_SCH_UPDATE.\n"));
+		}
+		else if (wOI == 0x601C)
+		{
+			SetDelayInfo(INFO_RP_SCH_UPDATE);
+			SetSchUpdateMask(wOI, bId);
+			DTRACE(DB_FAPROTO, ("DelCommonMethod128(): Setinfo INFO_RP_SCH_UPDATE.\n"));
 		}
 	}
 
@@ -5184,34 +5194,50 @@ int ClrCommonMethod129(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 
 	//DelSchData();
 
+
 	for (WORD wIndex=1; wIndex<TASK_NUM; wIndex++)
 	{
 		memset(pszTabName, 0, sizeof(pszTabName));
 		sprintf(pszTabName, "%s_%03d.para", pvAddon, wIndex);
 		TdbClearRec(pszTabName); 
+		/* 下面通过发消息清除对应的数据
 		if (wOI > 0x6012)
 		{
 			sprintf(pszTabName, "%s_%03d.dat", pvAddon, wIndex);
 			TdbClearRec(pszTabName); 
 		}
+		*/
 		DTRACE(DB_FAPROTO, ("ClrCommonMethod129: wOI=0x%04x, pszTabName:%s.\n", wOI, pszTabName));
 
-		if (wOI==0x6012)
+		
+		if (wOI==0x6014 || wOI==0x6016 || wOI==0x6051)
 		{
-			SetDelayInfo(INFO_TASK_CFG_UPDATE);
-		}
-		else if (wOI==0x6014 || wOI==0x6016 || wOI==0x6051)
-		{
-			SetDelayInfo(INFO_ACQ_SCH_UPDATE);
 			SetSchUpdateMask(wOI, wIndex);
 		}
 		else if (wOI==0x601C)
 		{
-			SetDelayInfo(INFO_RP_SCH_UPDATE);
-			SetSchUpdateMask(wOI, wIndex);
+			//SetSchUpdateMask(wOI, wIndex);	//上报方案更新，不需要清除其它方案数据
 		}
 	}
 
+	if (wOI==0x6012)
+	{
+		SetInfo(INFO_UPD_MTR_CTRL);	//为了满足电科院台体测试
+		SetDelayInfo(INFO_TASK_CFG_UPDATE);
+		DTRACE(DB_FAPROTO, ("ClrCommonMethod129: SetInfo INFO_TASK_CFG_UPDATE.\r\n"));
+
+	}
+	else if (wOI==0x6014 || wOI==0x6016 || wOI==0x6051)
+	{
+		SetInfo(INFO_UPD_MTR_CTRL);	//为了满足电科院台体测试
+		SetDelayInfo(INFO_ACQ_SCH_UPDATE);
+		DTRACE(DB_FAPROTO, ("ClrCommonMethod129: SetInfo INFO_ACQ_SCH_UPDATE.\r\n"));
+	}
+	else if (wOI==0x601C)
+	{
+		SetDelayInfo(INFO_RP_SCH_UPDATE);
+		DTRACE(DB_FAPROTO, ("ClrCommonMethod129: SetInfo INFO_RP_SCH_UPDATE.\r\n"));
+	}
 
 
 	return 0;
@@ -6427,95 +6453,7 @@ int ResetStatAll(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLe
 	return 0;
 }
 
-// 参数初始化时，将需要保持的OAD 存盘
-int ReSetParamKeepSaveFile(BYTE* pbPara)
-{
-    BYTE bOADNum = 0;
-    TApduInfo tApduInfo;
-    int iStart = -1;
-    BYTE bBuf[2048];
-    BYTE bBufFileHead[16];
-    int iReadLen = 0;
-    DWORD dwOffSet = 0;
-    
-    if (*pbPara++ == DT_ARRAY) // 数组
-    {
-        bBufFileHead[0] = DT_ARRAY;
-        bOADNum = *pbPara++; // 数组元素个数
-        bBufFileHead[1] = bOADNum;
-        PartWriteFile(USER_PARA_PATH "KeepOAD.dat", 0, bBufFileHead, 2);
-        dwOffSet+=2;
-        for(int i=0; i<bOADNum;i++)
-        {
-            if(*pbPara++==DT_OAD)
-            {
-                bBuf[0] = DT_OAD;
-                memcpy(bBuf+1, pbPara,4);  // OAD
-                tApduInfo.wOI = OoOiToWord(pbPara);
-        		pbPara += 2;
-        		tApduInfo.bAttr = *pbPara++;
-        		tApduInfo.bIndex = *pbPara++;       
-                iReadLen = OoProReadAttr(tApduInfo.wOI, tApduInfo.bAttr, tApduInfo.bIndex, bBuf+7, sizeof(bBuf)-7, &iStart);
-                if(iReadLen>0)
-                {
-                    WordToByte((WORD)iReadLen, bBuf+5);                    
-                }
-                else
-                {
-                    iReadLen = 0;
-                    WordToByte((WORD)iReadLen, bBuf+5);
-                }
-                PartWriteFile(USER_PARA_PATH "KeepOAD.dat", dwOffSet, bBuf, iReadLen+7);
-                dwOffSet += iReadLen+7;
-            }            
-        }
-    }
 
-    return 0;
-}
 
-// 参数初始化后，将需要保持的OAD写入bank及文件
-int ReSetParamKeepReadFile()
-{
-    BYTE bOADNum = 0;
-    TApduInfo tApduInfo;
-    int iStart = -1;
-    BYTE bBuf[2048];
-    BYTE bBufFileHead[16];
-    WORD wReadLen = 0;
-    DWORD dwOffSet = 0;
-    bool fIsOk = false;
 
-    fIsOk = PartReadFile(USER_PARA_PATH "KeepOAD.dat", 0, bBufFileHead, 2);
-    dwOffSet+=2;
-
-    if (fIsOk  && bBufFileHead[0] == DT_ARRAY) // 数组
-    {
-        bOADNum = bBufFileHead[1]; // 数组元素个数        
-        
-        for(int i=0; i<bOADNum;i++)
-        {
-            fIsOk = PartReadFile(USER_PARA_PATH "KeepOAD.dat", dwOffSet, bBuf, 7);
-            dwOffSet += 7;
-            if(fIsOk && bBuf[0] ==DT_OAD)
-            {
-                tApduInfo.wOI = OoOiToWord(bBuf+1);
-        		tApduInfo.bAttr = bBuf[3];
-        		tApduInfo.bIndex = bBuf[4];                  
-                wReadLen = ByteToWord(bBuf+5);
-
-                fIsOk = PartReadFile(USER_PARA_PATH "KeepOAD.dat", dwOffSet, bBuf, wReadLen);
-                dwOffSet += wReadLen;
-                if(fIsOk)
-                {
-                    OoProWriteAttr(tApduInfo.wOI, tApduInfo.bAttr, tApduInfo.bIndex, bBuf, wReadLen, &iStart);
-                }                
-            }            
-        }
-    }
-
-    DeleteFile(USER_PARA_PATH "KeepOAD.dat");   
-
-    return 0;
-}
 

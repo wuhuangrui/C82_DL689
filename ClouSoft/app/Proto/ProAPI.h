@@ -116,6 +116,7 @@ void GprsDisConnect();
 extern WORD readSignal(void);
 TThreadRet LinkThread(void* pvPara);
 TThreadRet StdProtoThread(void* pvArg);
+TThreadRet GprsSmsThread(void* pvArg);
 TThreadRet StdProRptThread(void* pvArg);
 TThreadRet SockSvrThread(void* pvArg);
 TThreadRet DoMasterThread(void* pvArg);

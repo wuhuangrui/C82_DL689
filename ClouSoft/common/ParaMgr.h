@@ -39,6 +39,8 @@ public:
     virtual ~CParaMgr();
     int LoadPara(char* szFileName);
     bool Parse(void);
+	int ReSetParamKeepSaveFile(BYTE* pbPara);
+	int ReSetParamKeepReadFile();
 	int OobParaTrans(char* pUserDir, BYTE opt, BYTE* pbPara);//转存关键参数到面向对象协议DFT文件
     bool SwitchToOob(BYTE* pbPara);
     bool SwitchTo13761(BYTE* pbPara);

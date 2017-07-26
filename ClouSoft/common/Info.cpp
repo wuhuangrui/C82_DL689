@@ -63,7 +63,7 @@ void SetDelayInfo(WORD wID)
 		if (wID < INFO_NO_DELAY_START)
 			g_bInfoDelayFlg[wID/8] |= 1 << (wID%8);
 		else if (wID==INFO_MTR_ALL_CLEAR || wID==INFO_TASK_CFG_UPDATE || wID==INFO_ACQ_SCH_UPDATE ||
-			wID==INFO_RP_SCH_UPDATE || wID==INFO_CLASS19_METHOD_DATA_INIT || wID==INFO_MTR_INFO_UPDATE)
+			wID==INFO_RP_SCH_UPDATE || wID==INFO_CLASS19_METHOD_DATA_INIT || wID==INFO_MTR_UPDATE)
 			g_bInfoDelayFlg[wID/8] |= 1 << (wID%8);
 		
 		SignalSemaphore(g_semInfo);
@@ -100,7 +100,7 @@ bool GetInfo(WORD wID)
 						fRet = true;
 				}
 				else if (wID==INFO_MTR_ALL_CLEAR || wID==INFO_TASK_CFG_UPDATE || wID==INFO_ACQ_SCH_UPDATE ||
-					wID==INFO_RP_SCH_UPDATE || wID==INFO_CLASS19_METHOD_DATA_INIT || wID==INFO_MTR_INFO_UPDATE)
+					wID==INFO_RP_SCH_UPDATE || wID==INFO_CLASS19_METHOD_DATA_INIT || wID==INFO_MTR_UPDATE)
 				{
 					if (dwClick-g_dwInfoClick > INFO_SHORT_DELAY) //等到长延时时间到才把消息给应用线程
 						fRet = true;

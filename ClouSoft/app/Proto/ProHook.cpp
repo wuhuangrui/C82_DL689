@@ -153,16 +153,17 @@ void ProThrdHook(CProtoIf* pIf, CProto* pProto)
 void UpdModemInfo(TModemInfo* pModemInfo)
 {
 	DWORD dwOAD;
-	BYTE bBuf[128];
+	BYTE bBuf[128] = {0};
+	BYTE bTmpBuf[128] = {0};
 	BYTE *p = bBuf;
 	BYTE bChannel = 0;
+	int iLen;
 
 	if (pModemInfo != NULL)	//先判断是否为空指针
 	{
 		ReadItemEx(BANK17, PN0, 0x6010, &bChannel);
 		dwOAD = 0x45000500 + bChannel*0x00010000;
 
-		memset(bBuf, 0, sizeof(bBuf));
 		*p++ = DT_STRUCT;
 		*p++ = 0x06;
 		*p++ = DT_VIS_STR;
@@ -189,28 +190,40 @@ void UpdModemInfo(TModemInfo* pModemInfo)
 		*p++ = 0x08;
 		memset(p, '0', 8);
 		p += 8;
-		WriteItemEx(BN0, bChannel, 0x4503, bBuf);
+
+		iLen = ReadItemEx(BN0, bChannel, 0x4503, bTmpBuf);
+		if (iLen>0 && memcmp(bTmpBuf, bBuf, iLen))
+			WriteItemEx(BN0, bChannel, 0x4503, bBuf);
 
 		TraceBuf(DB_FAPROTO, "UpdModemInfo:", bBuf, p-bBuf);
 
 		memset(bBuf, 0, sizeof(bBuf));
+		memset(bTmpBuf, 0, sizeof(bTmpBuf));
 		p = bBuf;
 		*p++ = DT_VIS_STR;
 		*p++ = 20;
 		memcpy(p, pModemInfo->bCCID, 20);
-		WriteItemEx(BN0, bChannel, 0x4505, bBuf);
+
+		iLen = ReadItemEx(BN0, bChannel, 0x4505, bTmpBuf);
+		if (iLen>0 && memcmp(bTmpBuf, bBuf, iLen))
+			WriteItemEx(BN0, bChannel, 0x4505, bBuf);
 	}
 }
 
 void UpdSIMNum(TModemInfo* pModemInfo)
 {
-	BYTE bChannel = 0, bBuf[20];
+	BYTE bChannel = 0, bBuf[20] = {0};
 	
 	if (pModemInfo == NULL)	//先判断是否为空指针
 		return;
-	memset(bBuf, 0, sizeof(bBuf));
-	//WriteItemEx(BN2, PN0, 0x2057, (BYTE *)pModemInfo->bCNUM);
+
 	ReadItemEx(BANK17, PN0, 0x6010, &bChannel);
+
+	ReadItemEx(BN0, bChannel, 0x4508, bBuf);
+	if (!memcmp(&bBuf[2], pModemInfo->bCNUM, 16))	//相同不刷新
+		return;
+
+	memset(bBuf, 0, sizeof(bBuf));
 	bBuf[0] = DT_VIS_STR;
 	bBuf[1] = 16;
 	memcpy(&bBuf[2], pModemInfo->bCNUM, 16);
@@ -219,13 +232,17 @@ void UpdSIMNum(TModemInfo* pModemInfo)
 
 void UpdSIMCIMI(BYTE* pbBuf)
 {
-	BYTE bChannel = 0, bBuf[20];
+	BYTE bChannel = 0, bBuf[20] = {0};
 	if (pbBuf == NULL)	//先判断是否为空指针
 		return;
 	
-	memset(bBuf, 0, sizeof(bBuf));
-	//WriteItemEx(BN2, PN0, 0x2109, pbBuf);
 	ReadItemEx(BANK17, PN0, 0x6010, &bChannel);
+
+	ReadItemEx(BN0, bChannel, 0x4506, bBuf);
+	if (!memcmp(&bBuf[2], pbBuf, 15))	//相同不刷新
+		return;
+
+	memset(bBuf, 0, sizeof(bBuf));
 	bBuf[0] = DT_VIS_STR;
 	bBuf[1] = 15;
 	memcpy(&bBuf[2], pbBuf, 15);

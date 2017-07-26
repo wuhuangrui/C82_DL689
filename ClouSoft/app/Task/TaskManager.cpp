@@ -732,6 +732,7 @@ bool UpdateTaskMoniStat(BYTE bTaskId, BYTE bIndex, void* pbData, WORD wDataLen)
 
 bool DoTaskSwitch(TMtrRdCtrl* pMtrRdCtrl)
 {
+	bool fSwitch = false;
 	TTime tmNow, tTime;
 	int iLen, iSchLen;
 	BYTE i, j, k, bType;
@@ -840,11 +841,12 @@ bool DoTaskSwitch(TMtrRdCtrl* pMtrRdCtrl)
 					pbSch = GetSchCfg(&tTaskCfg, &iSchLen);
 					if (pbSch != NULL)
 					{
-						if (iLen<0 && pMtrRdCtrl->taskSucFlg[i].bRecSaved!=TASK_DATA_FULL && tTaskCfg.bSchType==SCH_TYPE_COMM)
+						if (iLen<0 && pMtrRdCtrl->taskSucFlg[i].bRecSaved==TASK_DATA_PART && tTaskCfg.bSchType==SCH_TYPE_COMM)
 						{
 							if (SaveTaskDataToDB(pMtrRdCtrl, MEM_TYPE_TASK, &(pMtrRdCtrl->taskSucFlg[i]))) //强制入库  可以考虑不再强制入库，因为第一回抄到会存一笔
 								pMtrRdCtrl->taskSucFlg[i].bRecSaved = TASK_DATA_FULL;
 						}
+						fSwitch = true;
 						pMtrRdCtrl->taskSucFlg[i].bRecSaved = TASK_DATA_NONE;
 						pMtrRdCtrl->taskSucFlg[i].iRecPhyIdx = 0;
 						pMtrRdCtrl->taskSucFlg[i].dwTime = dwCurSec;
@@ -888,11 +890,12 @@ bool DoTaskSwitch(TMtrRdCtrl* pMtrRdCtrl)
 		}
 	}
 
-	return true;
+	return fSwitch;
 }
 
 void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModified)
 {
+	int iRet;
 	BYTE bBuf[128];
 	DWORD *pdwOAD, dwOAD;
 	WORD *pwDataLen, *pInID, wCSDLen, wNum, wFailCnt = 0;
@@ -909,20 +912,31 @@ void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 	{
 		InitMtrTmpData(&pMtrRdCtrl->mtrTmpData, pdwOAD, pwDataLen, wNum);
 		pMtrRdCtrl->mtrTmpData.dwTime = dwSec;
+		*pfModified = true; //间隔时标变化也要保存
 	}
 
 	for (WORD wIndex=0; wIndex<wNum; wIndex++)
 	{
+		if ((iRet=GetRdMtrState(pMtrPro->bThrId)) != RD_ERR_OK)
+		{
+			DTRACE(DB_METER, ("DoFixTask: GetRdMtrState iRet = %d\r\n", iRet));
+			return ; //直抄状态或停止抄表状态退出
+		}
+
 		if (GetMtrItemMem(&pMtrRdCtrl->mtrTmpData, pdwOAD[wIndex], bBuf) < 0)
 		{
-			int iRet = AskMtrItem(pMtrPro, 1, pdwOAD[wIndex], bBuf);
+			iRet = AskMtrItem(pMtrPro, 1, pdwOAD[wIndex], bBuf);
 			if (iRet > 0)	//抄表正常
 			{
 				dwOAD = OoOadToDWord((BYTE *)&pdwOAD[wIndex]);
 				wCSDLen = OoGetDataLen(DT_OAD, (BYTE *)&dwOAD);
-				SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, pdwOAD[wIndex], bBuf, wCSDLen);
+				if (SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, pdwOAD[wIndex], bBuf, wCSDLen))
+				{
+					SaveMtrDataHook(dwOAD, &pMtrRdCtrl->mtrExcTmp, 0);
+					*pfModified = true; //测量点数据已修改
+				}
+
 				WriteItemEx(BN0, wPn, pInID[wIndex], bBuf);
-				*pfModified = true; //测量点数据已修改
 				wFailCnt = 0;
 				if (IsMtrErr(wPn))
 				{
@@ -947,7 +961,12 @@ void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 				dwOAD = OoOadToDWord((BYTE *)&pdwOAD[wIndex]);
 				wCSDLen = OoGetDataLen(DT_OAD, (BYTE *)&dwOAD);
 				memset(bBuf, INVALID_DATA, sizeof(bBuf));
-				SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, pdwOAD[wIndex], bBuf, wCSDLen);
+				if (SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, pdwOAD[wIndex], bBuf, wCSDLen))
+				{				
+					SaveMtrDataHook(dwOAD, &pMtrRdCtrl->mtrExcTmp, 0);
+					*pfModified = true; //测量点数据已修改
+				}
+
 				UpdItemErr(BN0, wPn, pInID[wIndex], ERR_ITEM, GetCurTime());
 			}
 		}
@@ -962,9 +981,15 @@ int DoTask(WORD wPn, TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, bool* pfModified)
 	TRdItem tRdItem;
 	BYTE bTryCnt = 0;
 
-	DoTaskSwitch(pMtrRdCtrl);
+	*pfModified = DoTaskSwitch(pMtrRdCtrl);
 	while ((iRet=SearchAnUnReadID(GetPnCn(wPn), wPn, pMtrRdCtrl, &tRdItem)) > 0)
 	{
+		if ((iRet=GetRdMtrState(pMtrPro->bThrId)) != RD_ERR_OK)
+		{
+			DTRACE(DB_METER, ("DoTask: GetRdMtrState iRet = %d\r\n", iRet));
+			return iRet; //直抄状态或停止抄表状态退出
+		}
+
 		memset(bBuf, 0, sizeof(bBuf));
 		if ((tRdItem.dwOAD&0xff000000) == 0x30000000)
 		{
@@ -1015,7 +1040,8 @@ int DoTask(WORD wPn, TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, bool* pfModified)
 		}
 		else if (iRet == -2)
 		{
-			int iLen = OoGetDataLen(DT_OAD, (BYTE *)&tRdItem.dwOAD); //ROAD直接取主OAD的长度
+			OoDWordToOad(tRdItem.dwOAD, bBuf);
+			int iLen = OoGetDataLen(DT_OAD, bBuf); //ROAD直接取主OAD的长度
 			if (iLen > 0)
 			{
 				memset(bBuf, INVALID_DATA, sizeof(bBuf));

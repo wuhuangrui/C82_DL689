@@ -177,7 +177,7 @@ WORD GetMeterInterv()
 	}
 	else
 	{
-		bMeterInterv = 60;
+		bMeterInterv = 60; //抄表间隔小,写文件MtrRdCtrl_Pn*.dat也较频繁
 	}
 
 	if (bMeterInterv==0)
@@ -231,7 +231,6 @@ void InitMtrCacheCtrl()
 	}
 
 	SignalSemaphore(g_semMtrCacheCtrl);
-	
 }
 
 //更新电表缓存控制结构
@@ -246,6 +245,464 @@ void RefreshMtrCacheCtrl()
 	}
 
 	InitMtrCacheCtrl();
+}
+
+//描述：方案修改刷新电表抄读控制结构
+//参数：@bSchNo
+//返回：无
+void SchRefreshMtrRdCtrl(BYTE bSchNo)
+{
+	TTaskCfg tTaskCfg; 
+	int iSchCfgLen;
+	BYTE bType;
+	BYTE* pbMs, *pbArry, *pbSch;
+	WORD wLen, wFmtLen;
+	BYTE *pFmt, *pbCollMode;
+	TTimeInterv tiExe;	 //采集周期
+	BYTE bPnMask[PN_MASK_SIZE];
+	BYTE bBuf[1024];
+	DWORD dwOAD;
+	TMtrPara tMtrPara;
+	TMtrRdCtrl* pMtrRdCtrl;
+
+	for (WORD wIndex=0; wIndex<TASK_NUM; wIndex++)	//遍历任务配置表
+	{
+		memset((BYTE*)&tTaskCfg, 0, sizeof(tTaskCfg));
+		if (GetTaskCfg(wIndex, &tTaskCfg))
+		{
+			if (tTaskCfg.bSchNo == bSchNo)
+			{
+				pbSch = GetSchCfg(&tTaskCfg, &iSchCfgLen);
+				if (pbSch != NULL)
+				{
+					switch (tTaskCfg.bSchType)
+					{
+					case SCH_TYPE_COMM:
+						pFmt = GetSchFmt(tTaskCfg.bSchType, &wFmtLen);
+						pbMs = OoGetField(pbSch, pFmt, wFmtLen, 4, &wLen, &bType);	//MS
+						if (pbMs == NULL)
+							break;
+						memset(bPnMask, 0, sizeof(bPnMask));
+						ParserMsParam(pbMs, bPnMask, sizeof(bPnMask));
+
+						for (WORD wPn=1; wPn<POINT_NUM; wPn++)
+						{
+							if ((bPnMask[wPn/8]&(1<<(wPn%8))) != 0)
+							{
+								pbArry = OoGetField(pbSch, pFmt, wFmtLen, 3, &wLen, &bType);	//array CSD
+								int iLen = OoGetDataLen(bType, pbArry+1);
+								GetMeterPara(wPn, &tMtrPara);
+								pMtrRdCtrl = GetMtrRdCtrl(wPn, tMtrPara.bAddr);
+								if (iLen>0 && pMtrRdCtrl!=NULL)
+								{
+									FreeTmpRec(pMtrRdCtrl, MEM_TYPE_TASK, tTaskCfg.bTaskId);
+								}
+
+								dwOAD = OoOadToDWord(pbArry+4);
+								if (dwOAD == 0x50020200) //分钟曲线数据
+								{
+									pbCollMode = OoGetField(pbSch, pFmt, wFmtLen, 2, &wLen, &bType);	//采集方式
+									bType = pbCollMode[3];
+									tiExe.bUnit = pbCollMode[5];
+									tiExe.wVal = OoLongUnsignedToWord(pbCollMode+6);
+									if (bType==3 /*&& tiExe.bUnit==1*/) //按TI间隔采集
+									{
+										DWORD dwTiMin = TiToSecondes((TTimeInterv*)&tiExe)/60;
+										if (dwTiMin == 0)
+											dwTiMin = 15;
+										wLen = (TiToSecondes((TTimeInterv*)&tTaskCfg.tiExe)/60/dwTiMin + 7)/8; //每间隔占1比特
+										if (wLen>0 && pMtrRdCtrl!=NULL)
+											FreeMem(pMtrRdCtrl->bGlobal, pMtrRdCtrl->allocTab, MTR_TAB_NUM, MEM_TYPE_CURVE_FLG, tTaskCfg.bTaskId);
+									}
+								}
+
+								if (pMtrRdCtrl != NULL)
+								{
+									PutMtrRdCtrl(wPn, tMtrPara.bAddr, false);
+									SaveMtrRdCtrl(wPn, pMtrRdCtrl);
+								}
+							}
+						}
+						break;
+
+					case SCH_TYPE_EVENT:
+						pFmt = GetSchFmt(tTaskCfg.bSchType, &wFmtLen);
+						pbMs = OoGetField(pbSch, pFmt, wFmtLen, 2, &wLen, &bType);	//MS
+						if (pbMs == NULL)
+							break;
+						memset(bPnMask, 0, sizeof(bPnMask));
+						ParserMsParam(pbMs, bPnMask, sizeof(bPnMask));
+
+						for (WORD wPn=1; wPn<POINT_NUM; wPn++)
+						{
+							if ((bPnMask[wPn/8]&(1<<(wPn%8))) != 0)
+							{
+								pbArry = OoGetField(pbSch, pFmt, wFmtLen, 1, &wLen, &bType);	//array CSD
+								pbArry += 4;
+								int iLen = OoGetDataLen(*pbArry, pbArry+1);
+								GetMeterPara(wPn, &tMtrPara);
+								pMtrRdCtrl = GetMtrRdCtrl(wPn, tMtrPara.bAddr);
+								if (iLen>0 && pMtrRdCtrl!=NULL)
+								{
+									FreeTmpRec(pMtrRdCtrl, MEM_TYPE_EVT_ACQ, tTaskCfg.bTaskId);
+								}
+
+								if (pMtrRdCtrl != NULL)
+								{
+									PutMtrRdCtrl(wPn, tMtrPara.bAddr, false);
+									SaveMtrRdCtrl(wPn, pMtrRdCtrl);
+								}
+							}
+						}
+						break;
+
+					case SCH_TYPE_TRANS:
+						break;
+
+					case SCH_TYPE_REPORT:
+						break;
+
+					case SCH_TYPE_SCRIPT:
+						break;
+
+					case SCH_TYPE_REAL:
+						break;
+					}
+				}
+
+				//从方案表读取新的配置
+				memset(bBuf, 0, sizeof(bBuf));
+				if ((iSchCfgLen=GetSchFromTaskDb(tTaskCfg.bSchNo, tTaskCfg.bSchType, bBuf)) <= 0)
+					continue;
+
+				pbSch = bBuf;
+				if (pbSch!=NULL && tTaskCfg.bSchNo==bSchNo)
+				{
+					switch (tTaskCfg.bSchType)
+					{
+					case SCH_TYPE_COMM:
+						pFmt = GetSchFmt(tTaskCfg.bSchType, &wFmtLen);
+						pbMs = OoGetField(pbSch, pFmt, wFmtLen, 4, &wLen, &bType);	//MS
+						if (pbMs == NULL)
+							break;
+						memset(bPnMask, 0, sizeof(bPnMask));
+						ParserMsParam(pbMs, bPnMask, sizeof(bPnMask));
+
+						for (WORD wPn=1; wPn<POINT_NUM; wPn++)
+						{
+							if ((bPnMask[wPn/8]&(1<<(wPn%8))) != 0)
+							{
+								pbArry = OoGetField(pbSch, pFmt, wFmtLen, 3, &wLen, &bType);	//array CSD
+								int iLen = OoGetDataLen(bType, pbArry+1);
+								GetMeterPara(wPn, &tMtrPara);
+								pMtrRdCtrl = GetMtrRdCtrl(wPn, tMtrPara.bAddr);
+								if (iLen>0 && pMtrRdCtrl!=NULL)
+								{
+									AllocTmpRec(pMtrRdCtrl, MEM_TYPE_TASK, &tTaskCfg, *(pbArry+1), iLen);
+								}
+
+								dwOAD = OoOadToDWord(pbArry+4);
+								if (dwOAD == 0x50020200) //分钟曲线数据
+								{
+									pbCollMode = OoGetField(pbSch, pFmt, wFmtLen, 2, &wLen, &bType);	//采集方式
+									bType = pbCollMode[3];
+									tiExe.bUnit = pbCollMode[5];
+									tiExe.wVal = OoLongUnsignedToWord(pbCollMode+6);
+									if (bType==3 /*&& tiExe.bUnit==1*/) //按TI间隔采集
+									{
+										DWORD dwTiMin = TiToSecondes((TTimeInterv*)&tiExe)/60;
+										if (dwTiMin == 0)
+											dwTiMin = 15;
+										wLen = (TiToSecondes((TTimeInterv*)&tTaskCfg.tiExe)/60/dwTiMin + 7)/8; //每间隔占1比特
+										if (wLen>0 && pMtrRdCtrl!=NULL)
+											AllocMem(pMtrRdCtrl->bGlobal, pMtrRdCtrl->allocTab, MTR_TAB_NUM, MEM_TYPE_CURVE_FLG, tTaskCfg.bTaskId, wLen);
+									}
+								}
+
+								if (pMtrRdCtrl != NULL)
+								{
+									PutMtrRdCtrl(wPn, tMtrPara.bAddr, false);
+									SaveMtrRdCtrl(wPn, pMtrRdCtrl);
+								}
+							}
+						}
+						break;
+
+					case SCH_TYPE_EVENT:
+						pFmt = GetSchFmt(tTaskCfg.bSchType, &wFmtLen);
+						pbMs = OoGetField(pbSch, pFmt, wFmtLen, 2, &wLen, &bType);	//MS
+						if (pbMs == NULL)
+							break;
+						memset(bPnMask, 0, sizeof(bPnMask));
+						ParserMsParam(pbMs, bPnMask, sizeof(bPnMask));
+
+						for (WORD wPn=1; wPn<POINT_NUM; wPn++)
+						{
+							if ((bPnMask[wPn/8]&(1<<(wPn%8))) != 0)
+							{
+								pbArry = OoGetField(pbSch, pFmt, wFmtLen, 1, &wLen, &bType);	//array CSD
+								pbArry += 4;
+								int iLen = OoGetDataLen(*pbArry, pbArry+1);
+								GetMeterPara(wPn, &tMtrPara);
+								pMtrRdCtrl = GetMtrRdCtrl(wPn, tMtrPara.bAddr);
+								if (iLen>0 && pMtrRdCtrl!=NULL)
+								{
+									AllocTmpRec(pMtrRdCtrl, MEM_TYPE_EVT_ACQ, &tTaskCfg, *(pbArry+1), iLen);
+								}
+
+								if (pMtrRdCtrl != NULL)
+								{
+									PutMtrRdCtrl(wPn, tMtrPara.bAddr, false);
+									SaveMtrRdCtrl(wPn, pMtrRdCtrl);
+								}
+							}
+						}
+						break;
+
+					case SCH_TYPE_TRANS:
+						break;
+
+					case SCH_TYPE_REPORT:
+						break;
+
+					case SCH_TYPE_SCRIPT:
+						break;
+
+					case SCH_TYPE_REAL:
+						break;
+					}
+				}
+			}
+		}
+	}
+}
+
+//描述：任务修改刷新电表抄读控制结构
+//参数：@bTaskNo
+//返回：无
+void TaskRefreshMtrRdCtrl(BYTE bTaskNo)
+{
+	TTaskCfg tTaskCfg;
+	int iSchCfgLen;
+	BYTE bType;
+	BYTE* pbMs, *pbArry, *pbSch;
+	WORD wLen, wFmtLen;
+	BYTE *pFmt, *pbCollMode;
+	TTimeInterv tiExe;	 //采集周期
+	BYTE bPnMask[PN_MASK_SIZE];
+	BYTE bBuf[1024];
+	DWORD dwOAD;
+	TMtrPara tMtrPara;
+	TMtrRdCtrl* pMtrRdCtrl;
+
+	memset((BYTE*)&tTaskCfg, 0, sizeof(tTaskCfg));
+	if (GetTaskCfg(bTaskNo, &tTaskCfg))
+	{
+		pbSch = GetSchCfg(&tTaskCfg, &iSchCfgLen);
+		if (pbSch != NULL)
+		{
+			switch (tTaskCfg.bSchType)
+			{
+			case SCH_TYPE_COMM:
+				pFmt = GetSchFmt(tTaskCfg.bSchType, &wFmtLen);
+				pbMs = OoGetField(pbSch, pFmt, wFmtLen, 4, &wLen, &bType);	//MS
+				if (pbMs == NULL)
+					break;
+				memset(bPnMask, 0, sizeof(bPnMask));
+				ParserMsParam(pbMs, bPnMask, sizeof(bPnMask));
+
+				for (WORD wPn=1; wPn<POINT_NUM; wPn++)
+				{
+					if ((bPnMask[wPn/8]&(1<<(wPn%8))) != 0)
+					{
+						pbArry = OoGetField(pbSch, pFmt, wFmtLen, 3, &wLen, &bType);	//array CSD
+						int iLen = OoGetDataLen(bType, pbArry+1);
+						GetMeterPara(wPn, &tMtrPara);
+						pMtrRdCtrl = GetMtrRdCtrl(wPn, tMtrPara.bAddr);
+						if (iLen>0 && pMtrRdCtrl!=NULL)
+						{
+							FreeTmpRec(pMtrRdCtrl, MEM_TYPE_TASK, tTaskCfg.bTaskId);
+						}
+
+						dwOAD = OoOadToDWord(pbArry+4);
+						if (dwOAD == 0x50020200) //分钟曲线数据
+						{
+							pbCollMode = OoGetField(pbSch, pFmt, wFmtLen, 2, &wLen, &bType);	//采集方式
+							bType = pbCollMode[3];
+							tiExe.bUnit = pbCollMode[5];
+							tiExe.wVal = OoLongUnsignedToWord(pbCollMode+6);
+							if (bType==3 /*&& tiExe.bUnit==1*/) //按TI间隔采集
+							{
+								DWORD dwTiMin = TiToSecondes((TTimeInterv*)&tiExe)/60;
+								if (dwTiMin == 0)
+									dwTiMin = 15;
+								wLen = (TiToSecondes((TTimeInterv*)&tTaskCfg.tiExe)/60/dwTiMin + 7)/8; //每间隔占1比特
+								if (wLen>0 && pMtrRdCtrl!=NULL)
+									FreeMem(pMtrRdCtrl->bGlobal, pMtrRdCtrl->allocTab, MTR_TAB_NUM, MEM_TYPE_CURVE_FLG, tTaskCfg.bTaskId);
+							}
+						}
+
+						if (pMtrRdCtrl != NULL)
+						{
+							PutMtrRdCtrl(wPn, tMtrPara.bAddr, false);
+							SaveMtrRdCtrl(wPn, pMtrRdCtrl);
+						}
+					}
+				}
+				break;
+
+			case SCH_TYPE_EVENT:
+				pFmt = GetSchFmt(tTaskCfg.bSchType, &wFmtLen);
+				pbMs = OoGetField(pbSch, pFmt, wFmtLen, 2, &wLen, &bType);	//MS
+				if (pbMs == NULL)
+					break;
+				memset(bPnMask, 0, sizeof(bPnMask));
+				ParserMsParam(pbMs, bPnMask, sizeof(bPnMask));
+
+				for (WORD wPn=1; wPn<POINT_NUM; wPn++)
+				{
+					if ((bPnMask[wPn/8]&(1<<(wPn%8))) != 0)
+					{
+						pbArry = OoGetField(pbSch, pFmt, wFmtLen, 1, &wLen, &bType);	//array CSD
+						pbArry += 4;
+						int iLen = OoGetDataLen(*pbArry, pbArry+1);
+						GetMeterPara(wPn, &tMtrPara);
+						pMtrRdCtrl = GetMtrRdCtrl(wPn, tMtrPara.bAddr);
+						if (iLen>0 && pMtrRdCtrl!=NULL)
+						{
+							FreeTmpRec(pMtrRdCtrl, MEM_TYPE_EVT_ACQ, tTaskCfg.bTaskId);
+						}
+
+						if (pMtrRdCtrl != NULL)
+						{
+							PutMtrRdCtrl(wPn, tMtrPara.bAddr, false);
+							SaveMtrRdCtrl(wPn, pMtrRdCtrl);
+						}
+					}
+				}
+				break;
+
+			case SCH_TYPE_TRANS:
+				break;
+
+			case SCH_TYPE_REPORT:
+				break;
+
+			case SCH_TYPE_SCRIPT:
+				break;
+
+			case SCH_TYPE_REAL:
+				break;
+			}
+		}
+	}
+
+	//从任务方案表读取新的配置
+	memset((BYTE*)&tTaskCfg, 0, sizeof(tTaskCfg));
+	if (!GetTaskCfg(bTaskNo, &tTaskCfg, true))
+		return ;
+
+	memset(bBuf, 0, sizeof(bBuf));
+	if ((iSchCfgLen=GetSchFromTaskDb(tTaskCfg.bSchNo, tTaskCfg.bSchType, bBuf)) <= 0)
+		return ;
+
+	pbSch = bBuf;
+	if (pbSch != NULL)
+	{
+		switch (tTaskCfg.bSchType)
+		{
+		case SCH_TYPE_COMM:
+			pFmt = GetSchFmt(tTaskCfg.bSchType, &wFmtLen);
+			pbMs = OoGetField(pbSch, pFmt, wFmtLen, 4, &wLen, &bType);	//MS
+			if (pbMs == NULL)
+				break;
+			memset(bPnMask, 0, sizeof(bPnMask));
+			ParserMsParam(pbMs, bPnMask, sizeof(bPnMask));
+
+			for (WORD wPn=1; wPn<POINT_NUM; wPn++)
+			{
+				if ((bPnMask[wPn/8]&(1<<(wPn%8))) != 0)
+				{
+					pbArry = OoGetField(pbSch, pFmt, wFmtLen, 3, &wLen, &bType);	//array CSD
+					int iLen = OoGetDataLen(bType, pbArry+1);
+					GetMeterPara(wPn, &tMtrPara);
+					pMtrRdCtrl = GetMtrRdCtrl(wPn, tMtrPara.bAddr);
+					if (iLen>0 && pMtrRdCtrl!=NULL)
+					{
+						AllocTmpRec(pMtrRdCtrl, MEM_TYPE_TASK, &tTaskCfg, *(pbArry+1), iLen);
+					}
+
+					dwOAD = OoOadToDWord(pbArry+4);
+					if (dwOAD == 0x50020200) //分钟曲线数据
+					{
+						pbCollMode = OoGetField(pbSch, pFmt, wFmtLen, 2, &wLen, &bType);	//采集方式
+						bType = pbCollMode[3];
+						tiExe.bUnit = pbCollMode[5];
+						tiExe.wVal = OoLongUnsignedToWord(pbCollMode+6);
+						if (bType==3 /*&& tiExe.bUnit==1*/) //按TI间隔采集
+						{
+							DWORD dwTiMin = TiToSecondes((TTimeInterv*)&tiExe)/60;
+							if (dwTiMin == 0)
+								dwTiMin = 15;
+							wLen = (TiToSecondes((TTimeInterv*)&tTaskCfg.tiExe)/60/dwTiMin + 7)/8; //每间隔占1比特
+							if (wLen>0 && pMtrRdCtrl!=NULL)
+								AllocMem(pMtrRdCtrl->bGlobal, pMtrRdCtrl->allocTab, MTR_TAB_NUM, MEM_TYPE_CURVE_FLG, tTaskCfg.bTaskId, wLen);
+						}
+					}
+
+					if (pMtrRdCtrl != NULL)
+					{
+						PutMtrRdCtrl(wPn, tMtrPara.bAddr, false);
+						SaveMtrRdCtrl(wPn, pMtrRdCtrl);
+					}
+				}
+			}
+			break;
+
+		case SCH_TYPE_EVENT:
+			pFmt = GetSchFmt(tTaskCfg.bSchType, &wFmtLen);
+			pbMs = OoGetField(pbSch, pFmt, wFmtLen, 2, &wLen, &bType);	//MS
+			if (pbMs == NULL)
+				break;
+			memset(bPnMask, 0, sizeof(bPnMask));
+			ParserMsParam(pbMs, bPnMask, sizeof(bPnMask));
+
+			for (WORD wPn=1; wPn<POINT_NUM; wPn++)
+			{
+				if ((bPnMask[wPn/8]&(1<<(wPn%8))) != 0)
+				{
+					pbArry = OoGetField(pbSch, pFmt, wFmtLen, 1, &wLen, &bType);	//array CSD
+					pbArry += 4;
+					int iLen = OoGetDataLen(*pbArry, pbArry+1);
+					GetMeterPara(wPn, &tMtrPara);
+					pMtrRdCtrl = GetMtrRdCtrl(wPn, tMtrPara.bAddr);
+					if (iLen>0 && pMtrRdCtrl!=NULL)
+					{
+						AllocTmpRec(pMtrRdCtrl, MEM_TYPE_EVT_ACQ, &tTaskCfg, *(pbArry+1), iLen);
+					}
+
+					if (pMtrRdCtrl != NULL)
+					{
+						PutMtrRdCtrl(wPn, tMtrPara.bAddr, false);
+						SaveMtrRdCtrl(wPn, pMtrRdCtrl);
+					}
+				}
+			}
+			break;
+
+		case SCH_TYPE_TRANS:
+			break;
+
+		case SCH_TYPE_REPORT:
+			break;
+
+		case SCH_TYPE_SCRIPT:
+			break;
+
+		case SCH_TYPE_REAL:
+			break;
+		}
+	}
 }
 
 //描述：初始化电表抄读控制结构
@@ -378,15 +835,15 @@ void DoMangerMtrCacheCtrl()
 			g_MtrCacheCtrl[bIndex].fDirty = false; //防止频繁写flash
 			//memset((BYTE*)&g_MtrCacheCtrl[bIndex], 0, sizeof(TMtrCacheCtrl));
 			g_MtrCacheCtrl[bIndex].dwCacheTime = GetCurTime();
-			DTRACE(DB_METER, ("DoMangerMtrCacheCtrl: wPn=%d, bIndex=%d.\n", g_MtrCacheCtrl[bIndex].wPn, bIndex));
+			g_MtrCacheCtrl[bIndex].mtrRdCtrl.bTaskSN = GetTaskCfgSn();
+			DTRACE(DB_METER, ("DoMangerMtrCacheCtrl: wPn=%d, bIndex=%d, bTaskSN=%d.\n", g_MtrCacheCtrl[bIndex].wPn, bIndex, GetTaskCfgSn()));
 		}
 	}
 	//SignalSemaphore(g_semMtrCtrl);
 	SignalSemaphore(g_semMtrCacheCtrl);
 }
 
-
-//保存抄表控制结构，注意不会释放信号量！！！
+//保存抄表控制结构，注意fSignalLock是否会释放信号量！！！
 void SaveMangerMtrCacheCtrl(bool fSignalLock)
 {
 	WaitSemaphore(g_semMtrCacheCtrl);
@@ -395,23 +852,41 @@ void SaveMangerMtrCacheCtrl(bool fSignalLock)
 	{
 		if (g_MtrCacheCtrl[bIndex].bStatus != CACHE_STATUS_FREE)
 		{
+			g_MtrCacheCtrl[bIndex].mtrRdCtrl.bTaskSN = GetTaskCfgSn();
 			SaveMtrRdCtrl(g_MtrCacheCtrl[bIndex].wPn, &g_MtrCacheCtrl[bIndex].mtrRdCtrl);
-			DTRACE(DB_METER, ("SaveMangerMtrCacheCtrl: wPn=%d, bIndex=%d.\n", g_MtrCacheCtrl[bIndex].wPn, bIndex));
+	
+			for (BYTE i=0; i<MTR_TASK_NUM; i++)
+			{
+				char pszTsaBuf[TSA_LEN] = {0};
+				char pszTimeBuf[32] = {0};
+				
+				if (g_MtrCacheCtrl[bIndex].mtrRdCtrl.taskSucFlg[i].dwTime)
+				{
+					TimeToStr(g_MtrCacheCtrl[bIndex].mtrRdCtrl.taskSucFlg[i].dwTime, pszTimeBuf);
+					DTRACE(DB_METER, ("SaveMangerMtrCacheCtrl: wPn=%d, bTsa=%s, i=%d, bTaskSn=%d, Update dwTime=%s.\n", \
+						g_MtrCacheCtrl[bIndex].wPn, 
+						TsaToStr(g_MtrCacheCtrl[bIndex].mtrRdCtrl.bTsa+1, pszTsaBuf), 
+						i,
+						GetTaskCfgSn(),
+						pszTimeBuf));
+				}
+			}
 			g_MtrCacheCtrl[bIndex].bStatus = CACHE_STATUS_IDLE;
 		}
 	}
 
-	if (fSignalLock)
-		SignalSemaphore(g_semMtrCacheCtrl);	//这里不释放信号量了，后面马上复位CPU
+	if (fSignalLock)	//false:这里不释放信号量了，后面马上复位CPU
+		SignalSemaphore(g_semMtrCacheCtrl);	
 }
 
 void ClearMtrCacheCtrl()
 {
 	WaitSemaphore(g_semMtrCacheCtrl);
 	memset((BYTE*)g_MtrCacheCtrl, 0, sizeof(g_MtrCacheCtrl));
-	DTRACE(DB_CRITICAL, ("###ClearMtrCacheCtrl().\r\n"));
+	DTRACE(DB_CRITICAL, ("###ClearMtrCacheCtrl()....\r\n"));
 	SignalSemaphore(g_semMtrCacheCtrl);	
 }
+
 
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -431,7 +906,7 @@ void ClearMtrCacheCtrl()
 //返回:如果成功则返回对应表地址的电表抄读控制结构的指针，否则返回NULL
 TMtrRdCtrl* GetMtrRdCtrl(WORD wPn, BYTE*pbTsa)
 {
-		int i;
+	int i;
 	int iLastInx = -1;
 	BYTE bAddL = pbTsa[0]+1;
 	DWORD dwLastAcessTime = 0xffffffff;
@@ -510,6 +985,7 @@ TMtrRdCtrl* GetMtrRdCtrl(WORD wPn, BYTE*pbTsa)
 				g_MtrCacheCtrl[i].fDirty = false;
 				g_MtrCacheCtrl[i].fTrigerSave = false;
 				InitMtrRdCtrl(wPn, pbTsa, &g_MtrCacheCtrl[i].mtrRdCtrl);
+				SaveMtrRdCtrl(wPn, &g_MtrCacheCtrl[iLastInx].mtrRdCtrl);
 
 				SignalSemaphore(g_semMtrCacheCtrl);
 				return &g_MtrCacheCtrl[i].mtrRdCtrl;
@@ -547,6 +1023,7 @@ TMtrRdCtrl* GetMtrRdCtrl(WORD wPn, BYTE*pbTsa)
 			g_MtrCacheCtrl[iLastInx].fDirty = false;
 			g_MtrCacheCtrl[iLastInx].fTrigerSave = false;
 			InitMtrRdCtrl(wPn, pbTsa, &g_MtrCacheCtrl[iLastInx].mtrRdCtrl);
+			SaveMtrRdCtrl(wPn, &g_MtrCacheCtrl[iLastInx].mtrRdCtrl);
 
 			SignalSemaphore(g_semMtrCacheCtrl);
 			return &g_MtrCacheCtrl[iLastInx].mtrRdCtrl;
@@ -609,7 +1086,38 @@ bool LoadMtrRdCtrl(WORD wPn, BYTE* pbTsa, TMtrRdCtrl* pMtrRdCtrl)
 		if (pMtrRdCtrl->bChkSum == CheckSum((BYTE *)&pMtrRdCtrl->bTsa[0], wLen-1))
 		{
 			if (memcmp(pbTsa, pMtrRdCtrl->bTsa, pbTsa[0]) == 0)
+			{
+				for (BYTE i=0; i<MTR_TASK_NUM; i++)
+				{
+					char pszTsaBuf[TSA_LEN] = {0};
+					char pszTimeBuf[32] = {0};
+
+					if (pMtrRdCtrl->taskSucFlg[i].dwTime)
+					{
+						TTaskCfg tTaskCfg;
+						DWORD dwCurSec, dwStartSec, dwEndSec;
+						if (GetTaskCfg(pMtrRdCtrl->taskSucFlg[i].bTaskId, &tTaskCfg))
+						{
+							if (GetTaskCurExeTime(&tTaskCfg, &dwCurSec, &dwStartSec, &dwEndSec) != 0)
+							{
+								continue;
+							}
+						}
+						if (pMtrRdCtrl->taskSucFlg[i].dwTime != dwCurSec)
+						{
+							TimeToStr(pMtrRdCtrl->taskSucFlg[i].dwTime, pszTimeBuf);
+							DTRACE(DB_METER, ("LoadMtrRdCtrl: wPn=%d, bTsa=%s, i=%d, bTaskSN=%d, Update dwTime=%s.\n", \
+								wPn, 
+								TsaToStr(pbTsa+1, pszTsaBuf), 
+								i,
+								pMtrRdCtrl->bTaskSN,
+								pszTimeBuf));
+						}
+					}
+				}
+
 				fRet = true;
+			}
 			else
 				DTRACE(DB_METER, ("LoadMtrRdCtrl : wPn=%d pbTsa chg !\n", wPn));
 		}
@@ -644,7 +1152,6 @@ bool SaveMtrRdCtrl(WORD wPn, TMtrRdCtrl* pMtrRdCtrl)
 		DTRACE(DB_METER, ("SaveMtrRdCtrl : write file error !\n"));
 		fRet = false;
 	}
-
 	return fRet;
 }
 
@@ -653,14 +1160,14 @@ void DeleteMtrRdCtrl()
 {
 	char szName[64];
 
-	DTRACE(DB_TASK,("DeleteMtrRdCtrl....\n"));
+	DTRACE(DB_TASK,("###DeleteMtrRdCtrl....\n"));
 	for (WORD wPn=0; wPn<POINT_NUM; wPn++)
 	{
 		sprintf(szName, USER_DATA_PATH"MtrRdCtrl_Pn%d.dat", wPn);	
 		DeleteFile(szName);
 	}
+
 	memset(dwTaskLastUpdataTime, 0, sizeof(dwTaskLastUpdataTime));
-	
 }
 
 void DeleteOneMtrRdCtrl(WORD wPn)
@@ -749,32 +1256,32 @@ int GetMtrItemMem(TMtrTmpData* pMtrTmpData, DWORD dwOAD, BYTE* pbData)
 
 static DWORD g_dwFixRDOad[] = {0x00100200,//正向有功电量
 								0x00200200,//反向有功电量
-								0x00300200,//组合无功1
-								0x00400200,//组合无功2
-								0x20000200,//电压
-								0x20010200,//电流
+								//0x00300200,//组合无功1
+								//0x00400200,//组合无功2
+								//0x20000200,//电压
+								//0x20010200,//电流
 								0x20040200,//有功功率
-								0x20050200,//无功功率
+								//0x20050200,//无功功率
 };
 
 static WORD g_wFixRDInID[] = {0xa010,//正向有功电量
 								0xa020,//反向有功电量
-								0xa030,//组合无功1
-								0xa040,//组合无功2
-								0xa050,//电压
-								0xa051,//电流
+								//0xa030,//组合无功1
+								//0xa040,//组合无功2
+								//0xa050,//电压
+								//0xa051,//电流
 								0xa052,//有功功率
-								0xa053,//无功功率
+								//0xa053,//无功功率
 };
 
 static WORD g_wFixDataLen[] = {27,//正向有功电量
 								27,//反向有功电量
-								27,//组合无功1
-								27,//组合无功2
-								11,//电压
-								22,//电流
+								//27,//组合无功1
+								//27,//组合无功2
+								//11,//电压
+								//22,//电流
 								22,//有功功率
-								22,//无功功率
+								//22,//无功功率
 };
 
 //描述:取固定抄读列表及数据项个数
@@ -798,7 +1305,6 @@ WORD* MtrGetFixedInItems()
 {
 	return g_wFixRDInID;
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //描述:刷新内部测量点数据
@@ -917,6 +1423,8 @@ bool AllocTmpRec(TMtrRdCtrl* pMtrRdCtrl, BYTE bType, TTaskCfg *pTaskCfg, BYTE bC
 					pMtrRdCtrl->taskSucFlg[i].bValid = 1;
 					pMtrRdCtrl->taskSucFlg[i].bTaskId = pTaskCfg->bTaskId;
 					pMtrRdCtrl->taskSucFlg[i].bCSDItemNum = bCSDNum;
+					pMtrRdCtrl->taskSucFlg[i].bRecSaved = TASK_DATA_NONE;
+					pMtrRdCtrl->taskSucFlg[i].iRecPhyIdx = 0;
 					memset(pMtrRdCtrl->taskSucFlg[i].bSucFlg, 0, TASK_SUC_FLG_LEN);
 
 					return true;
@@ -1055,8 +1563,11 @@ bool SaveMtrData(TMtrRdCtrl* pMtrRdCtrl, BYTE bRespType, BYTE* pbCSD, BYTE* pbDa
 	{
 		dwOAD = OoOadToDWord(pbCSD+1);
 		wCSDLen = OoGetDataLen(DT_CSD, pbCSD);
-		SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, dwOAD, pbData, wCSDLen);
-		//SaveMtrDataHook(dwOAD, &pMtrRdCtrl->mtrExcTmp);		//zqq add ----20170412 hyl 屏蔽掉，抄表事件用数据按周期不按任务。这里做存储会使存储的终端时间与读电表数据时刻不一致。建议后续抄表事件按任务来做。。。。。
+		if (SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, dwOAD, pbData, wCSDLen))
+		{
+			//SaveMtrDataHook(dwOAD, &pMtrRdCtrl->mtrExcTmp);		//zqq add ----20170412 hyl 屏蔽掉，抄表事件用数据按周期不按任务。这里做存储会使存储的终端时间与读电表数据时刻不一致。建议后续抄表事件按任务来做。。。。。
+			fSave = true;
+		}
 	}
 
 	for (WORD wIndex=0; wIndex<TASK_NUM; wIndex++)	//遍历任务配置表
@@ -1149,6 +1660,7 @@ bool SaveMtrData(TMtrRdCtrl* pMtrRdCtrl, BYTE bRespType, BYTE* pbCSD, BYTE* pbDa
 
 									if (fIsSaveFlg)
 									{
+										fSave = true; //保存下面的成功标志，每个周期只抄读一次
 										pMtrRdCtrl->taskSucFlg[bTaskId].bSucFlg[bCSDIndex/8] |= (1<<bCSDIndex%8);
 										wRecOffset = ScanROAD(pbTaskCSD, false);
 										DWORD dwLastRecIndex = GetEvtTaskRecLastSerialNumber(pMtrRdCtrl->bTsa, pMtrRdCtrl->bTsa[0], pbTaskCSD, wRecOffset);
@@ -1158,7 +1670,6 @@ bool SaveMtrData(TMtrRdCtrl* pMtrRdCtrl, BYTE bRespType, BYTE* pbCSD, BYTE* pbDa
 										if (dwCurRecIndex==0 || dwLastRecIndex<dwCurRecIndex)
 										{
 											SaveTaskDataToDB(pMtrRdCtrl, MEM_TYPE_NONE, &(pMtrRdCtrl->taskSucFlg[bTaskId]), pbData, wDataLen, bCSDIndex);
-											fSave = true;
 
 											char szTableName[32];
 											memset(szTableName, 0, sizeof(szTableName));
@@ -1218,11 +1729,25 @@ void SaveMtrDataHook(DWORD dwOAD, TMtrExcTmp* pMtrExcTmp, BYTE bType)
 	dwOAD &= OAD_FEAT_MASK;	//去除属性特征
 
 	if (dwOAD==0x00100201 || dwOAD==0x00100200)
+	{		
 		pMtrExcTmp->dwItemRdTime[0] = dwCurSec;
+		DTRACE(DB_METER, ("SaveMtrDataHook : update pos energy data at click=%ld.\n", pMtrExcTmp->dwItemRdTime[0]));
+	}
 	else if (dwOAD==0x00200201 || dwOAD==0x00200200)
+	{
 		pMtrExcTmp->dwItemRdTime[1] = dwCurSec;
+		DTRACE(DB_METER, ("SaveMtrDataHook : update neg energy data at click=%ld.\n", pMtrExcTmp->dwItemRdTime[1]));
+	}
 	else if (dwOAD==0x40000200)
 	{	
-		if(bType) pMtrExcTmp->dwItemRdTime[2] = dwCurSec;
+		if(bType) 
+		{
+			pMtrExcTmp->dwItemRdTime[2] = dwCurSec;
+			DTRACE(DB_METER_EXC, ("SaveMtrDataHook : save mtr time at dwCurSec=%ld.\n", pMtrExcTmp->dwItemRdTime[2]));
+		}
+		else
+		{
+			DTRACE(DB_METER_EXC, ("SaveMtrDataHook :  UnSave mtr time at dwCurSec=%ld.\n", dwCurSec));
+		}
 	}
 }

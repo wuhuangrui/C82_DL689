@@ -199,8 +199,16 @@ bool CStatMgr::InitTermStat()
 	m_TermStatInfo.tmLastRun = tmNow;	//更新最后一次的运行时间
 	TrigerSaveBank(BN0, SECT_VARIABLE, -1);//触发保存一次
 
-
-
+#ifdef SYS_WIN
+	WriteFile(TERM_STAT_PATHNAME, (BYTE* )&m_TermStatInfo, sizeof(m_TermStatInfo));
+#else
+#ifdef LOG_ENABLE
+	m_DataLog.WriteLog((BYTE* )&m_TermStatInfo); 
+#else
+	WriteFile(TERM_STAT_PATHNAME, (BYTE* )&m_TermStatInfo, sizeof(TTermStatInfo));
+	system("sync");
+#endif
+#endif
 	
 	return true;
 }
@@ -230,12 +238,13 @@ bool CStatMgr::SaveTermStat()
 		Sleep(50);
 	}
 	
-	if (GetInfo(INFO_HARDWARE_INIT))
+	if (GetInfo(INFO_HARDWARE_INIT) || (GetInfo(INFO_PWROFF)))
 	{
 		WaitSemaphore(m_semTermLog);
 		GetCurTime(&m_TermStatInfo.tmLastRun);
 		//DWORD dwSec = TimeToSeconds(m_TermStatInfo.tmLastRun) + 100;
 		//SecondsToTime(dwSec, &m_TermStatInfo.tmLastRun);
+		DTRACE(DB_DP, ("HARDWARE_INIT  or INFO_PWROFF.\r\n"));
 		if (fDataInitF == true)//为数据初始化不重启终端作的处理
 		{
 			BYTE bBuf[12];
@@ -270,7 +279,10 @@ bool CStatMgr::SaveTermStat()
 #ifdef LOG_ENABLE
 	m_DataLog.WriteLog((BYTE* )&TermStatInfo); 
 #else
-	WriteFile(TERM_STAT_PATHNAME, (BYTE* )&TermStatInfo, sizeof(TermStatInfo));
+	WriteFile(TERM_STAT_PATHNAME, (BYTE* )&TermStatInfo, sizeof(TTermStatInfo));
+	system("sync");
+	DTRACE(DB_DP, ("SaveTermStat ..... .\r\n"));
+	//TraceBuf(DB_CRITICAL, "\r\n####SaveTermStat-> ", (BYTE* )&TermStatInfo, sizeof(TTermStatInfo)); 	
 #endif
 #endif //SYS_WIN
 
@@ -290,6 +302,9 @@ void CStatMgr::DoTermStat()
 	//DWORD dwCurSec = GetCurTime();
 	DWORD dwCurClick;
 	GetCurTime(&tmNow);
+
+	static DWORD dwLastMin = 0;
+	DWORD dwCurMin = GetCurMinute();
 	
 	WaitSemaphore(m_semTermLog);	//统计的整个过程都要进行保护,
 								 	//因为数据区复位的时候会直接把整个m_TermStatInfo清除
@@ -371,7 +386,7 @@ void CStatMgr::DoTermStat()
 	
 	m_TermStatInfo.wMonPowerTime += dwSec;//更新月供电时间
 	DWORD dwData = m_TermStatInfo.wDayPowerTime;
-	if ((dwData % 60) > 50)//第二步时把终端的复位时间都包括在内的2分钟也要按2分钟来算
+	if ((dwData % 60) > 47)//第二步时把终端的复位时间都包括在内的2分钟也要按2分钟来算
 		dwData = dwData/60 + 1;//过台子
 	else
 		dwData = dwData/60;
@@ -380,15 +395,21 @@ void CStatMgr::DoTermStat()
 	bBuf[2] = DT_DB_LONG_U;
 	OoDWordToDoubleLongUnsigned(dwData, &bBuf[3]);
 	dwData = m_TermStatInfo.wMonPowerTime;
-	if ((dwData % 60) > 50)
+	if ((dwData % 60) > 47)
 		dwData = dwData/60 + 1;
 	else
 		dwData = dwData/60;
 	bBuf[7] = DT_DB_LONG_U;
 	OoDWordToDoubleLongUnsigned(dwData, &bBuf[8]);
 	int irett=WriteItemEx(BN0, PN0, 0x2203, bBuf); 
-	m_fTermStatChg = true;
-	
+
+	//if (dwLastMin != dwCurMin)
+	if ((dwLastMin>dwCurMin) || (dwCurMin>=(dwLastMin+15)))
+	{
+		m_fTermStatChg = true;
+		dwLastMin = dwCurMin;
+	}
+
 	SignalSemaphore(m_semTermLog); 
 
 	return;
@@ -410,7 +431,7 @@ void CStatMgr::AddFlux(DWORD dwLen)
 	OoDWordToDoubleLongUnsigned(m_TermStatInfo.dwMonFlux, &bBuf[8]);
 	//WriteItemEx(BN0, PN0, 0x2200, bBuf); //698 C1F10
 	OoWriteAttr(0x2200, 0x02, bBuf);
-	m_fTermStatChg = true;
+	//m_fTermStatChg = true; //这里不能触发，否则通讯的时候会频繁写文件
 
 	SignalSemaphore(m_semTermLog); 
 #endif
@@ -1834,7 +1855,7 @@ void CStatMgr::ResetStat(WORD wOI)
 			m_TermStatInfo.wMonPowerTime = 0;
 		
 		}
-		if (wOI==0x22034)
+		if (wOI==0x2204)
 		{
 			ReadItemEx(BN0, PN0, 0x2204, bBuf);	//0x2204 2 复位次数,
 			memset(&bBuf[3], 0, 2);

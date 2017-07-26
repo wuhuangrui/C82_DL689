@@ -2437,10 +2437,10 @@ void UpdateTxPwr(BYTE bTxPwr, int16 bSign)
 	DTRACE(DB_FAPROTO, ("UpdateTxPwr:bTxPwr %d.  bSign %d\n", bTxPwr, bSign)); 
 	memset(bBuf, 0, sizeof(bBuf));
 	//WriteItemEx(BN2, PN0, 0x2057, (BYTE *)pModemInfo->bCNUM);
-	ReadItemEx(BANK17, PN0, 0x6010, &bChannel);
+	//ReadItemEx(BANK17, PN0, 0x6010, &bChannel);
 	bBuf[0] = DT_LONG;
 	OoInt16ToLong(bSign, &bBuf[1]);
-	WriteItemEx(BN0, bChannel, 0x4507, bBuf);
+	WriteItemEx(BN2, PN0, 0x6003, bBuf);
 }
 
 //将ppp拨号获取到的IP地址写入数据库
@@ -2617,7 +2617,7 @@ WORD gsmDecode7bit(const BYTE* pSrc, BYTE* pDst, WORD wSrcLen)
 //返回：返回转换后字符串指针，其实就是pszBuf
 char* TsaToStr(BYTE* pbTSA, char* pszBuf)
 {
-	sprintf(pszBuf, "%02x%02x%02x%02x", pbTSA[0],pbTSA[1],pbTSA[2],pbTSA[3],pbTSA[4],pbTSA[5]);
+	sprintf(pszBuf, "%02x%02x%02x%02x%02x%02x", pbTSA[0],pbTSA[1],pbTSA[2],pbTSA[3],pbTSA[4],pbTSA[5]);
 
 	return pszBuf;
 }

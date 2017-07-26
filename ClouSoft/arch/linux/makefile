@@ -65,8 +65,6 @@ LDFLAGS  = -L$(LIBDIR) $(LIBS)
 $(LIBDIR)/lib$(LIB).a: $(LIBDIR) $(OBJDIR) $(OBJS) 
 	$(AR) rv $@ $(OBJS)
 	ranlib $@
-#$(LIBDIR)/lib$(LIB).so: $(LIBDIR) $(OBJDIR) $(OBJS) 
-#	$(CC) -shared -o $@ $(OBJS) $(LDFLAGS)
 
 $(OBJDIR):
 	@test -d $@ || mkdir $@

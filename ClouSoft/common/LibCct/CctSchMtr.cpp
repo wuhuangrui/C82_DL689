@@ -1583,7 +1583,7 @@ void CCctSchMeter::CheckMeterSearchTime()
 				TimeToStr(dwCurTime, szCurTime),
 				abs(dwCurTime-dwLastSchTime)));
 
-			int iPn = (tMtrRlt.bMtr, tMtrRlt.bMtrLen);
+			int iPn = GetMeterPn(tMtrRlt.bMtr, tMtrRlt.bMtrLen);
 			if (iPn > 0)
 			{
 				SetRdMtrCtrlMask(iPn);

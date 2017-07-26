@@ -728,10 +728,8 @@ int CSftp::TransferFinish(BYTE* pbRx, BYTE* pbTx)
 			memcpy(pbbuf, m_pbDataBuf+m_dwFileSize-m_dwFileSize%512, m_dwFileSize%512);
 		//wMycrc = get_crc_16(wMycrc, pbbuf, m_dwFileSize%512);
 		wMycrc = pppfcs16(wMycrc, pbbuf, m_dwFileSize%512);
-		
 	}
 	wMycrc ^= 0xffff; 
-
 	delete[] pbbuf;
 ////////////////////////////////////
 	

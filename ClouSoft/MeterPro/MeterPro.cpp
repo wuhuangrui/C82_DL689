@@ -843,6 +843,7 @@ WORD Data645to645V07(WORD w645Id, BYTE* pbBuf, WORD wLen)
 bool ReadCommFrm(struct TMtrPro* pMtrPro, void* pTmpInf, DWORD dwDelayTime, DWORD dwMaxSec, DWORD dwMinSec, DWORD dwTimeOut, 
 						  DWORD dwReadLength, DWORD dwBufSize, BYTE* pbBuf, DWORD dwFrmSize)
 {
+#if 0
 	bool fBegin = false;
 	DWORD dwOldTick = GetTick();
 	DWORD dwTmpClick;
@@ -979,6 +980,133 @@ bool ReadCommFrm(struct TMtrPro* pMtrPro, void* pTmpInf, DWORD dwDelayTime, DWOR
 	}
 
 	return false;
+
+#else
+	bool fBegin = false;
+	DWORD dwOldTick = GetTick();
+	DWORD dwTmpClick;
+	DWORD dwNewClick;	
+	DWORD dwRxTick;
+	DWORD dwLen = 0;
+	DWORD dwPtr = 0;
+	WORD i = 0, j = 0;
+	BYTE bBuf[MTR_FRM_SIZE] = {0};
+	BYTE *pbRx = bBuf;
+	BYTE bPrintPro;
+	char szProName[20];
+	DWORD wErrCnt = 1;
+    static DWORD dwLastClick=0;
+	CComm* pComm = pMtrPro->pMtrPara->pComm;
+
+	pMtrPro->pfnGetProPrintType(&bPrintPro, szProName);		
+
+	dwReadLength = ((dwReadLength > MTR_FRM_SIZE) ? MTR_FRM_SIZE:dwReadLength);
+	if(dwBufSize>0 && pbBuf!=NULL)
+		dwReadLength = ((dwReadLength > dwBufSize) ? dwBufSize:dwReadLength);
+
+	dwTmpClick = GetClick();
+	dwNewClick = dwTmpClick;
+	dwRxTick = 0;
+	while (dwNewClick-dwTmpClick < dwMaxSec)    //n次尝试读取数据
+	{
+		i++;	
+		if (dwDelayTime > 0)
+		{
+			Sleep(dwDelayTime);
+		}	
+
+		dwLen = pComm->Read(pbRx, (sizeof(bBuf)-(pbRx-bBuf)), dwTimeOut);
+
+		if (dwLen > 0)
+		{
+			if ((pbRx-bBuf) >= MTR_FRM_SIZE)
+			{
+				DTRACE(bPrintPro, ("CMeterPro:: MtrPro=%s ReadComm Buffer not enough!\r\n", szProName));
+				break;
+			}
+			else
+				pbRx += dwLen;	
+
+            if (GetClick()-dwLastClick > 2)
+            {
+                dwLastClick = GetClick();
+            }    
+
+			j = 0;
+			if ((pbRx-bBuf) >= dwReadLength)
+			{
+				DTRACE(bPrintPro, ("CMeterPro:: MtrPro=%s ReadComm len over dwReadLength!\r\n", szProName));
+				break;
+			}	
+			fBegin = true;
+
+			if (pMtrPro->pfnRcvBlock(pMtrPro, pTmpInf, bBuf, pbRx-bBuf, dwFrmSize)) //检测到有完整帧则退出读数据,以使数据读取过程更快
+			{
+				DTRACE(bPrintPro, ("CMeterPro:: read com OK, dwPtr=%ld, dwclick=%ld, RdCount=%ld, time=%ld, Pn=%d, MtrPro=%s\r\n", 
+								   dwPtr, dwNewClick-dwTmpClick, i, GetTick()-dwOldTick, 
+								   pMtrPro->pMtrPara->wPn, szProName));
+				
+				if (IsDebugOn(bPrintPro) && IsDebugOn(DB_645FRM))
+				{
+					char szHeader[32];
+					sprintf(szHeader, "%s rx <--", szProName);
+					TraceBuf(DB_645FRM, szHeader, bBuf, pbRx-bBuf);
+				}
+
+				return true;
+			}
+			else
+			{
+// 		    	if (IsDebugOn(bPrintPro) && IsDebugOn(DB_645FRM))
+// 				{
+// 					DTRACE(bPrintPro, ("CMeterPro:: *****dwLen=%ld, dwclick=%ld, RdCount=%ld, time=%ld!\r\n", 
+// 										dwLen, dwNewClick-dwTmpClick, i, GetTick()-dwOldTick));
+// 					TraceBuf(DB_645FRM, "rx <--", bBuf, pbRx-bBuf);
+// 				}
+			}				
+		}
+		else
+		{
+#ifdef SYS_LINUX
+			if ((dwRxTick!=0 && GetTick()-dwRxTick>2200) || 		//收到过字节后,等待2200毫秒都没收到字节的条件下退出 (fBegin && j>wErrCnt)  
+				(dwRxTick==0 && dwNewClick-dwTmpClick>=dwMinSec))	//从没收到过字节,等待dwMinSec退出
+			{
+				break;
+			}
+#else
+			j ++; //连续无通信计数			
+			
+			//20090817 ARM平台下长帧需要读3次才能完整
+			if (dwTimeOut <= 300) //若读延时较快的协议，可多读一次以保证断帧时收数据的可靠性
+				wErrCnt = 2;
+			
+			if ((fBegin && j>wErrCnt) || (!fBegin && dwNewClick-dwTmpClick>=dwMinSec))
+				break;	
+#endif
+		}
+
+        //if (g_fDirRd[pMtrPro->bThrId] && !g_bDirRdStep)
+		//	break;
+
+		dwNewClick = GetClick();
+	}	
+
+	DTRACE(bPrintPro, ("CMeterPro:: read com Fail, fBegin=%d, dwPtr=%ld, dwclick=%ld, RdCount=%ld, time=%ld Pn=%d, MtrPro=%s\r\n", 
+					   fBegin, 
+					   dwPtr, dwNewClick-dwTmpClick, i, GetTick()-dwOldTick, 
+					   pMtrPro->pMtrPara->wPn, szProName));
+
+	if (IsDebugOn(bPrintPro) && IsDebugOn(DB_645FRM) && pbBuf!=NULL)
+	{
+		DTRACE(bPrintPro, ("CMeterPro:: MtrPro=%s !", szProName));
+		
+		//#ifdef SYS_WIN
+		TraceBuf(DB_645FRM, "rx <--", pbBuf, dwPtr);
+		//#endif
+	}
+
+	return false;
+#endif
 }
 
 //描述：是否97版645不支持的数据

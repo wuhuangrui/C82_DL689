@@ -38,6 +38,7 @@
 //MtrCtrl私有数据定义
 TMtrCacheCtrl g_MtrCacheCtrl[MTR_CACHE_NUM];
 TSem g_semMtrCacheCtrl;		//抄表控制缓存信号量
+TSem g_semMtrExc;			//抄表事件信号量
 
 //TSem g_semMtrCtrl;		//抄表控制线程间的信号量
 
@@ -134,7 +135,7 @@ BYTE GetPortThread(BYTE bPort)
 //描述:取得当前的抄表状态
 BYTE GetRdMtrState(BYTE bThrId)
 {
-	if (g_fDirRd[bThrId] || g_bMtrRdStep[bThrId]==1)	//直抄标志
+	if (g_fDirRd[bThrId])	//直抄标志
 		return RD_ERR_DIR;		//正在直抄
 	if (g_fStopMtrRd)
 		return RD_ERR_STOPRD;	//正在直抄
@@ -549,6 +550,7 @@ void MtrCtrlInit()
 
 	//g_semMtrCtrl = NewSemaphore(1);
 	g_semMtrCacheCtrl = NewSemaphore(1);
+	g_semMtrExc = NewSemaphore(1);
 
 	for (i=0; i<LOGIC_PORT_NUM; i++)
 	{
@@ -745,6 +747,9 @@ TThreadRet MtrRdThread(void* pvPara)
 			{
 				Sleep(500);
 			}
+            
+            Sleep(10);  // 防止其他地方获取不到锁
+            
 		}//while(1)
 
 		if (g_fStopMtrRd)

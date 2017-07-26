@@ -125,6 +125,9 @@ bool DL645ExtRcvBlock(struct TMtrPro* pMtrPro, void* pTmpInf, BYTE* pbBlock, DWO
 	T645ExtTmp* pTmpV07 = (T645ExtTmp* )pTmpInf;
 	BYTE* pbRxBuf = pMtrPro->pbRxBuf; 
 
+#ifdef FRM_SEG_FLG
+	memset((BYTE*)pTmpV07, 0, sizeof(T645ExtTmp));
+#endif
 
 	for ( ; dwLen; dwLen--)
 	{

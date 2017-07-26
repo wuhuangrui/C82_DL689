@@ -160,11 +160,13 @@ int PostWriteItemExHook(WORD wBank, WORD wPn, WORD wID, BYTE* pbBuf, BYTE bPerm,
 //参数:@nRet 在调用ReadItemEx()时的返回值,应该为正数
 int PostReadItemExHook(WORD wBank, WORD wPn, WORD wID, BYTE* pbBuf, int nRet)
 {
-	//BYTE bBuf[90];
+	BYTE bBuf[90]={0};
 	//BYTE* pbTmp = pbBuf;
 	WORD j;
 	int len;
-
+	DWORD dwIP = 0;
+	BYTE  bConnType = 1;
+	
 	if (wBank==BN0 && wID==0x4010) //SAP要与逻辑设备名相关联
 	{
 		/*WORD wSap;
@@ -184,6 +186,36 @@ int PostReadItemExHook(WORD wBank, WORD wPn, WORD wID, BYTE* pbBuf, int nRet)
 	else if (wBank==BN0 && wID==0x4001)	//终端地址
 	{
 		ReadItemEx(BN10, PN0, 0xa1d0, pbBuf);
+	}
+	else if (wBank==BN0 && wID==0x4507)	//信号强度
+	{
+		ReadItemEx(BN2, PN0, 0x6003, pbBuf);
+	}
+	else if (wBank==BN0 && wID==0x4509)	//GPRS拨号本机IP
+	{		
+		ReadItemEx(BN1, PN0, 0x2032, &bConnType);
+		if(bConnType == 1)
+		{
+#ifndef SYS_WIN
+			dwIP = GetLocalAddr("ppp0");
+#endif
+
+			pbBuf[0] = DT_OCT_STR;
+			pbBuf[1] = 0x04;
+			pbBuf[2] = (BYTE)dwIP&0xff;
+			pbBuf[3] = (BYTE)(dwIP>>8)&0xff;
+			pbBuf[4] = (BYTE)(dwIP>>16)&0xff;
+			pbBuf[5] = (BYTE)(dwIP>>24)&0xff;
+		}
+		else
+		{
+			ReadItemEx(BN2, PN0, 0x2055, bBuf);
+
+			pbBuf[0] = DT_OCT_STR;
+			pbBuf[1] = 0x04;
+			memcpy(&pbBuf[2], bBuf, 4);
+			
+		}	
 	}
 
 	return nRet;

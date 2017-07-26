@@ -13,6 +13,8 @@
 #include "FaAPI.h"
 #include "MtrProAPI.h"
 #include "FaConst.h"
+#include "CctAPI.h"
+#include "MtrCtrl.h"
 
 
 struct TMtrPro g_MtrPro[3];
@@ -377,11 +379,14 @@ int MtrBroadcast_485(BYTE bThrId)
 				tRdItem.bReqType = 1;
 				memset(tRdItem.bRSD, 0, 50);
 				memset(tRdItem.bRCSD, 0, 50);
+                WaitSemaphore(g_semRdMtr[bThrId]);
 				iRet = AskMtrItem(pMtrPro, tRdItem.bReqType, tRdItem.dwOAD, bRespData, tRdItem.bRSD, tRdItem.wRsdLen, tRdItem.bRCSD, tRdItem.wRcsdLen);
 				if (iRet > 0)
 				{
 					OneAddrBroadcast_485(pMtrPro, tRdItem.bReqType, tRdItem.dwOAD, bRespData, tRdItem.bRSD, tRdItem.wRsdLen, tRdItem.bRCSD, tRdItem.wRcsdLen);
 				}
+                SignalSemaphore(g_semRdMtr[bThrId]);
+                Sleep(10);
 				m_iPn++;
 				if (m_iPn >= POINT_NUM)
 				{
@@ -404,6 +409,11 @@ int BroadcastAdjustTime_485(BYTE bThrId)
 	BYTE bBuf1[100];
 	int iStep = -1;
 	BYTE bPort;
+    BYTE bMtrPort;
+	bool fIsNeedBCTm645 = false;
+    bool fIsNeedBCTm698 = false;
+	BYTE bMtrPro = 0;
+	TMtrPro * pMtrPro = NULL;
 	
 	if (GetInfo(INFO_MTR_BRAODCAST_ARG_485))
 	{
@@ -419,8 +429,8 @@ int BroadcastAdjustTime_485(BYTE bThrId)
 	{
 		return -1;
 	}
-	m_iPn = SearchPnFromMask(pbPnMask, m_iPn);	//这里搜出的测量点都是485的
-	if (m_iPn >= POINT_NUM)
+
+    if(IsAllAByte(pbPnMask, 0x00, PN_MASK_SIZE))
 	{
 		return -1;
 	}
@@ -443,17 +453,65 @@ int BroadcastAdjustTime_485(BYTE bThrId)
 				return -1;
 			
 			memcpy( (BYTE *)&tLastTime[16+bThrId].nYear,(BYTE *)&tmTm, sizeof(TTime));
+            while(m_iPn < POINT_NUM)
+            {
+                m_iPn = SearchPnFromMask(pbPnMask, m_iPn);  //这里搜出的测量点都是485的
+                if(m_iPn >= POINT_NUM)
+                {
+                    break;
+                }
+
+                bMtrPort = GetPnPort(m_iPn);
+                if(bMtrPort != bPort)
+                {
+                    m_iPn++;
+                    continue;
+                }
+                bMtrPro = GetMeterPro(m_iPn);
+                if(bMtrPro == PROTOCOLNO_DLT69845)
+                {
+                    if(!fIsNeedBCTm698)
+                    {
+                        fIsNeedBCTm698 = true;
+                    }
+                }
+                else if(bMtrPro == PROTOCOLNO_DLT645 || bMtrPro == PROTOCOLNO_DLT645_V07)
+                {
+                    if(!fIsNeedBCTm645)
+                    {
+                        fIsNeedBCTm645 = true;
+                    }                    
+                }
+                if(fIsNeedBCTm645 && fIsNeedBCTm698)
+                {
+                    break;
+                }
+                m_iPn++;
+            }
+            if (m_iPn >= POINT_NUM && !fIsNeedBCTm645 && !fIsNeedBCTm698 )
+            {
+                return -1;
+            }            
 			TMtrPara tMtrPara;
 			tMtrPara.CommPara.wPort = MeterPortToPhy(bPort);
-			tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(2);//1200;
-			tMtrPara.CommPara.bByteSize = 8;
-			tMtrPara.CommPara.bStopBits = ONESTOPBIT;
-			tMtrPara.CommPara.bParity = EVENPARITY;
-			tMtrPara.bProId = PROTOCOLNO_DLT645;//广播校时97和07一样的,但波特率不一样，
-			memset(tMtrPara.bAddr, 0x99, 6);
-			TMtrPro * pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
-			//if (bProId == PROTOCOLNO_DLT645_V07 || bProId == PROTOCOLNO_DLT645)// 07表校时是分两次操作的
-			{
+            tMtrPara.CommPara.bByteSize = 8;
+            tMtrPara.CommPara.bStopBits = ONESTOPBIT;
+		    tMtrPara.CommPara.bParity = EVENPARITY;
+            
+            if(fIsNeedBCTm645)
+            {
+                memset(tMtrPara.bAddr, 0x99, 6);
+                tMtrPara.bProId = PROTOCOLNO_DLT645;//广播校时97和07一样的,但波特率不一样，
+                
+				tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(2);//1200;				
+    			pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
+	            if(pMtrPro == NULL)
+				{
+	            	return -1;
+	            }
+
+                WaitSemaphore(g_semRdMtr[bThrId]); 
+	    	    GetCurTime(&tmTm);
 				bBufY[10] = ByteToBcd(tmTm.nSecond)+0x33;
 				bBufY[11] = ByteToBcd(tmTm.nMinute)+0x33;
 				bBufY[12] = ByteToBcd(tmTm.nHour%100)+0x33;
@@ -464,81 +522,176 @@ int BroadcastAdjustTime_485(BYTE bThrId)
 				memcpy(pMtrPro->pbTxBuf, bBufY, sizeof(bBufY));
 				DTRACE(DB_CCT, ("bPort %d Broadcast 645-1200 \r\n",bPort)); 
 				iRet = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x04000101, sizeof(bBufY));
-				//按1200波特率再发一次
-				GetCurTime(&tmTm);
+                SignalSemaphore(g_semRdMtr[bThrId]); 
+                
 				tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(3);//2400;
+				pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
+                if(pMtrPro==NULL)
+                {
+                    return -1;
+                }
+                WaitSemaphore(g_semRdMtr[bThrId]); 
+                GetCurTime(&tmTm);
 				bBufY[10] = ByteToBcd(tmTm.nSecond)+0x33;
 				bBufY[11] = ByteToBcd(tmTm.nMinute)+0x33;
 				bBufY[12] = ByteToBcd(tmTm.nHour%100)+0x33;
 				bBufY[13] = ByteToBcd(tmTm.nDay)+0x33;
 				bBufY[14] = ByteToBcd(tmTm.nMonth)+0x33;
 				bBufY[15] = ByteToBcd(tmTm.nYear%100)+0x33;
-				bBufY[16] = CheckSum(bBufY, sizeof(bBufY)-2);
-				pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
+				bBufY[16] = CheckSum(bBufY, sizeof(bBufY)-2);				
 				memcpy(pMtrPro->pbTxBuf, bBufY, sizeof(bBufY));
-				DTRACE(DB_CCT, ("bPort %d Broadcast 645-1200 \r\n",bPort)); 
+    			DTRACE(DB_CCT, ("bPort %d Broadcast 645-2400 \r\n",bPort)); 
 				iRet = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x04000101, sizeof(bBufY));
+                SignalSemaphore(g_semRdMtr[bThrId]); 
+                
+                tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(4);//4800;
+                pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
+                if(pMtrPro==NULL)
+                {
+                    return -1;
+                }
+                WaitSemaphore(g_semRdMtr[bThrId]); 
+                GetCurTime(&tmTm);				
+				bBufY[10] = ByteToBcd(tmTm.nSecond)+0x33;
+				bBufY[11] = ByteToBcd(tmTm.nMinute)+0x33;
+				bBufY[12] = ByteToBcd(tmTm.nHour%100)+0x33;
+				bBufY[13] = ByteToBcd(tmTm.nDay)+0x33;
+				bBufY[14] = ByteToBcd(tmTm.nMonth)+0x33;
+				bBufY[15] = ByteToBcd(tmTm.nYear%100)+0x33;
+				bBufY[16] = CheckSum(bBufY, sizeof(bBufY)-2);				
+				memcpy(pMtrPro->pbTxBuf, bBufY, sizeof(bBufY));
+    			DTRACE(DB_CCT, ("bPort %d Broadcast 645-4800 \r\n",bPort)); 
+				iRet = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x04000101, sizeof(bBufY));
+                SignalSemaphore(g_semRdMtr[bThrId]); 
+                
+                tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(6);//9600;
+                pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
+                if(pMtrPro==NULL)
+                {
+                    return -1;
+                }
+                WaitSemaphore(g_semRdMtr[bThrId]); 
+                GetCurTime(&tmTm);				
+				bBufY[10] = ByteToBcd(tmTm.nSecond)+0x33;
+				bBufY[11] = ByteToBcd(tmTm.nMinute)+0x33;
+				bBufY[12] = ByteToBcd(tmTm.nHour%100)+0x33;
+				bBufY[13] = ByteToBcd(tmTm.nDay)+0x33;
+				bBufY[14] = ByteToBcd(tmTm.nMonth)+0x33;
+				bBufY[15] = ByteToBcd(tmTm.nYear%100)+0x33;
+				bBufY[16] = CheckSum(bBufY, sizeof(bBufY)-2);				
+				memcpy(pMtrPro->pbTxBuf, bBufY, sizeof(bBufY));
+    			DTRACE(DB_CCT, ("bPort %d Broadcast 645-9600 \r\n",bPort)); 
+				iRet = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x04000101, sizeof(bBufY));
+                SignalSemaphore(g_semRdMtr[bThrId]); 
 			}
 			//if (bProId == PROTOCOLNO_DLT69845)//对象表的广播校时，地址按多少来做???????
+			if(fIsNeedBCTm698)
 			{
-					bBuf1[0] = 7;//ACTION_REQ
-					bBuf1[1] = DL69845_APPSVR_GETREQUEST_NORMAL;	//GET-Request-NORMAL
-					bBuf1[2] = 0; //PIID
-					bBuf1[3] = 0x40;
-					bBuf1[4] = 0x00;
-					bBuf1[5] = 0x7f;// 方法127
-					bBuf1[6] = 0x00;
-					bBuf1[7] = 0x1c;
-					bBuf1[8] = tmTm.nYear>>8;
-					bBuf1[9] = tmTm.nYear & 0x00ff;
-					bBuf1[10] = tmTm.nMonth;
-					bBuf1[11] = tmTm.nDay;
-					bBuf1[12] = tmTm.nHour;
-					bBuf1[13] = tmTm.nMinute;
-					bBuf1[14] = tmTm.nSecond;
-					bBuf1[15] = 0x00;	//时间标签
+				bBuf1[0] = 7;//ACTION_REQ
+				bBuf1[1] = DL69845_APPSVR_GETREQUEST_NORMAL;	//GET-Request-NORMAL
+				bBuf1[2] = 0; //PIID
+				bBuf1[3] = 0x40;
+				bBuf1[4] = 0x00;
+				bBuf1[5] = 0x7f;// 方法127
+				bBuf1[6] = 0x00;
+				bBuf1[7] = 0x1c;
+				bBuf1[8] = tmTm.nYear>>8;
+				bBuf1[9] = tmTm.nYear & 0x00ff;
+				bBuf1[10] = tmTm.nMonth;
+				bBuf1[11] = tmTm.nDay;
+				bBuf1[12] = tmTm.nHour;
+				bBuf1[13] = tmTm.nMinute;
+				bBuf1[14] = tmTm.nSecond;
+				bBuf1[15] = 0x00;	//时间标签
 			
-					bBufY[0] = 0xC1;
-					bBufY[1] = 0xAA;
-					tMtrPara.bProId = PROTOCOLNO_DLT69845;
-					GetCurTime(&tmTm);
-					bBuf1[14] = tmTm.nSecond;
-					tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(2);
-					pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
-					iStep = Make69845Frm_485(bBufY+1, 1, 0x43, 3, 0, 0, bBuf1, 16, pMtrPro->pbTxBuf);//意思是广播时的地址域为：  C1 AA
-					DTRACE(DB_CCT, ("bPort %d Broadcast 69845-1200\r\n",bPort)); 
-					iRet = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x40000200, iStep);
+				bBufY[0] = 0xC1;
+				bBufY[1] = 0xAA;
+				tMtrPara.bProId = PROTOCOLNO_DLT69845;
 
-					GetCurTime(&tmTm);
-					bBuf1[14] = tmTm.nSecond;
-					tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(3);
-					pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
-					iStep = Make69845Frm_485(bBufY+1, 1, 0x43, 3, 0, 0, bBuf1, 16, pMtrPro->pbTxBuf);
-					DTRACE(DB_CCT, ("bPort %d Broadcast 69845-2400\r\n",bPort)); 
-					iRet = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x40000200, iStep);
+                tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(2);
+				pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
+                if(pMtrPro == NULL)
+                {
+                    return -1;
+                }
+                WaitSemaphore(g_semRdMtr[bThrId]);
+				GetCurTime(&tmTm);
+				bBuf1[8] = tmTm.nYear>>8;
+			    bBuf1[9] = tmTm.nYear & 0x00ff;
+				bBuf1[10] = tmTm.nMonth;
+				bBuf1[11] = tmTm.nDay;
+				bBuf1[12] = tmTm.nHour;
+				bBuf1[13] = tmTm.nMinute;
+				bBuf1[14] = tmTm.nSecond;			
+				iStep = Make69845Frm_485(bBufY+1, 1, 0x43, 3, 0, 0, bBuf1, 16, pMtrPro->pbTxBuf);//意思是广播时的地址域为：  C1 AA
+				DTRACE(DB_CCT, ("bPort %d Broadcast 69845-1200\r\n",bPort)); 
+				iRet = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x40000200, iStep);
+                SignalSemaphore(g_semRdMtr[bThrId]); 
 
-					GetCurTime(&tmTm);
-					bBuf1[14] = tmTm.nSecond;
-					tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(4);
-					pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
-					iStep = Make69845Frm_485(bBufY+1, 1, 0x43, 3, 0, 0, bBuf1, 16, pMtrPro->pbTxBuf);
-					DTRACE(DB_CCT, ("bPort %d Broadcast 69845-4800\r\n",bPort)); 
-					iRet = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x40000200, iStep);
+                tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(3);
+				pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
+                if(pMtrPro == NULL)
+                {
+                    return -1;
+                }
+                WaitSemaphore(g_semRdMtr[bThrId]);
+				GetCurTime(&tmTm);
+				bBuf1[8] = tmTm.nYear>>8;
+			    bBuf1[9] = tmTm.nYear & 0x00ff;
+				bBuf1[10] = tmTm.nMonth;
+				bBuf1[11] = tmTm.nDay;
+				bBuf1[12] = tmTm.nHour;
+				bBuf1[13] = tmTm.nMinute;
+				bBuf1[14] = tmTm.nSecond;				
+				iStep = Make69845Frm_485(bBufY+1, 1, 0x43, 3, 0, 0, bBuf1, 16, pMtrPro->pbTxBuf);
+				DTRACE(DB_CCT, ("bPort %d Broadcast 69845-2400\r\n",bPort)); 
+				iRet = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x40000200, iStep);
+                SignalSemaphore(g_semRdMtr[bThrId]); 
 
-					GetCurTime(&tmTm);
-					bBuf1[14] = tmTm.nSecond;
-					tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(6);
-					pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
-					iStep = Make69845Frm_485(bBufY+1, 1, 0x43, 3, 0, 0, bBuf1, 16, pMtrPro->pbTxBuf);
-					DTRACE(DB_CCT, ("bPort %d Broadcast 69845-9600\r\n",bPort)); 
-					iRet = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x40000200, iStep);
-
+                tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(4);
+                pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
+                if(pMtrPro == NULL)
+                {
+                    return -1;
+                }
+                WaitSemaphore(g_semRdMtr[bThrId]); 
+				GetCurTime(&tmTm);
+				bBuf1[8] = tmTm.nYear>>8;
+			    bBuf1[9] = tmTm.nYear & 0x00ff;
+				bBuf1[10] = tmTm.nMonth;
+				bBuf1[11] = tmTm.nDay;
+				bBuf1[12] = tmTm.nHour;
+				bBuf1[13] = tmTm.nMinute;
+				bBuf1[14] = tmTm.nSecond;				
+				iStep = Make69845Frm_485(bBufY+1, 1, 0x43, 3, 0, 0, bBuf1, 16, pMtrPro->pbTxBuf);
+				DTRACE(DB_CCT, ("bPort %d Broadcast 69845-4800\r\n",bPort)); 
+				iRet = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x40000200, iStep);
+                SignalSemaphore(g_semRdMtr[bThrId]);
+                
+				tMtrPara.CommPara.dwBaudRate = GbValToBaudrate(6);
+				pMtrPro = CreateMtrPro(m_iPn, &tMtrPara, bThrId);
+                if(pMtrPro == NULL)
+                {
+                    return -1;
+                }
+                WaitSemaphore(g_semRdMtr[bThrId]); 
+				GetCurTime(&tmTm);
+				bBuf1[8] = tmTm.nYear>>8;
+			    bBuf1[9] = tmTm.nYear & 0x00ff;
+				bBuf1[10] = tmTm.nMonth;
+				bBuf1[11] = tmTm.nDay;
+				bBuf1[12] = tmTm.nHour;
+				bBuf1[13] = tmTm.nMinute;
+				bBuf1[14] = tmTm.nSecond;
+				iStep = Make69845Frm_485(bBufY+1, 1, 0x43, 3, 0, 0, bBuf1, 16, pMtrPro->pbTxBuf);
+				DTRACE(DB_CCT, ("bPort %d Broadcast 69845-9600\r\n",bPort)); 
+				iRet = pMtrPro->pfnWriteItem(pMtrPro, tRdItem.dwOAD, 0x40000200, iStep);
+                SignalSemaphore(g_semRdMtr[bThrId]); 
 			}
 		}
 	}
 	return 0;
 }
-
 
 void IsInTestMode(BYTE bThrId)
 {
@@ -638,4 +791,5 @@ void IsInTestMode(BYTE bThrId)
 		g_TmRunModeII = tmpmode;
 
 }
+
 

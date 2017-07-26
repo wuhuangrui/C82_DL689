@@ -33,6 +33,8 @@ void NewMeterThread();
 ///////////////////////////////////////////////////////////////////////////////////////
 void InitMtrCacheCtrl();
 void RefreshMtrCacheCtrl();
+void SchRefreshMtrRdCtrl(BYTE bSchNo);
+void TaskRefreshMtrRdCtrl(BYTE bTaskNo);
 void InitMtrRdCtrl(WORD wPn, BYTE* pbTsa, TMtrRdCtrl* pMtrRdCtrl);
 void DoMangerMtrCacheCtrl();
 

@@ -173,16 +173,19 @@ int DL69845DirAskItem(struct TMtrPro* pMtrPro, BYTE bRespType, BYTE bChoice, BYT
 
 	wFrmLen = DL69845MakeFrm(pMtrPara->wPn, pMtrPara->bAddr, pbTxBuf, pbTxBuf+bFrmHead, wAPDULen);
 
-	memset((BYTE* )&tTmp698, 0, sizeof(tTmp698));
-	iRet = DL69845TxRx(pMtrPro, &tTmp698, wFrmLen);
+    for (BYTE bCnt=0; bCnt<2; bCnt++)
+    {
+    	memset((BYTE* )&tTmp698, 0, sizeof(tTmp698));
+    	iRet = DL69845TxRx(pMtrPro, &tTmp698, wFrmLen);
 
-	if (iRet > 0)
-	{
-		memcpy(pbData, &pbRxBuf[tTmp698.wRxAPDUPos+3], tTmp698.wRxAPDULen-3);
-		return tTmp698.wRxAPDULen - 3;
-	}
-	else
-		return iRet;
+    	if (iRet > 0)
+    	{
+    		memcpy(pbData, &pbRxBuf[tTmp698.wRxAPDUPos+3], tTmp698.wRxAPDULen-3);
+    		iRet = tTmp698.wRxAPDULen - 3;
+            break;
+    	}        
+    }
+    return iRet;
 }
 
 WORD GetRequestNormal(DWORD dwOAD, BYTE* pbTxBuf)
@@ -220,6 +223,10 @@ int GetResponseNormal(DWORD dwOAD, BYTE* pbSrcBuf, WORD wSrcLen, BYTE* pbDstBuf)
 			iRet = wSrcLen - 9 - 1;
 			memcpy(pbDstBuf, &pbSrcBuf[8], iRet);
 		}
+		else
+		{
+			iRet = -2; //不支持
+		}
 	}
 
 	return iRet;
@@ -244,6 +251,10 @@ int GetResponseRecord(DWORD dwOAD, BYTE* pbSrcBuf, WORD wSrcLen, BYTE* pbRCSD, B
 			}
 			else
 				memcpy(pbDstBuf, &pbSrcBuf[7+bLenRCSD+2], iRet);
+		}
+		else
+		{
+			iRet = -2; //不支持
 		}
 	}
 
@@ -339,7 +350,7 @@ int DL69845TxRx(struct TMtrPro* pMtrPro, T698Tmp* pTmp698, WORD wLen)
 
 	pTmp698->nRxStep = 0;	
 
-	fReadSuccess = ReadCommFrm(pMtrPro, (void*)pTmp698, 0, 4, 2, 200, MTR_FRM_SIZE, 0, NULL, 0);
+	fReadSuccess = ReadCommFrm(pMtrPro, (void*)pTmp698, 0, 4, 3, 200, MTR_FRM_SIZE, 0, NULL, 0);
 
 	if (fReadSuccess)	//接收到一个完整的帧
 	{	
@@ -381,6 +392,11 @@ bool DL69845RcvBlock(struct TMtrPro* pMtrPro, void* pTmpInf, BYTE* pbBlock, DWOR
 	T698Tmp* pTmp698 = (T698Tmp* )pTmpInf;
 	BYTE* pbRxBuf = pMtrPro->pbRxBuf; 
 	BYTE* pbTxBuf = pMtrPro->pbTxBuf; 
+
+
+#ifdef FRM_SEG_FLG
+	memset((BYTE*)pTmp698, 0, sizeof(T698Tmp));
+#endif
 
 	for ( ; dwLen; dwLen--)
 	{

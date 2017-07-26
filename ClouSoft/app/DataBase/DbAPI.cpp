@@ -2117,7 +2117,7 @@ void SetRdMtrCtrlMask(WORD wPn)
 	bMtrCtrlMask[wPn/8] |= 1<<(wPn%8);
 	WriteItemEx(BANK17, PN0, 0x6005, bMtrCtrlMask);
 	DTRACE(DB_CRITICAL, ("SetRdMtrCtrlMask(): wPn=%d.\r\n", wPn));
-	SetDelayInfo(INFO_MTR_INFO_UPDATE);
+	SetDelayInfo(INFO_MTR_UPDATE);
 	SignalSemaphore(g_semRdMtrCtrl);
 }
 
@@ -2175,8 +2175,9 @@ typedef struct {
 
 TOiMapSchId g_tOiMap[] = {	{0x6014, 0x6006, &g_TSchFieldCfg[0]},	//普通采集方案更新屏蔽字
 							{0x6016, 0x6007, &g_TSchFieldCfg[1]},	//事件采集方案
-							{0x601C, 0x6008, &g_TSchFieldCfg[2]},	//透明采集方案
-							{0x6051, 0x6009, &g_TSchFieldCfg[3]}};	//上报采集方案
+							{0x6051, 0x6008, &g_TSchFieldCfg[2]},	//透明采集方案
+							{0x601C, 0x6009, &g_TSchFieldCfg[3]},	//上报采集方案
+							{0x6012, 0x600a, &g_TSchFieldCfg[4]}};
 
 TSem g_semSchUdp = NewSemaphore(1);
 
@@ -2192,7 +2193,7 @@ void SetSchUpdateMask(WORD wOI, WORD wSchId)
 		{
 			memset(bBuf, 0, sizeof(bBuf));
 			ReadItemEx(BANK17, PN0, g_tOiMap[i].wDbId, bBuf);
-			bBuf[i] |= 1<<(i%8);
+			bBuf[wSchId/8] |= 1<<(wSchId%8);
 			WriteItemEx(BANK17, PN0, g_tOiMap[i].wDbId, bBuf);
 			break;
 		}
@@ -2210,10 +2211,11 @@ void ClearSchData()
 	bool fSchUdp = false;
 
 	WaitSemaphore(g_semSchUdp);
-	for (BYTE i=0; i<sizeof(g_tOiMap)/sizeof(g_tOiMap[0]); i++)
+	DTRACE(DB_CRITICAL, ("ClearSchData(): clear sch data.\r\n"));
+	for (BYTE index=0; index<sizeof(g_tOiMap)/sizeof(g_tOiMap[0]); index++)
 	{
 		memset(bBuf, 0, sizeof(bBuf));
-		ReadItemEx(BANK17, PN0, g_tOiMap[i].wDbId, bBuf);
+		ReadItemEx(BANK17, PN0, g_tOiMap[index].wDbId, bBuf);
 		if (!IsAllAByte(bBuf, 0, sizeof(bBuf)))
 		{
 			for (BYTE i=0; i<TASK_NUM_MASK; i++)
@@ -2227,7 +2229,7 @@ void ClearSchData()
 							wSchNo = i*8 + j;
 
 							memset(pszTabName, 0, sizeof(pszTabName));
-							if (g_tOiMap[i].pSchFieldCfg->bSchType == SCH_TYPE_EVENT)
+							if (g_tOiMap[index].pSchFieldCfg->bSchType == SCH_TYPE_EVENT)
 							{
 #ifndef SYS_WIN
 								memset(pszTabName, 0, sizeof(pszTabName));
@@ -2235,12 +2237,29 @@ void ClearSchData()
 								system(pszTabName);
 								DTRACE(DB_TASK, ("DelSchData: %s.\n", pszTabName));
 #endif
+								SchRefreshMtrRdCtrl((BYTE )wSchNo);
 							}
-							else
+							else if (g_tOiMap[index].pSchFieldCfg->bSchType == SCH_TYPE_COMM)
 							{
-								sprintf(pszTabName, "%s_%03d.dat", g_tOiMap[i].pSchFieldCfg->pszTableName, wSchNo);
+								sprintf(pszTabName, "%s_%03d.dat", g_tOiMap[index].pSchFieldCfg->pszTableName, wSchNo);
 								iRet = TdbClearRec(pszTabName); 
 								DTRACE(DB_TASK, ("DelSchData: %s, iRet=%d.\n", pszTabName, iRet));
+								SchRefreshMtrRdCtrl((BYTE )wSchNo);
+							}
+							else if (g_tOiMap[index].pSchFieldCfg->bSchType == SCH_TYPE_SCRIPT)
+							{
+								sprintf(pszTabName, "TaskCfgUnit_%03d.para", wSchNo);
+								DTRACE(DB_TASK, ("DelSchData: %s.\n", pszTabName));
+								TaskRefreshMtrRdCtrl((BYTE )wSchNo);
+							}
+							else if (g_tOiMap[index].pSchFieldCfg->bSchType == SCH_TYPE_REPORT)
+							{
+								//BANK16 0x6001~0x6008 为上报相关的参数
+								for (WORD wID=0x6001; wID<=0x6008; wID++)
+								{
+									DWORD dwZero = 0;
+									WriteItemEx(BANK16, wSchNo, wID, (BYTE*)&dwZero);
+								}
 							}
 
 							fSchUdp = true;
@@ -2250,16 +2269,28 @@ void ClearSchData()
 			}
 		}
 		memset(bBuf, 0, sizeof(bBuf));
-		WriteItemEx(BANK17, PN0, g_tOiMap[i].wDbId, bBuf);
+		WriteItemEx(BANK17, PN0, g_tOiMap[index].wDbId, bBuf);
 	}
-	SignalSemaphore(g_semSchUdp);
 
 	if (fSchUdp)
 	{
 		BYTE bTaskSN = 0;
-		ReadItemEx(BANK2, PN0, 0x6005, &bTaskSN);
+		ReadItemEx(BANK16, PN0, 0x6011, &bTaskSN);
 		bTaskSN++;	
-		WriteItemEx(BANK2, PN0, 0x6005, &bTaskSN);
+		WriteItemEx(BANK16, PN0, 0x6011, &bTaskSN);
 	}
+
+	SignalSemaphore(g_semSchUdp);
 }
 
+void ClearReportParam()
+{
+	DWORD dwZero = 0;
+
+	//BANK16 0x6001~0x6008 为上报相关的参数
+	for (WORD wID=0x6001; wID<=0x6008; wID++)
+	{
+		for (WORD i=0; i<TASK_NUM; i++)
+			WriteItemEx(BANK16, i, wID, (BYTE*)&dwZero);
+	}
+}

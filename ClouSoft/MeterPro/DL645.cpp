@@ -127,6 +127,10 @@ bool DL645RcvBlock(struct TMtrPro* pMtrPro, void* pTmpInf, BYTE* pbBlock, DWORD 
 	BYTE* pbRxBuf = pMtrPro->pbRxBuf; 
     BYTE* pbTxBuf = pMtrPro->pbTxBuf;
 
+#ifdef FRM_SEG_FLG
+	memset((BYTE*)pTmp645, 0, sizeof(T645Tmp));		//zhq modify 20170719
+#endif
+
 	for ( ; dwLen; dwLen--)
 	{
 		BYTE b = *pbBlock++;
@@ -287,7 +291,7 @@ int DL645TxRx(struct TMtrPro* pMtrPro, T645Tmp* pTmp645, WORD wID, WORD wLen, BY
 					WORD wRxID = pbRxBuf[DL645_DATA] + (WORD)pbRxBuf[DL645_DATA+1]*0x100;
 					if (wRxID != wID)
 					{							
-						DTRACE(DB_645, ("CDL645:: Tx_ID:%x != Rx_ID:%x\r\n", wID, wRxID)); 									
+						DTRACE(DB_645, ("CDL645:: Tx_ID:%08x != Rx_ID:%x\r\n", wID, wRxID)); 									
 					}
 					else
 					{
@@ -297,7 +301,7 @@ int DL645TxRx(struct TMtrPro* pMtrPro, T645Tmp* pTmp645, WORD wID, WORD wLen, BY
 				else if ((pbRxBuf[DL645_CMD]&0xc0) == 0xc0)   //帧校验正确
 				{
 					DTRACE(DB_645, ("CDL645::TxRx : rx = not surport data.\r\n")); 
-		 			return -1;
+		 			return -2;
 				}
 			}
 		}
@@ -407,7 +411,7 @@ int AskItemBID(struct TMtrPro* pMtrPro, WORD wID, BYTE* pbBuf)
 					if (bNum == 5) //电量、需量、需量时间之类的数据
 					{
 						if (iRv<0 && i==0) //如果第一个子ID就不支持，则块ID视作不支持
-							return -1;
+							return -2;
 						else if (iRv == -2) //非通信检测不支持的情况(费率调整或是不支持抄读的ID)
 							iLen += bItemLen;
 						else //if (iRv == -1) //注意需是通信返回的不支持,再停止抄后续子ID,否则单ID依据参数进行费率调整的时候,也会有不支持的,但要继续请求支持的子ID
@@ -427,7 +431,7 @@ int AskItemBID(struct TMtrPro* pMtrPro, WORD wID, BYTE* pbBuf)
 								if ( bfind && wID!=0xb67f ) //表示总已经回OK了
 									iLen = bNum*bItemLen;
 								else
-									return -1;
+									return -2;
 							}
 							else
 								iLen = bNum*bItemLen;
@@ -448,8 +452,8 @@ int AskItemBID(struct TMtrPro* pMtrPro, WORD wID, BYTE* pbBuf)
 		iLen = AskItem1BID(pMtrPro, wID, pbBuf, TXRX_RETRYNUM);
 	}
 
-	if (iLen == -2) //转化配置不支持的ID的返回值
-		return -1;
+	//if (iLen == -2) //转化配置不支持的ID的返回值
+	//	return -1;
 
 	return iLen;	
 }

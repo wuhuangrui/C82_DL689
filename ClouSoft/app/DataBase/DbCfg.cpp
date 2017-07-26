@@ -35,8 +35,8 @@ BYTE g_bTermSoftVer[OOB_SOFT_VER_LEN] = {
 BYTE g_bInnerSoftVer[INN_SOFT_VER_LEN] = 
 {
 	'6', '9', '8', '.', '4', '5', '-', 'Z', 'h', 'e', 'J', 'i', 'a', 'n',  'g', 0,  //地区 16个字节，通常为省份全拼，标准版则为Standard
-	'0', '0', '0', '5',     //版本4个字节 x.xx A 主版本.副版本 测试版本，正式归档的版本测试版本号为0
-	 0x24, 0x07, 0x17,        		 //日期3个字节 BCD码，终端软件发布日期。
+	'0', '0', '0', '6',     //版本4个字节 x.xx A 主版本.副版本 测试版本，正式归档的版本测试版本号为0
+	 0x26, 0x07, 0x17,        		 //日期3个字节 BCD码，终端软件发布日期。
 };
 
 TItemDesc g_EngDataDesc[] =   //电能量类对象
@@ -2211,9 +2211,9 @@ BYTE g_InOutDevDefault[] = {	 //输入输出设备类对象
 	//F800属性4--开关量
 	DT_STRUCT, 0x02,
 		DT_BIT_STR, 0x08,	//开关量接入标志
-			0x00,
+			0xff,
 		DT_BIT_STR, 0x08,	//开关量属性标志 
-			0x00,
+			0xff,
 	
 	//F801属性4--告警输出
 	DT_STRUCT, 0x02,
@@ -2627,7 +2627,9 @@ TItemDesc  g_Bank2Desc[] =   //标准版
 	{0x2050, 1,	DI_HIGH_PERM, DI_READ|DI_WRITE,0, INFO_NONE},	 //模块连接类型，福建显示专用，
 	{0x2051, 1,	DI_HIGH_PERM, DI_READ|DI_WRITE,0, INFO_NONE},	 //pIf->Connect()状态，1表示connectok福建显示专用，
 	{0x2052, 1,	DI_HIGH_PERM, DI_READ|DI_WRITE,0, INFO_NONE},	 //ping结果
-
+	
+	{0x2055, 4,DI_HIGH_PERM, DI_READ|DI_WRITE,0, INFO_NONE},	//GPRS使用模块协议栈时，终端本机IP地址
+	
 	{0x2101, 42,DI_HIGH_PERM, DI_READ|DI_WRITE,0, INFO_NONE},	 //A相电压谐波含有率数据块
 	{0x2102, 42,DI_HIGH_PERM, DI_READ|DI_WRITE,0, INFO_NONE},	 //B相电压谐波含有率数据块
 	{0x2103, 42,DI_HIGH_PERM, DI_READ|DI_WRITE,0, INFO_NONE},	 //C相电压谐波含有率数据块
@@ -2691,8 +2693,7 @@ TItemDesc  g_Bank2Desc[] =   //标准版
 
 	{0x6001,	5,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0,	INFO_NONE,	FMT_UNK,		1,		},//自检模式及项目
 	{0x6002,	5,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0,	INFO_NONE,	FMT_UNK,		1,		},//自检测试状态及结果
-
-	{0x6005,	1,			DI_HIGH_PERM, DI_READ, 0,	INFO_NONE,	FMT_UNK,		1,		},//任务配置的序列号
+	{0x6003,	3,			DI_HIGH_PERM, DI_READ|DI_WRITE, 0,	INFO_NONE,	FMT_UNK,		1,		},//信号强度（带数据类型）
 };
 
 
@@ -2947,7 +2948,8 @@ TItemDesc g_Bank11Desc[] =
 //------------------------------------------------------------------------------------------------------
 TItemDesc  g_Bank16Desc[] =
 {//----标识-----长度------------权限-----------读写--------偏移----写操作-------格式----------Pn个数------
-	//Oob	
+	//Oob
+	{0x0001, 	BN_VER_LEN,	DI_HIGH_PERM,	DI_READ|DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,	},//Ver  		
 	{0x6001,	4,		DI_LOW_PERM,	DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_UNK,		TASK_NUM,	}, //
 	{0x6002,	4,		DI_LOW_PERM,	DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_UNK,		TASK_NUM,	}, //记录任务上报的执行时间
 	{0x6003,	4,		DI_LOW_PERM,	DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_UNK,		TASK_NUM,	}, //记录任务上报的执行时间IF_GPRS通道
@@ -2956,7 +2958,8 @@ TItemDesc  g_Bank16Desc[] =
 	{0x6006,	4,		DI_LOW_PERM,	DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_UNK,		TASK_NUM,	}, //记录任务上报的执行时间
 	{0x6007,	4,		DI_LOW_PERM,	DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_UNK,		TASK_NUM,	}, //记录任务上报的执行时间
 	{0x6008,	4,		DI_LOW_PERM,	DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_UNK,		TASK_NUM,	}, //记录任务上报的执行时间(短信模式)
-	{0x6010,	PN_MASK_SIZE,		DI_LOW_PERM,	DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_UNK,		TASK_NUM,	}, //载波发现未知电表告警事件屏蔽字
+	{0x6010,	PN_MASK_SIZE,DI_LOW_PERM,	DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_UNK,		TASK_NUM,	}, //载波发现未知电表告警事件屏蔽字
+	{0x6011,	1,		DI_LOW_PERM,	DI_READ|DI_WRITE,	0,	INFO_NONE,		FMT_UNK,		1,			}, //任务配置的序列号
 };
 
 //------------------------------------------------------------------------------------------------------
@@ -2973,7 +2976,8 @@ TItemDesc  g_Bank17Desc[] =
 	{0x6007,   TASK_NUM_MASK,DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //事件采集方案更新屏蔽字
 	{0x6008,   TASK_NUM_MASK,DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //透明采集方案更新屏蔽字
 	{0x6009,   TASK_NUM_MASK,DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //上报采集方案更新屏蔽字
-	
+	{0x600a,   TASK_NUM_MASK,DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //任务方案更新屏蔽字
+
 	{0x6010,	1,			DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //公网通信模块：0--公网通信模块1，1--公网通信模块2
 	{0x6011,	1,			DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //每个公网通信模块存在多个主站IP地址，本参数用于区分不同IP地址
 	{0x6012,	1,			DI_LOW_PERM, DI_READ|DI_WRITE,	0, INFO_NONE,		FMT_UNK,		1,			}, //以太网通信模块：0--以太网通信模块1，1--以太网通信模块2...

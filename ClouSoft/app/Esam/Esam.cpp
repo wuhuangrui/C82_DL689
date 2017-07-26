@@ -618,7 +618,7 @@ int EsamCheckRxFrm(BYTE* pbFrm, WORD wLen, BYTE bSW1, BYTE bSW2, int* piStart)
 	{
 		if (iCmdHead >= 0)
 		{
-			for (i=0; i<sizeof(g_tSwTable); i++) 
+			for (i=0; i<sizeof(g_tSwTable)/sizeof(g_tSwTable[0]); i++) 
 			{
 				if ((pbFrm[iCmdHead+1]==g_tSwTable[i].bSW1)&&(pbFrm[iCmdHead+2]==g_tSwTable[i].bSW2))
 				{

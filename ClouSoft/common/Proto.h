@@ -47,6 +47,7 @@ public:
 
     //Ðéº¯Êý
 	virtual bool RcvFrm(bool fSingleMode=false);
+	bool RcvSms(BYTE* pbBuf, WORD wLen);
 	virtual bool Login();
 	virtual bool Logoff() { return true; };
 	virtual bool Beat();

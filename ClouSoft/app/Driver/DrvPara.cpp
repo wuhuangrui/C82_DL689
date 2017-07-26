@@ -194,7 +194,9 @@ bool InitDrvPara()
 	BYTE bMode = 1;
 	WriteItemEx(BN2, BN0, 0x2040, &bMode);
 #ifndef SYS_WIN
+#ifndef PLATFORM_NUC977_ZJ_K3
 	InitDcValToDb(PN0);
+#endif
 	SetLogFileAddr(g_wLogFileAddr, sizeof(g_wLogFileAddr));
 #endif
 	return true;

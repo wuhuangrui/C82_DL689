@@ -125,5 +125,6 @@ bool MeterInfoCompare(WORD wPn, BYTE *pbBuf);
 void SetSchUpdateMask(WORD wOI, WORD wSchId);
 void ClearSchData();
 
+void ClearReportParam();
 
 #endif //DBAPI_H

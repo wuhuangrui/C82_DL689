@@ -674,6 +674,10 @@ void FaInitStep1()
  	WriteItemEx(BN2, PN0, 0x2107, g_bInnerSoftVer);
 
 	WriteItemEx(BN2, PN0, 0x210e, (BYTE* )&g_PowerOffTmp.fAlrPowerOff); //上电初始化停上电状态
+
+	memset(szTmp, 0, sizeof(szTmp));
+	szTmp[0] = DT_LONG;
+	WriteItemEx(BN2, PN0, 0x6003, (BYTE* )szTmp);	//上电清零信号强度值
 }
 
 //描述:系统初始化期间对驱动的初始化挂接
@@ -886,7 +890,7 @@ void DoYX()
 		return ;
     
 #ifdef SYS_LINUX
-	 BYTE bDoorStat = 0;
+	 BYTE bDoorStat =  0x10;
 	 bDoorStat = GetDoorStatus(); //门节点分状态为高电平
 #endif
     int nRead = ReadItemEx(BN2, PN0, 0x1100, &bYxVal);
@@ -1062,10 +1066,15 @@ TThreadRet WdgThread(void* pvPara)
 {
 	int iMonitorID;
     WORD i=0, j=0;
+	bool fForbitWDG = false;
     while (1)
     {
         Sleep(100);
-		ClearWDG();
+		if (!fForbitWDG)
+			ClearWDG();
+
+		if (GetInfo(INFO_STOP_FEED_WDG))
+			fForbitWDG = true;
 
 		i++;
 		if (i == 4)
@@ -1996,7 +2005,9 @@ void FaResetData_1()
 	for (WORD wId=0; wId<TASK_ID_NUM; wId++)
 		ClrTaskMoniStat(wId);
 
+	SaveMangerMtrCacheCtrl(true);
 	DeleteMtrRdCtrl();
+	ClearMtrCacheCtrl();	//CL add 170718
 	InitMtrCacheCtrl();
 	//RefreshMtrCacheCtrl();   //changed by whr 20170711
 }
@@ -2018,6 +2029,7 @@ void FaResetPara()
 
 void FaResetEvent()
 {
+	BYTE bSect;
 
 	FaSavePara();
 #if 0
@@ -2067,6 +2079,11 @@ void FaInit(BYTE bMethod)
 		//TDoSave();
 		SetInfo(INFO_HARDWARE_INIT);
 		SaveMangerMtrCacheCtrl();	//复位前先保存抄表缓存结构
+
+#ifdef SYS_LINUX
+		system("/clou/ppp/script/ppp-off");
+		SetInfo(INFO_STOP_FEED_WDG);	//停止喂狗	
+#endif
 		Sleep(10*1000);
 		ResetCPU();
 		break;
@@ -2079,8 +2096,11 @@ void FaInit(BYTE bMethod)
 		SetInfo(INFO_RST_TERM_STAT); 
 		SetInfo(INFO_HARDWARE_INIT);
 		UpdateTermPowerOffTime();	//需要放在DealSpecTrigerEvt(MTR_MTRCLEAR)前面
+
+		WaitSemaphore(g_semTermEvt);
 		DealSpecTrigerEvt(MTR_MTRCLEAR);
 		DealSpecTrigerEvt(TERM_INIT);//需要放在DealSpecTrigerEvt(MTR_MTRCLEAR)后面
+		SignalSemaphore(g_semTermEvt);
 		
 		//Sleep(10*1000);
 		//ResetCPU();	//ESAM数据初始化时不应该重启终端
@@ -2092,8 +2112,12 @@ void FaInit(BYTE bMethod)
 		FrzTaskOnRxFaResetCmd();	//冻结数据初始化
 		SetInfo(INFO_RST_TERM_STAT); 
 		UpdateTermPowerOffTime();
+		
+		WaitSemaphore(g_semTermEvt);		
 		DealSpecTrigerEvt(MTR_MTRCLEAR);
 		DealSpecTrigerEvt(TERM_INIT);
+		SignalSemaphore(g_semTermEvt);
+		
 		Sleep(10*1000);
 		ResetCPU();	
 		break;
@@ -2101,15 +2125,23 @@ void FaInit(BYTE bMethod)
 		FaResetEvent();
 		MtrExcOnRxFaResetCmd();		//抄表事件数据清零
 		UpdateTermPowerOffTime();
+
+		WaitSemaphore(g_semTermEvt);		
 		DealSpecTrigerEvt(MTR_EVTCLEAR);
 		DealSpecTrigerEvt(TERM_INIT);
+		SignalSemaphore(g_semTermEvt);
+
 		//ResetCPU();
 		Sleep(10*1000);
 		break;
 	case DEMAND_INIT:
 		FaResetDemand();
+
+		WaitSemaphore(g_semTermEvt);		
 		DealSpecTrigerEvt(MTR_DMDCLEAR);
 		DealSpecTrigerEvt(TERM_INIT);
+		SignalSemaphore(g_semTermEvt);
+
 		Sleep(10*1000);
 		break;
 	default:
@@ -2210,158 +2242,176 @@ void WriteCfgPathName(void)
 TThreadRet SlowSecondThread(void* pvPara)
 {
 		int iMonitorID = ReqThreadMonitorID("SlowSecond-thrd", 60*60);	//申请线程监控ID,更新间隔为5分钟
-	
-		DTRACE(DB_CRITICAL, ("SlowSecondThread : started!\n"));
-		//SaveSoftVerChg();
-	
-		while (1)
-		{
-			if (GetInfo(INFO_MTR_INFO_UPDATE))
-			{
-				RequestThreadsSem();
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_INFO_UPDATE start ###\r\n"));
-				SetThreadDelayFlg();
-				InitMtrMask();
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_INFO_UPDATE end ###\r\n"));
-				ReleaseThreadsSem();
-			}
-	
-			if (GetInfo(INFO_MTR_ALL_CLEAR))
-			{
-				RequestThreadsSem();
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_ALL_CLEAR start ###\r\n"));
-				SetThreadDelayFlg();
-				DelSchData();
-				InitMtrMask();
-				SaveMangerMtrCacheCtrl(true);
-				DeleteMtrRdCtrl();
-				SetInfo(INFO_SYNC_MTR);
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_ALL_CLEAR end ###\r\n"));
-				ReleaseThreadsSem();
-			}
-	
-			if (GetInfo(INFO_TASK_CFG_UPDATE))
-			{
-				RequestThreadsSem();
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_TASK_CFG_UPDATE start ###\r\n"));
-				SetThreadDelayFlg();
-	
-				InitTaskMap();
-	//			InitSchMap();
-	//			InitSchTable();
-	//			DeleteMtrRdCtrl();
-				SetInfo(INFO_SYNC_MTR);
-	//			InitMtrCacheCtrl();
-	
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_TASK_CFG_UPDATE end ###\r\n"));
-				ReleaseThreadsSem();
-			}
-	
-			if (GetInfo(INFO_ACQ_SCH_UPDATE))
-			{
-				RequestThreadsSem();
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_ACQ_SCH_UPDATE start ###\r\n"));
-				SetThreadDelayFlg();
-				//DelSchData(); //用ClearSchData删除
-				ClearSchData();
-				InitSchMap();
-				InitSchTable();
-				//DeleteMtrRdCtrl();	//这里不用删除抄表控制结构，统一由岑工定义的接口处理
-				//InitMtrCacheCtrl();
-				SetInfo(INFO_SYNC_MTR);
-				
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_ACQ_SCH_UPDATE end ###\r\n"));
-				ReleaseThreadsSem();
-			}
-			if (GetInfo(INFO_RP_SCH_UPDATE))
-			{
-				RequestThreadsSem();
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_RP_SCH_UPDATE start ###\r\n"));
-				SetThreadDelayFlg();
-				
-				InitSchMap();
-				InitSchTable();
-				ClearBankData(BN16, 0, -1);
-	
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_RP_SCH_UPDATE end ###\r\n"));
-				ReleaseThreadsSem();
-			}
-	
-			if (GetInfo(INFO_CLASS19_METHOD_RST) || GetInfo(INFO_APP_RST))	//硬件初始化
-			{
-				DTRACE(DB_FA, ("Dev interface class=19 method=1. Reset system...\n"));
-				FaInit(RESTART_SYSTEM);
-			}
-	
-			if (GetInfo(INFO_CLASS19_METHOD_EXE))	
-			{
-				DTRACE(DB_FA, ("Dev interface class=19 method=2. Exe...\n"));
-				FaInit(EXEC_INSTANCE);
-			}
-	
-			if (GetInfo(INFO_CLASS19_METHOD_DATA_INIT)) 
-			{
-				RequestThreadsSem();
-				DTRACE(DB_FA, ("Dev interface class=19 method=3. Data init...\n"));
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_CLASS19_METHOD_DATA_INIT end ###\r\n"));
-				SetThreadDelayFlg();
-				FaInit(DATA_INIT);
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_CLASS19_METHOD_DATA_INIT end ###\r\n"));
-				ReleaseThreadsSem();
-			}
-	
-			if (GetInfo(INFO_CLASS19_METHOD_RST_FACT_PARA)) 
-			{
-				DTRACE(DB_FA, ("Dev interface class=19 method=4. Restore factory para...\n"));
-				WriteCfgPathName(); //恢复出厂参数后自动应用配置文件
-				RequestThreadsSem();
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_CLASS19_METHOD_RST_FACT_PARA end ###\r\n"));
-				SetThreadDelayFlg();
-				FaInit(PARAM_INIT);
-				DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_CLASS19_METHOD_RST_FACT_PARA end ###\r\n"));
-				ReleaseThreadsSem();
-			}
-	
-			if (GetInfo(INFO_CLASS19_METHOD_EVT_INIT))	
-			{
-				DTRACE(DB_FA, ("Dev interface class=19 method=5. Event init...\n"));
-				FaInit(EVENT_INIT);
-			}
-	
-			if (GetInfo(INFO_CLASS19_METHOD_DEM_INIT))	
-			{
-				DTRACE(DB_FA, ("Dev interface class=19 method=6. Demand init...\n"));
-				FaInit(DEMAND_INIT);
-			}		
-	
-			if (GetInfo(INFO_DISCONNECT)) //数据复位
-			{
-				DTRACE(DB_CRITICAL, ("SlowSecondThread : rx INFO_DISCONNECT......\n"));
-				g_pGprsFaProtoIf->SetDisConnect(); //在收到外部的断开连接命令时,调用本函数通知接口
-				g_pEthFaProtoIf->SetDisConnect();
-			}
-			
-			if (IsTermUptateEnd())	
-			{// 为区分 class=19 method=1引起的集中器复位， 故在这里复位，加调试信息予以区分
-				DTRACE(DB_FA, ("term update success, Reset system...\n"));
-				FaInit(RESTART_SYSTEM);
-			}
-	
-			DoMangerMtrCacheCtrl();
-			
-			DoFaSave();
-			DoFapCmd();
-			DoPowerManagement();
-			CheckSignStrength();
-	
-			
-			UpdThreadRunClick(iMonitorID);
-			Sleep(1000);
-		}	
-	
-		ReleaseThreadMonitorID(iMonitorID);
-		return THREAD_RET_OK;
 
+	DTRACE(DB_CRITICAL, ("SlowSecondThread : started!\n"));
+	//SaveSoftVerChg();
+
+	while (1)
+	{
+		if (GetInfo(INFO_UPD_MTR_CTRL))
+		{
+			RequestThreadsSem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_UPD_MTR_CTRL start ###\r\n"));
+			SetThreadDelayFlg();
+			SaveMangerMtrCacheCtrl(true);
+			DeleteMtrRdCtrl();
+			ClearMtrCacheCtrl();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_UPD_MTR_CTRL end ###\r\n"));
+			ReleaseThreadsSem();
+		}
+
+		if (GetInfo(INFO_MTR_UPDATE))
+		{
+			RequestThreadsSem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_UPDATE start ###\r\n"));
+			SetThreadDelayFlg();
+			InitMtrMask();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_UPDATE end ###\r\n"));
+			ReleaseThreadsSem();
+		}
+
+		if (GetInfo(INFO_MTR_ALL_CLEAR))
+		{
+			RequestThreadsSem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_ALL_CLEAR start ###\r\n"));
+			SetThreadDelayFlg();
+			DelSchData();
+			InitMtrMask();
+			SaveMangerMtrCacheCtrl(true);
+			DeleteMtrRdCtrl();
+			SetInfo(INFO_SYNC_MTR);
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_ALL_CLEAR end ###\r\n"));
+			ReleaseThreadsSem();
+		}
+
+		if (GetInfo(INFO_TASK_CFG_UPDATE))
+		{
+			RequestThreadsSem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_TASK_CFG_UPDATE start ###\r\n"));
+			SetThreadDelayFlg();
+
+			ClearSchData();
+			InitTaskMap();
+ 			InitSchMap();
+ 			InitSchTable();
+//			DeleteMtrRdCtrl();
+			SetInfo(INFO_SYNC_MTR);
+//			InitMtrCacheCtrl();
+
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_TASK_CFG_UPDATE end ###\r\n"));
+			ReleaseThreadsSem();
+		}
+
+		if (GetInfo(INFO_ACQ_SCH_UPDATE))
+		{
+			RequestThreadsSem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_ACQ_SCH_UPDATE start ###\r\n"));
+			SetThreadDelayFlg();
+			//DelSchData();	//用ClearSchData删除
+			ClearSchData();
+			InitTaskMap();
+			InitSchMap();
+			InitSchTable();
+			//DeleteMtrRdCtrl();	//这里不用删除抄表控制结构，统一由岑工定义的接口处理
+			//InitMtrCacheCtrl();
+			SetInfo(INFO_SYNC_MTR);
+			
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_ACQ_SCH_UPDATE end ###\r\n"));
+			ReleaseThreadsSem();
+		}
+		if (GetInfo(INFO_RP_SCH_UPDATE))
+		{
+			RequestThreadsSem();
+			SetThreadDelayFlg();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_RP_SCH_UPDATE start ###\r\n"));
+			
+			ClearSchData();
+			InitSchMap();
+			InitSchTable();
+			//ClearBankData(BN16, 0, -1);	这种做法很不合理，会导致bank16的其它参数都清掉！！！
+			//ClearReportParam();
+
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_RP_SCH_UPDATE end ###\r\n"));
+			ReleaseThreadsSem();
+		}
+
+		if (GetInfo(INFO_CLASS19_METHOD_RST) || GetInfo(INFO_APP_RST))	//硬件初始化
+		{
+			RequestThreadsSem();
+			SetThreadDelayFlg();
+			DTRACE(DB_CRITICAL, ("Dev interface class=19 method=1. Reset system...\n"));
+			FaInit(RESTART_SYSTEM);
+			//ReleaseThreadsSem(); 硬件初始化需要复位终端，这里不释放锁，禁止抄表线程运行
+		}
+
+		if (GetInfo(INFO_CLASS19_METHOD_EXE))	
+		{
+			DTRACE(DB_CRITICAL, ("Dev interface class=19 method=2. Exe...\n"));
+			FaInit(EXEC_INSTANCE);
+		}
+
+		if (GetInfo(INFO_CLASS19_METHOD_DATA_INIT))	
+		{
+			RequestThreadsSem();
+			SetThreadDelayFlg();
+			DTRACE(DB_CRITICAL, ("Dev interface class=19 method=3. Data init...\n"));
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_CLASS19_METHOD_DATA_INIT start ###\r\n"));
+			FaInit(DATA_INIT);
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_CLASS19_METHOD_DATA_INIT end ###\r\n"));
+			ReleaseThreadsSem();
+		}
+
+		if (GetInfo(INFO_CLASS19_METHOD_RST_FACT_PARA))	
+		{
+			DTRACE(DB_FA, ("Dev interface class=19 method=4. Restore factory para...\n"));
+			WriteCfgPathName(); //恢复出厂参数后自动应用配置文件
+			RequestThreadsSem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_CLASS19_METHOD_RST_FACT_PARA start ###\r\n"));
+			SetThreadDelayFlg();
+			FaInit(PARAM_INIT);
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_CLASS19_METHOD_RST_FACT_PARA end ###\r\n"));
+			ReleaseThreadsSem();
+		}
+
+		if (GetInfo(INFO_CLASS19_METHOD_EVT_INIT))	
+		{
+			DTRACE(DB_CRITICAL, ("Dev interface class=19 method=5. Event init...\n"));
+			FaInit(EVENT_INIT);
+		}
+
+		if (GetInfo(INFO_CLASS19_METHOD_DEM_INIT))	
+		{
+			DTRACE(DB_CRITICAL, ("Dev interface class=19 method=6. Demand init...\n"));
+			FaInit(DEMAND_INIT);
+		}		
+
+		if (GetInfo(INFO_DISCONNECT)) //数据复位
+		{
+			DTRACE(DB_CRITICAL, ("SlowSecondThread : rx INFO_DISCONNECT......\n"));
+			g_pGprsFaProtoIf->SetDisConnect(); //在收到外部的断开连接命令时,调用本函数通知接口
+			g_pEthFaProtoIf->SetDisConnect();
+		}
+        
+        if (IsTermUptateEnd())  
+        {// 为区分 class=19 method=1引起的集中器复位， 故在这里复位，加调试信息予以区分
+            DTRACE(DB_CRITICAL, ("term update success, Reset system...\n"));
+            FaInit(RESTART_SYSTEM);
+        }
+
+		DoMangerMtrCacheCtrl();
+		
+		DoFaSave();
+		DoFapCmd();
+		DoPowerManagement();
+		CheckSignStrength();
+
+		
+		UpdThreadRunClick(iMonitorID);
+		Sleep(1000);
+	}	
+
+	ReleaseThreadMonitorID(iMonitorID);
+	return THREAD_RET_OK;
 }
 
 //控制模块线程--控制模块的LED灯，继电器，断线检测
@@ -2398,6 +2448,7 @@ TThreadRet CtrlMoudleThread(void* pvPara)
 		UpdThreadRunClick(iMonitorID);
 	}
 
+	ReleaseThreadMonitorID(iMonitorID);
 	return THREAD_RET_OK;
 }
 //目前端口号的转换都要经过下面的两个步骤:
@@ -2791,7 +2842,7 @@ void InitApp()
 {
 	g_StatMgr.Init();	 //统计
 	ApllyCfgAuto();//开机自动应用配置文件
-	ReSetParamKeepReadFile();
+	g_pmParaMgr.ReSetParamKeepReadFile();
 }
 #ifdef EN_INMTR
 void DoAmpHour();
@@ -3064,6 +3115,7 @@ void SetUsbProcessState(BYTE bState)
 //描述：申请线程的信号量
 void RequestThreadsSem()
 {
+	StopMtrRd(0xffff); //停止抄表
 	//485-1,485-2,485-3
 	for (BYTE i=LOGIC_PORT_MIN; i<LOGIC_PORT_MAX; i++)
 		WaitSemaphore(g_semRdMtr[i-LOGIC_PORT_MIN]);
