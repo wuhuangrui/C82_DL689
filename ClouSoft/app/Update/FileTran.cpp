@@ -551,15 +551,22 @@ int UpdFile()
 //升级文件改为升clmain和\或驱动文件，再加上update脚本一起压缩的包
 
 		//sprintf(szTmp, "tar zxvf /mnt/data/clmain.tgz -C /mnt/data/");//K32改用下边的新压缩方式
-		sprintf(szTmp, "xz -d /mnt/data/clmain.tar.xz");
+		//sprintf(szTmp, "xz -d /mnt/data/clmain.tar.xz");
+		/*
 		if (system(szTmp) < 0)
 		{
 			DTRACE(DB_FAPROTO, ("xz -d /mnt/data/clmain.tar.xz  Error\r\n"));
 			return -1;			
 		}
-		sprintf(szTmp, "tar xvf /mnt/data/clmain.tar -C /mnt/data/");
-		system(szTmp);
-		sprintf(szTmp, "source /mnt/data/clmain/update&");
+		*/
+		//C82 no xz tool. changed by whr 20170728
+		sprintf(szTmp, "tar zxvf /mnt/data/clmain.tar.xz -C /mnt/data/");
+		if (system(szTmp) < 0)
+		{
+			DTRACE(DB_FAPROTO, ("tar zxvf /mnt/data/clmain.tar.xz -C /mnt/data/  Error\r\n"));
+			return -1;			
+		}
+		sprintf(szTmp, "source /mnt/data/clmain/update &");
 		system(szTmp);
 		return 1;
 #else
