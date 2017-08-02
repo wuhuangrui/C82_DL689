@@ -950,6 +950,7 @@ GOTO_RxHandleFrm:
 									else
 										dwOAD = OoOadToDWord(&pRdItem->bRCSD[1+pRdItem->wRcsdIdx*5+1]);
 									iRet = GetDL645_9707DataVal(pData, wRcvFrmLen, bProId, 0, dwOAD, pbOutBuf, pRdItem);
+									DTRACE(DB_CCT, ("GetDL645_9707DataVal iRet=%d\r\n", iRet));
 									if (iRet < 0)
 										goto RET_RTFWD;
 								}
@@ -4888,6 +4889,7 @@ int CStdReader::ReadDL645_9707Time(BYTE * pDbTsa, TMtrPara tTMtrPara, TRdItem *p
 
 	memset(bRespData, 0, sizeof(bRespData));
 	iRet = Afn13Fn01_RtFwd(pDbTsa+1, pDbTsa[0], bFrm69845, iLen69845+4, NULL, pRdItem, bRespData, tTMtrPara.bProId);
+	DTRACE(DB_CCT, ("Afn13Fn01_RtFwd iRet=%d\r\n", iRet));
 	if (iRet > 0)
 		memcpy(pbData, bRespData, 8);
 	else
@@ -4895,6 +4897,7 @@ int CStdReader::ReadDL645_9707Time(BYTE * pDbTsa, TMtrPara tTMtrPara, TRdItem *p
 
 	pRdItem->dwOAD = 0x40000209;
 	iLen69845 = DL645_9707MakeFrm(&tTMtrPara.bAddr[1], tTMtrPara.bAddr[0], tTMtrPara.bProId, tTMtrPara.bSubProId, pRdItem->dwOAD, &bFrm69845[4]);//注意，浙江的才这么改！tTMtrPara.bAddr[0]
+	DTRACE(DB_CCT, ("Afn13Fn01_RtFwd 2 iRet=%d\r\n", iRet));
 	if (iLen69845 <= 0)
 	{
 		return -1;
@@ -4903,6 +4906,7 @@ int CStdReader::ReadDL645_9707Time(BYTE * pDbTsa, TMtrPara tTMtrPara, TRdItem *p
 	bFrm69845[3] = iLen69845;
 	memset(bRespData, 0, sizeof(bRespData));
 	iRet = Afn13Fn01_RtFwd(pDbTsa+1, pDbTsa[0], bFrm69845, iLen69845+4, NULL, pRdItem, bRespData, tTMtrPara.bProId);
+	DTRACE(DB_CCT, ("Afn13Fn01_RtFwd 3 iRet=%d\r\n", iRet));
 	if (iRet > 0)
 	{
 		memcpy(pbData+5, bRespData, 3);
