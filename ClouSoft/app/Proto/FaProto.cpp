@@ -128,10 +128,13 @@ bool CFaProto::Init(TFaProPara* pFaProPara)
 	return true;
 }
 
+BYTE test_buf[] = {0x67, 0x17, 0x00, 0x43, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x26, 0xF6, 0x05, 0x01, 0x00, 0x40, 0x00, 0x02, 0x00, 0x00, 0x56, 0x1F, 0x16};
+
 //帧校验
 int CFaProto::RcvBlock(BYTE *pbBuf,int wLen)
 {
-	BYTE *pbBlock = pbBuf;
+	BYTE *pbBlock = test_buf; //pbBuf;
+	wLen = sizeof(test_buf);
 
 	if (m_nRxStep!=0 && m_dwFrmStartClick!=0 &&
 		GetClick()-m_dwFrmStartClick>40)	//台体重发是60S,大于60s丢掉无效的
