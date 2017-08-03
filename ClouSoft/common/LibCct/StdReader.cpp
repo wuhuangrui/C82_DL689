@@ -860,6 +860,10 @@ bool CStdReader::Afn12Fn03_RtResume()
 	return RtCtrl(FN(3));
 }
 
+68 33 00 83 04 00 40 00 00 00 92 33 47 02 00 00 00 00 00 00 00 01 13 01 00 \
+	00 00 00 14 68 92 33 47 02 00 00 68 91 08 34 34 33 37 37 36 3C 3C 2E 16 70 16
+
+
 //描述：路由数据转发类 AFN=13H-F1
 //参数：@pbTsa 表地址
 //		@bTsaLen 表地址长度
@@ -950,7 +954,8 @@ GOTO_RxHandleFrm:
 									else
 										dwOAD = OoOadToDWord(&pRdItem->bRCSD[1+pRdItem->wRcsdIdx*5+1]);
 									iRet = GetDL645_9707DataVal(pData, wRcvFrmLen, bProId, 0, dwOAD, pbOutBuf, pRdItem);
-									DTRACE(DB_CCT, ("GetDL645_9707DataVal iRet=%d\r\n", iRet));
+									DTRACE(DB_CCT, ("GetDL645_9707DataVal iRet=%d, dwOAD=%04d, bProId=%d, wRcvFrmLen=%d\r\n", \
+										iRet, dwOAD, bProId, wRcvFrmLen));
 									if (iRet < 0)
 										goto RET_RTFWD;
 								}
