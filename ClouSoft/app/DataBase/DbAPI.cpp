@@ -2233,7 +2233,7 @@ void ClearSchData()
 							{
 #ifndef SYS_WIN
 								memset(pszTabName, 0, sizeof(pszTabName));
-								sprintf(pszTabName, "rm -rf %s%s_%03d_*", USER_DATA_PATH, g_tOiMap[i].pSchFieldCfg->pszTableName, wSchNo);
+								sprintf(pszTabName, "rm -rf %s%s_%03d_*", USER_DATA_PATH, g_tOiMap[index].pSchFieldCfg->pszTableName, wSchNo);
 								system(pszTabName);
 								DTRACE(DB_TASK, ("DelSchData: %s.\n", pszTabName));
 #endif
