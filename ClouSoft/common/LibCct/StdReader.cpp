@@ -4892,7 +4892,7 @@ int CStdReader::ReadDL645_9707Time(BYTE * pDbTsa, TMtrPara tTMtrPara, TRdItem *p
 	bFrm69845[3] = iLen69845;
 
 	memset(bRespData, 0, sizeof(bRespData));
-	iRet = Afn13Fn01_RtFwd(pDbTsa+1, pDbTsa[0], bFrm69845, iLen69845+4, NULL, pRdItem, bRespData, tTMtrPara.bProId);
+	iRet = Afn13Fn01_RtFwd(pDbTsa+1, pDbTsa[0], bFrm69845, iLen69845+4, NULL, pRdItem, bRespData, tTMtrPara.bProId, false, true);
 	DTRACE(DB_CCT, ("Afn13Fn01_RtFwd iRet=%d\r\n", iRet));
 	if (iRet > 0)
 		memcpy(pbData, bRespData, 8);
@@ -4909,7 +4909,7 @@ int CStdReader::ReadDL645_9707Time(BYTE * pDbTsa, TMtrPara tTMtrPara, TRdItem *p
 
 	bFrm69845[3] = iLen69845;
 	memset(bRespData, 0, sizeof(bRespData));
-	iRet = Afn13Fn01_RtFwd(pDbTsa+1, pDbTsa[0], bFrm69845, iLen69845+4, NULL, pRdItem, bRespData, tTMtrPara.bProId);
+	iRet = Afn13Fn01_RtFwd(pDbTsa+1, pDbTsa[0], bFrm69845, iLen69845+4, NULL, pRdItem, bRespData, tTMtrPara.bProId, false, true);
 	DTRACE(DB_CCT, ("Afn13Fn01_RtFwd 3 iRet=%d\r\n", iRet));
 	if (iRet > 0)
 	{
