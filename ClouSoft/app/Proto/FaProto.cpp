@@ -1815,13 +1815,16 @@ GOTO_RSD10:	//方法10比较特殊
 			}
 			else
 			{
-				DWORD dwOAD;
-				*pApdu++ = 0x01;	//1个RCSD
-				*pApdu++ = 0x00;	//CSD里选择OAD
-				dwOAD = OoOadToDWord(tApduInfo.pbOAD);
-				dwOAD = dwOAD + 0x00010000;	//如0x60140200 + 0x00010000 = 0x60150200
-				pApdu += OoDWordToOad(dwOAD, pApdu);
-				*pApdu++ = 0x01;	//DAR
+				if (OoOadToDWord(tApduInfo.pbOAD) != 0x60020200)
+				{
+					DWORD dwOAD;
+					*pApdu++ = 0x01;	//1个RCSD
+					*pApdu++ = 0x00;	//CSD里选择OAD
+					dwOAD = OoOadToDWord(tApduInfo.pbOAD);
+					dwOAD = dwOAD + 0x00010000;	//如0x60140200 + 0x00010000 = 0x60150200
+					pApdu += OoDWordToOad(dwOAD, pApdu);
+					*pApdu++ = 0x01;	//DAR
+				}
 			}
 		}
 		else

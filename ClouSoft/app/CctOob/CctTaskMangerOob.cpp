@@ -4525,7 +4525,7 @@ bool TiMatch(BYTE* pbStartTime, BYTE* pbEndTime, BYTE* pbTI, BYTE* pbFieldData)
 
 		if (wIntervV != 0)	//间隔值为0表示无间隔 add CL 20170712
 		{
-			DTRACE(DB_FAFRM, ("TiMatch() wIntervV=%d.\n", wIntervV));
+			//DTRACE(DB_FAFRM, ("TiMatch() wIntervV=%d.\n", wIntervV));
 
 			dwIntervSec = 1;
 			if (bIntervU == TIME_UNIT_MINUTE)
@@ -4539,16 +4539,16 @@ bool TiMatch(BYTE* pbStartTime, BYTE* pbEndTime, BYTE* pbTI, BYTE* pbFieldData)
 			{
 				dwStartSec = dwStartSec / dwIntervSec * dwIntervSec;
 				dwStartSec += dwIntervSec;		//归整到当前间隔的下一个间隔
-				DTRACE(DB_FAFRM, ("TiMatch() start time to next interv, dwIntervSec=%ld.\n", dwIntervSec));
+				//DTRACE(DB_FAFRM, ("TiMatch() start time to next interv, dwIntervSec=%ld.\n", dwIntervSec));
 			}
 			else
 			{
 				dwStartSec = dwStartSec / dwIntervSec * dwIntervSec;
-				DTRACE(DB_FAFRM, ("TiMatch() start time to current interv, dwIntervSec=%ld.\n", dwIntervSec));
+				//DTRACE(DB_FAFRM, ("TiMatch() start time to current interv, dwIntervSec=%ld.\n", dwIntervSec));
 			}
 
 			SecondsToTime(dwStartSec, &tStartTime);
-			DTRACE(DB_FAFRM, ("TiMatch() tmStart.Hour=%d, tmStart.Minute=%d, tmStart.Second=%d.\n", tStartTime.nHour, tStartTime.nMinute, tStartTime.nSecond));
+			//DTRACE(DB_FAFRM, ("TiMatch() tmStart.Hour=%d, tmStart.Minute=%d, tmStart.Second=%d.\n", tStartTime.nHour, tStartTime.nMinute, tStartTime.nSecond));
 
 			if (dwFieldSec>=dwStartSec && dwFieldSec<dwEndSec)
 			{

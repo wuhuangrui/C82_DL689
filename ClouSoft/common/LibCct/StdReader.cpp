@@ -4419,12 +4419,21 @@ int CStdReader::OneAddrBroadcast(BYTE *pbTsa, BYTE *pbInBuf, WORD wInLen, TMtrPa
 			//memset(bBuf2, 0, sizeof(bBuf2));
 			GetCurTime(&tmTm);
 			{
-				tmMtr.nYear = OoLongUnsignedToWord(&pbData[1]);
+				/*tmMtr.nYear = OoLongUnsignedToWord(&pbData[1]);
 				tmMtr.nMonth = pbData[3];
 				tmMtr.nDay= pbData[4];
 				tmMtr.nHour= pbData[5];
 				tmMtr.nMinute= pbData[6];
 				tmMtr.nSecond= pbData[7]+2;//暂时先固定加1秒的通信延时
+				*/
+				
+				tmMtr.nYear = BcdToByte(pbData[3])+2000;
+				tmMtr.nMonth = BcdToByte(pbData[2]);
+				tmMtr.nDay=  BcdToByte(pbData[1]);
+				tmMtr.nHour=  BcdToByte(pbData[7]);
+				tmMtr.nMinute=  BcdToByte(pbData[6]);
+				tmMtr.nSecond=  BcdToByte(pbData[5]);+2;//暂时先固定加1秒的通信延时
+				
 				if (IsInvalidTime(tmMtr))
 					return -1;
 			}
@@ -4472,6 +4481,7 @@ int CStdReader::OneAddrBroadcast(BYTE *pbTsa, BYTE *pbInBuf, WORD wInLen, TMtrPa
 					memcpy(&pbInBuf[4], bBufY, sizeof(bBufY));
 					pbInBuf[3] = sizeof(bBufY);
 					DTRACE(DB_CCT, ("cct OneAddrBroadcast 07-645 \r\n")); 
+					RouterPause();
 					iRet = Afn13Fn01_Broadcast(pbTsa+1, bTsaLen, pbInBuf, sizeof(bBufY)+4, pRdItem, pbData, bProId, 0);
 					memset(bBuf1, 0, sizeof(bBuf1));
 					iRet = ReadDL645_9707Time(pbTsa, tTMtrPara, pRdItem, bBuf1, bProId);
@@ -4498,6 +4508,7 @@ int CStdReader::OneAddrBroadcast(BYTE *pbTsa, BYTE *pbInBuf, WORD wInLen, TMtrPa
 					iStep = Make698_45Frm(pbTsa+1, bTsaLen, 0x43, 0, 0, SER_ADDR_TYPE_SIG, bBuf1, 16, pbInBuf+4);
 					pbInBuf[3] = iStep;
 					DTRACE(DB_CCT, ("OneAddrBroadcast 69845 write id=0x40000200.\r\n")); 
+					RouterPause();
 					Afn13Fn01_Broadcast(pbTsa+1, bTsaLen, pbInBuf, iStep+4, pRdItem, pbData, bProId, 0);
 					//校时后再读表时间回来
 					iApduLen = GetRequestNormal(pRdItem->dwOAD, bApdu);
@@ -4887,7 +4898,7 @@ int CStdReader::ReadDL645_9707Time(BYTE * pDbTsa, TMtrPara tTMtrPara, TRdItem *p
 	bFrm69845[3] = iLen69845;
 
 	memset(bRespData, 0, sizeof(bRespData));
-	iRet = Afn13Fn01_RtFwd(pDbTsa+1, pDbTsa[0], bFrm69845, iLen69845+4, NULL, pRdItem, bRespData, tTMtrPara.bProId, false, true);
+	iRet = Afn13Fn01_RtFwd(pDbTsa+1, pDbTsa[0], bFrm69845, iLen69845+4, NULL, pRdItem, bRespData, tTMtrPara.bProId, true);
 	//DTRACE(DB_CCT, ("Afn13Fn01_RtFwd iRet=%d\r\n", iRet));
 	if (iRet > 0)
 		memcpy(pbData, bRespData, 8);
@@ -4904,7 +4915,7 @@ int CStdReader::ReadDL645_9707Time(BYTE * pDbTsa, TMtrPara tTMtrPara, TRdItem *p
 
 	bFrm69845[3] = iLen69845;
 	memset(bRespData, 0, sizeof(bRespData));
-	iRet = Afn13Fn01_RtFwd(pDbTsa+1, pDbTsa[0], bFrm69845, iLen69845+4, NULL, pRdItem, bRespData, tTMtrPara.bProId, false, true);
+	iRet = Afn13Fn01_RtFwd(pDbTsa+1, pDbTsa[0], bFrm69845, iLen69845+4, NULL, pRdItem, bRespData, tTMtrPara.bProId, true);
 	DTRACE(DB_CCT, ("Afn13Fn01_RtFwd 3 iRet=%d\r\n", iRet));
 	if (iRet > 0)
 	{
