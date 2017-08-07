@@ -4040,12 +4040,12 @@ start:	struct KeyState mkey;
 			}
 		
 			Sleep(20);
-			//DTRACE(DB_CRITICAL, ("cqj-- mkey.key is %d\n",mkey.key));//---没有按键按下，状态是0
+			DTRACE(DB_CRITICAL, ("cqj-- mkey.key is %d\n",mkey.key));//---没有按键按下，状态是0
 	
 			if (mkey.key == 0)
 				continue;
 			
-			//DTRACE(DB_CRITICAL, ("cqj-- retKey is %d\n",retKey));//固定
+			DTRACE(DB_CRITICAL, ("cqj-- retKey is %d\n",retKey));//固定
 			
 			//DTRACE(DB_CRITICAL, ("cqj--item is %d, curItem is %d\n",item, curItem));
 	

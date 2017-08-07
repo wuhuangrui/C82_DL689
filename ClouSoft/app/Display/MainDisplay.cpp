@@ -15374,7 +15374,7 @@ int ManualRdMtr(void *arg)
 
 int CopyEnvironment(void *arg)
 {
-
+	return 0;
 }
 
 int ProtocolSwitch(void *arg)
