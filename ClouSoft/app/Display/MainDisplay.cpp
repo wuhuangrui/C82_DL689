@@ -473,7 +473,7 @@ int UsbUpdate2(void *arg)
 	//	if(!InputPwd2())
 	//	return -1;
 	char menuitem[6][32];
-	char title[10] = "USB升级与数据拷贝";
+	char title[] = "USB升级与数据拷贝";
 
 	int i = 0;
 	struct ListBoxExItem items[] = {
