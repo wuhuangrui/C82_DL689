@@ -11355,7 +11355,7 @@ int TermCommpAndVersion(void *arg)
 				ReadItemEx(BN2, PN0, 0x2107, bSoftInfo);
 				dwKeySec = GetClick();
 				DTRACE(DB_CRITICAL, ("TermCommpAndVersion GetKey().key is %d\n",GetKey().key));//
-				Sleep(200);
+				Sleep(1000); //延时一下才能正确获取到按键
 				
 				while (GetKey().key == KEY_OK)
 				//while (GetKey() == KEY_OK)
