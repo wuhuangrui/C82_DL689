@@ -473,7 +473,7 @@ int UsbUpdate2(void *arg)
 	//	if(!InputPwd2())
 	//	return -1;
 	char menuitem[6][32];
-	char title[10] = "USB升级";
+	char title[10] = "USB升级与数据拷贝";
 
 	int i = 0;
 	struct ListBoxExItem items[] = {
@@ -488,7 +488,7 @@ int UsbUpdate2(void *arg)
 	i = 0;
 	sprintf(menuitem[i++],"%s","终端程序升级");
 	sprintf(menuitem[i++],"%s","终端数据拷贝");
-	sprintf(menuitem[i++],"%s","快速升级");
+	//sprintf(menuitem[i++],"%s","快速升级");
 	sprintf(menuitem[i++],"%s","退出");
 	items[i].text = NULL;
 	CListBoxEx listbox;
@@ -517,11 +517,13 @@ int UsbUpdate2(void *arg)
 			{//拷贝数据
 				CopyData();//
 			}
+			/*
 			else if(listbox.item == 2)
 			{//快速升级
 				quickUpdate();
 			}
-			else if(listbox.item == 3)
+			*/
+			else if(listbox.item == 2)
 			{//退出
 				system("umount /mnt/usb");
 				return 100;
