@@ -2241,7 +2241,7 @@ bool IsMountedOK(char *str)
 	DIR *d = opendir(str);//str====/mnt/usb
 	if (d == NULL)
 	{
-		DTRACE(DB_CRITICAL, ("%s no exit\n", str));
+		//DTRACE(DB_CRITICAL, ("%s no exit\n", str));
 		return false;
 	}
 	closedir(d);
