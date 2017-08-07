@@ -11354,9 +11354,10 @@ int TermCommpAndVersion(void *arg)
 				
 				ReadItemEx(BN2, PN0, 0x2107, bSoftInfo);
 				dwKeySec = GetClick();
-				DTRACE(DB_CRITICAL, ("TermCommpAndVersion GetKey().key is %d\n",GetKey().key));//
+				DTRACE(DB_CRITICAL, ("TermCommpAndVersion GetKey().key is %d\n",GetKey()));//
 				
-				while (GetKey().key == KEY_OK)
+				//while (GetKey().key == KEY_OK)
+				while (GetKey() == KEY_OK)
 				{					
 					Sleep(200);
 					if (GetClick() - dwKeySec >= 2)	//确认键延时2s，就显示内部版本信息
