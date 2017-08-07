@@ -15925,10 +15925,10 @@ int ManageTerm(void *arg)
 		//{(char *)"参数(除通信)初始化",0xFF,TermiManageOpt,(void*)2},
 	    {(char *)"恢复出厂参数",0xFF,TermiManageOpt,(void*)2},
 		//{(char *)"参数初始化",0xFF,TermiManageOpt,(void*)3},
-		{(char *)"USB升级",0xFF,TermiManageOpt,(void*)5},
+		//{(char *)"USB升级",0xFF,TermiManageOpt,(void*)5},
+		{(char *)"U盘升级与数据拷贝",0xFF, UsbUpdate2,(void*)1},
 		{(char *)"通信模块设置",0xFF,SetGprsModule,(void*)5},
 		{(char *)"手动抄表",0xFF, ManualRdMtr,(void*)1},
-		{(char *)"U盘操作",0xFF, UsbUpdate2,(void*)1},
 		{(char *)"切换到1376.1协议",0xFF, ProtocolSwitch,(void*)1},
 		{ NULL, 0xFE, NULL, NULL }, //
 	};
