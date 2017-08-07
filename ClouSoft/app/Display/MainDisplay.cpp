@@ -11343,23 +11343,29 @@ int TermCommpAndVersion(void *arg)
 			{
 				BYTE bSoftInfo[25] = {0};
 				CListBoxEx listboxTmp1;
+				struct ListBoxExItem tmp[] = { 
+					{menuitem[0],0xFE,Dummy,(void*)1},
+					{menuitem[1],0xFE,Dummy,(void*)2},
+					{menuitem[2],0xFE,Dummy,(void*)3},
+					{ NULL, 0xFF, NULL, NULL }, //
+				};
 			
 				
 				ReadItemEx(BN2, PN0, 0x2107, bSoftInfo);
 				dwKeySec = GetClick();
 
-				/*while (GetKey().key == KEY_OK)
+				while (GetKey().key == KEY_OK)
 				{					
 					Sleep(200);
 					if (GetClick() - dwKeySec >= 2)	//确认键延时2s，就显示内部版本信息
 					{
-						sprintf(menuitem[0],"地    区: %s",bSoftInfo);
-						sprintf(menuitem[1],"版 本 号: %c%c%c%c",bSoftInfo[16],bSoftInfo[17],bSoftInfo[18],bSoftInfo[19]);
+						sprintf(menuitem[0],"地区: %s",bSoftInfo);
+						sprintf(menuitem[1],"版本号: %c%c%c%c",bSoftInfo[16],bSoftInfo[17],bSoftInfo[18],bSoftInfo[19]);
 						sprintf(menuitem[2],"更新日期: %02X-%02X-%02X",bSoftInfo[22],bSoftInfo[21],bSoftInfo[20]);
 						listboxTmp1.Show(0, "内部版本信息", tmp, KEY_ESC, 20000, false);
 						break;
 					}
-				}*/
+				}
 			}
 		}
 	}
@@ -15366,6 +15372,11 @@ int ManualRdMtr(void *arg)
 	return -1;
 }
 
+int CopyEnvironment(void *arg)
+{
+
+}
+
 int ProtocolSwitch(void *arg)
 {
 	if (!InputPwd())
@@ -15912,6 +15923,7 @@ int ManageTerm(void *arg)
 		{(char *)"USB升级",0xFF,TermiManageOpt,(void*)5},
 		{(char *)"通信模块设置",0xFF,SetGprsModule,(void*)5},
 		{(char *)"手动抄表",0xFF, ManualRdMtr,(void*)1},
+		{(char *)"拷贝集中器环境",0xFF, CopyEnvironment,(void*)1},
 		{(char *)"切换到1376.1协议",0xFF, ProtocolSwitch,(void*)1},
 		{ NULL, 0xFE, NULL, NULL }, //
 	};
