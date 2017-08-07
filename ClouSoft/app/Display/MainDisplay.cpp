@@ -11338,6 +11338,7 @@ int TermCommpAndVersion(void *arg)
 			{
 				break;
 			}
+			DTRACE(DB_CRITICAL, ("TermCommpAndVersion listbox.key is %d\n",listbox.key));//
 			
 			if (listbox.key == KEY_OK)
 			{
@@ -11353,7 +11354,8 @@ int TermCommpAndVersion(void *arg)
 				
 				ReadItemEx(BN2, PN0, 0x2107, bSoftInfo);
 				dwKeySec = GetClick();
-
+				DTRACE(DB_CRITICAL, ("TermCommpAndVersion GetKey().key is %d\n",GetKey().key));//
+				
 				while (GetKey().key == KEY_OK)
 				{					
 					Sleep(200);
