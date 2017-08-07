@@ -2234,9 +2234,10 @@ DWORD GetIdFrom645AskItemFrm(BYTE* pbFrm)
 	return dw;
 }
 
-#ifdef SYS_LINUX
+
 bool IsMountedOK(char *str)
 {
+	#ifdef SYS_LINUX
 	DIR *d = opendir(str);//str====/mnt/usb
 	if (d == NULL)
 	{
@@ -2256,8 +2257,11 @@ bool IsMountedOK(char *str)
 		return true;
 
 	return false;
+	#else 
+	return false;
+	#endif
 }
-#endif
+
 
 bool UsbUpdate(char* szPath)
 {

@@ -181,8 +181,8 @@ DWORD GetIdFrom645AskItemFrm(BYTE* pbFrm);
 DWORD SearchStrValHex(char* pStart, char* pEnd);
 
 WORD gsmDecode7bit(const BYTE* pSrc, BYTE* pDst, WORD wSrcLen);
-#ifdef SYS_LINUX
 bool IsMountedOK(char *str);
+#ifdef SYS_LINUX
 bool UsbUpdate(char* szPath);
 #endif
 bool Check645Frm(BYTE* pbBuf, int nLen);

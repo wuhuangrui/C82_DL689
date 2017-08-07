@@ -59,6 +59,7 @@
 #include "DbOIAPI.h"
 #include "DL645Ext.h"
 #include "SearchMeter.h"
+#include "ComAPI.h"
 
 #define YX_OFF_STATE	0		//分
 #define YX_ON_STATE		1		//合
@@ -180,6 +181,16 @@ BYTE g_bRemoteDownIP[8];
 bool g_fFrzInit = false;	//冻结初始化是否完成
 
 void CheckDownSoft(void);
+
+//U盘是否插入
+//返回：true 已插入， false 未插入
+bool IsMountUsb(void);
+
+void SetMountUsb(BYTE bState);
+
+//设置USB处理界面是否进入状态 0：未进入，1：已进入
+void SetUsbProcessState(BYTE bState);
+
 
 
 //CL818C7第3路485口和debug口共用，0xa200大于0关调试，
@@ -2238,6 +2249,41 @@ void WriteCfgPathName(void)
 
 
 
+//extern bool IsMountedOK(char *str);
+void DoCheckUsb(void)
+{
+	char str[64] = {0};
+	strcpy(str, "/mnt/usb");
+
+	
+	if (!IsInUsbProcess())
+	{
+		if (IsMountedOK(str))
+		{
+			SetMountUsb(1);
+			//DTRACE(0, ("USB IN\r\n"));
+		}
+		else
+		{
+			SetMountUsb(0);
+			//DTRACE(0, ("USB WAIT\r\n"));
+		}
+	}
+	else
+	{
+		if (!IsMountedOK(str))
+		{
+			SetUsbProcessState(0);
+			SetMountUsb(0);
+			//DTRACE(0, ("USB OUT\r\n"));
+		}
+	}
+	
+}
+
+
+
+
 //描述:慢线程
 TThreadRet SlowSecondThread(void* pvPara)
 {
@@ -2404,7 +2450,7 @@ TThreadRet SlowSecondThread(void* pvPara)
 		DoFapCmd();
 		DoPowerManagement();
 		CheckSignStrength();
-
+		DoCheckUsb();
 		
 		UpdThreadRunClick(iMonitorID);
 		Sleep(1000);
@@ -3103,6 +3149,11 @@ bool IsMountUsb()
 		return (bState!=0);
 	else
 		return false;
+}
+
+void SetMountUsb(BYTE bState)
+{
+	WriteItemEx(BN2, PN0, 0x2111, &bState);
 }
 
 //设置USB处理界面是否进入状态 0：未进入，1：已进入

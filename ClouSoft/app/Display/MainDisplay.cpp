@@ -379,9 +379,9 @@ void quickUpdate()
 
 }
 
-void CopyData()
+int CopyData()
 {
-	int  iCnt = 0;
+	int  iCnt = 0, iRet = 0;
 	char str[64];
 	char command[64];
 	char szList[STORE_MAX_COUNT][STORE_FILE_LEN];		
@@ -457,7 +457,12 @@ void CopyData()
 		{//退出
 
 		}
+		iRet = 0;
 	}
+	else
+		iRet = -1;
+
+	return iRet;
 }
 
 //add by qiaojun.chen
@@ -15378,6 +15383,14 @@ int ManualRdMtr(void *arg)
 
 int CopyEnvironment(void *arg)
 {
+	char command[100];
+	MessageBox("正在拷贝数据", KEY_ESC, 500);
+	memset(command, 0, 64);
+	sprintf(command, "cp -rf %s /mnt/usb/", USER_PATH);
+	system(command);
+	Sleep(10*1000);
+	system("umount /mnt/usb");//
+	MessageBox("导出数据成功", KEY_ESC, 1500);	
 	return 0;
 }
 
@@ -15927,7 +15940,7 @@ int ManageTerm(void *arg)
 		{(char *)"USB升级",0xFF,TermiManageOpt,(void*)5},
 		{(char *)"通信模块设置",0xFF,SetGprsModule,(void*)5},
 		{(char *)"手动抄表",0xFF, ManualRdMtr,(void*)1},
-		{(char *)"拷贝集中器环境",0xFF, CopyEnvironment,(void*)1},
+		{(char *)"拷贝环境",0xFF, CopyEnvironment,(void*)1},
 		{(char *)"切换到1376.1协议",0xFF, ProtocolSwitch,(void*)1},
 		{ NULL, 0xFE, NULL, NULL }, //
 	};
