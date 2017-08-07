@@ -467,11 +467,14 @@ int CopyData()
 
 //add by qiaojun.chen
 void TermiUpdate(BYTE);
+bool InputPwd(void);
 int UsbUpdate2(void *arg)
 {
 	//ClearScreenRec(0, 16, 160, 144);
 	//	if(!InputPwd2())
 	//	return -1;
+	if(!InputPwd())
+		return -1;
 	char menuitem[6][32];
 	char title[] = "USB升级与数据拷贝";
 
