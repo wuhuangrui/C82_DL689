@@ -908,19 +908,14 @@ void DoYX()
     if (nRead <= 0 || GetClick() < 5)
     	return;
 
-#if FA_TYPE == FA_TYPE_K32
-	bYxVal <<= 7;
-#endif
 
-
-/*
 	if(bDoorStat > 0)
 		bDoorStat = 0x00;
 	else
 		bDoorStat = 0x10;
 
 	 bYxVal = (bYxVal&0xef) | bDoorStat;
-*/
+
 
 
     if (!g_fYxInit)
