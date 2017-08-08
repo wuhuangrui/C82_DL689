@@ -908,14 +908,22 @@ void DoYX()
     if (nRead <= 0 || GetClick() < 5)
     	return;
 
+	if(bDoorStat > 0)
+		bDoorStat = 0x00;
+	else
+		bDoorStat = 0x80;	//冀北要求门接点为第8路状态量输入YX8
 
+	bYxVal = (bYxVal&0x7f) | (bDoorStat&0x80);
+
+
+	/*
 	if(bDoorStat > 0)
 		bDoorStat = 0x00;
 	else
 		bDoorStat = 0x10;
 
 	 bYxVal = (bYxVal&0xef) | bDoorStat;
-
+	 */
 
 
     if (!g_fYxInit)
