@@ -349,7 +349,7 @@ void CStatMgr::DoTermStat()
 	bBuf[2] = DT_DB_LONG_U;
 	OoDWordToDoubleLongUnsigned(dwData, &bBuf[3]);
 	dwData = m_TermStatInfo.wMonPowerTime;
-	if ((dwData % 60) > 47)
+	if ((dwData % 60) > 30 /*47*/)
 		dwData = dwData/60 + 1;
 	else
 		dwData = dwData/60;
