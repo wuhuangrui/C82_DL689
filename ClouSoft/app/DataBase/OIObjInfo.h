@@ -49,7 +49,7 @@
 #define MAX_232_PORT_NUM	2	//232通道个数
 #define MAX_485_PORT_NUM	3	//485通道个数
 #define MAX_HW_PORT_NUM		1	//红外通道个数
-#define MAX_SW_PORT_NUM		8	//开关量通道个数 (门节点在YX8)
+#define MAX_SW_PORT_NUM		4	//开关量通道个数 (门节点在YX8)
 #define MAX_DC_PORT_NUM		1	//直流模拟量通道个数
 #define MAX_RLY_PORT_NUM	4	//继电器
 #define MAX_ALRM_PORT_NUM	1	//告警输出
