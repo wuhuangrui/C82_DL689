@@ -908,7 +908,7 @@ void DoYX()
     if (nRead <= 0 || GetClick() < 5)
     	return;
 
-#ifdef VER_ZJ
+#if FA_TYPE == FA_TYPE_K32
 	bYxVal <<= 7;
 #endif
 
