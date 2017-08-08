@@ -340,7 +340,7 @@ void CStatMgr::DoTermStat()
 	
 	m_TermStatInfo.wMonPowerTime += dwSec;//更新月供电时间
 	DWORD dwData = m_TermStatInfo.wDayPowerTime;
-	if ((dwData % 60) > 47)//第二步时把终端的复位时间都包括在内的2分钟也要按2分钟来算
+	if ((dwData % 60) > 30 /*47*/)//第二步时把终端的复位时间都包括在内的2分钟也要按2分钟来算
 		dwData = dwData/60 + 1;//过台子
 	else
 		dwData = dwData/60;
