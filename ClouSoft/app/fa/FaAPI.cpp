@@ -974,7 +974,7 @@ void DoYX()
 	bChgFlg = g_bYxVal ^ bYxVal;
     g_bYxVal = bYxVal;
 
-	DTRACE(DB_CRITICAL, ("DoYX: yx chg, bYxVal=%x, bChgFlg=%d.\r\n", bYxVal, bChgFlg));
+
 
     if (bChgFlg != 0)
     {
