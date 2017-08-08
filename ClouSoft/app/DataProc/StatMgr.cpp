@@ -26,53 +26,7 @@
 #define TERM_STAT_PATHNAME	USER_DATA_PATH"TermStat.dat"
 extern BYTE g_bRangeStatFmt[8];
 
-//描述：改函数实现交采和脉冲测量点的当前组合有功电能量和上一结算日组合有功电能量
-//参数：wPn 测量点值
-void AcandPluseClass1(WORD wPn)
-{
-	BYTE bBuf1[25],bBuf2[25];
-	TTime tNow;
 
-	GetCurTime(&tNow);
-
-	if ((GetPnProp(wPn)==PN_PROP_PULSE) && ReadItemEx(BN0, wPn,0x901f, bBuf1) > 0 && ReadItemEx(BN0, wPn, 0x902f, bBuf2) > 0)
-	{
-		DDWORD dwCurVal, dwLastVal;
-		DDWORD dwSum;
-		BYTE bSum[128];
-		WORD wOff = 0;
-		for (int j=0; j<5; j++)
-		{
-			wOff = 5*j;
-			if (!IsInvalidData(bBuf1+ wOff, 5))
-			{
-				if(!IsInvalidData(bBuf2 + 5*j, 5))
-				{
-					dwCurVal = BcdToDDWORD(bBuf1 + wOff, 5);
-					dwLastVal = BcdToDDWORD(bBuf2 + 5*j, 5);
-
-					dwSum = dwCurVal + dwLastVal;
-
-					Val64ToBCD(dwSum, bSum + 5 * j, 5);
-				}
-				else
-					memcpy(bSum + 5*j, bBuf1 + wOff, 5);
-			}
-			else
-			{
-				memset(bSum + 5 * j, INVALID_DATA, 5);
-			}
-		}
-		WriteItemEx(BN0, wPn, 0x900f, bSum);
-	}
-	if(tNow.nDay==1 && tNow.nHour==0 && tNow.nMinute==0)
-	{
-		memset(bBuf1, 0x00, sizeof(bBuf1));
-		ReadItemEx(BN0, wPn, 0x900f, bBuf1);
-		WriteItemEx(BN0, wPn, 0xd02f, bBuf1);
-		//TrigerSaveBank(BN0, SECT_EXT_PN_DATA, wPn); 
-	}
-}
 
 ///////////////////////////////////////////////////////////////////////////
 //CStatMgr
@@ -404,10 +358,10 @@ void CStatMgr::DoTermStat()
 	int irett=WriteItemEx(BN0, PN0, 0x2203, bBuf); 
 
 	//if (dwLastMin != dwCurMin)
-	if ((dwLastMin>dwCurMin) || (dwCurMin>=(dwLastMin+15)))
+	//if ((dwLastMin>dwCurMin) || (dwCurMin>=(dwLastMin+15)))
 	{
 		m_fTermStatChg = true;
-		dwLastMin = dwCurMin;
+		//dwLastMin = dwCurMin;
 	}
 
 	SignalSemaphore(m_semTermLog); 
@@ -578,6 +532,8 @@ void CStatMgr::SavePhaseVoltStat(WORD wOI, BYTE bAttr, TPhaseVoltStat* pPhaseVol
 	*P++ = 0x05;
 	*P++ = DT_DB_LONG_U;
 	dwMin = pPhaseVoltStat->dayStat.dwMoniSecs/60;
+	if (pPhaseVoltStat->dayStat.dwMoniSecs%60 >= 55)//做4秒的防误差处理,与上层函数的保持一致
+		dwMin += 1;
 	OoDWordToDoubleLongUnsigned(dwMin, P);
 	P += 4;
 	*P++ = DT_LONG_U;
@@ -588,10 +544,14 @@ void CStatMgr::SavePhaseVoltStat(WORD wOI, BYTE bAttr, TPhaseVoltStat* pPhaseVol
 	P += 2;
 	*P++ = DT_DB_LONG_U;
 	dwMin = pPhaseVoltStat->dayStat.dwUpperSecs/60;
+	if (pPhaseVoltStat->dayStat.dwUpperSecs%60 >= 55)
+		dwMin += 1;
 	OoDWordToDoubleLongUnsigned(dwMin, P);
 	P += 4;
 	*P++ = DT_DB_LONG_U;
 	dwMin = pPhaseVoltStat->dayStat.dwLowerSecs/60;
+	if (pPhaseVoltStat->dayStat.dwLowerSecs%60 >= 55)
+		dwMin += 1;
 	OoDWordToDoubleLongUnsigned(dwMin, P);
 	P += 4;
 	//月合格率
@@ -599,6 +559,8 @@ void CStatMgr::SavePhaseVoltStat(WORD wOI, BYTE bAttr, TPhaseVoltStat* pPhaseVol
 	*P++ = 0x05;
 	*P++ = DT_DB_LONG_U;
 	dwMin = pPhaseVoltStat->monStat.dwMoniSecs/60;
+	if (pPhaseVoltStat->monStat.dwMoniSecs%60 >= 49)
+		dwMin += 1;
 	OoDWordToDoubleLongUnsigned(dwMin, P);
 	P += 4;
 	*P++ = DT_LONG_U;
@@ -609,10 +571,14 @@ void CStatMgr::SavePhaseVoltStat(WORD wOI, BYTE bAttr, TPhaseVoltStat* pPhaseVol
 	P += 2;
 	*P++ = DT_DB_LONG_U;
 	dwMin = pPhaseVoltStat->monStat.dwUpperSecs/60;
+	if (pPhaseVoltStat->monStat.dwUpperSecs%60 >= 49)
+		dwMin += 1;
 	OoDWordToDoubleLongUnsigned(dwMin, P);
 	P += 4;
 	*P++ = DT_DB_LONG_U;
 	dwMin = pPhaseVoltStat->monStat.dwLowerSecs/60;
+	if (pPhaseVoltStat->monStat.dwLowerSecs%60 >= 49)
+		dwMin += 1;
 	OoDWordToDoubleLongUnsigned(dwMin, P);
 	P += 4;
 
@@ -712,8 +678,8 @@ void  CStatMgr::DoVoltStat(void)
 	//memset(bCalData, 0, sizeof(bCalData));
 	//if ((dwCurSec/60) == (dwLastSec/60))
 	GetCurTime(&tmNow);
-	if (MinutesFrom2000(tmLast) == MinutesFrom2000(tmNow))//每分钟执行一次
-		return;
+	//if (MinutesFrom2000(tmLast) == MinutesFrom2000(tmNow))//每分钟执行一次
+	//	return;
 	
 	if (dwLastSec == 0)
 	{
@@ -786,6 +752,9 @@ void  CStatMgr::DoVoltStat(void)
 		m_PhaseVoltStat[0].monStat.dwOverSecs += wIntvSec;
 	}
 	//累计各自的总监测时间并计算合格率与超限率
+	DWORD dwQualSecs;
+	DWORD dwMoniSecs;
+	DWORD dwOverSecs;
 	for (i=0; i<4; i++)
 	{
 		m_PhaseVoltStat[i].dayStat.dwMoniSecs += wIntvSec;
@@ -794,10 +763,22 @@ void  CStatMgr::DoVoltStat(void)
 		{
 			if ((m_PhaseVoltStat[i].dayStat.dwMoniSecs/60) != 0)	
 			{
-				m_PhaseVoltStat[i].dayStat.wQualRate = (m_PhaseVoltStat[i].dayStat.dwQualSecs/60)*100*100/(m_PhaseVoltStat[i].dayStat.dwMoniSecs/60);
+				dwQualSecs = m_PhaseVoltStat[i].dayStat.dwQualSecs/60;
+				dwMoniSecs = m_PhaseVoltStat[i].dayStat.dwMoniSecs/60;
+				dwOverSecs = m_PhaseVoltStat[i].dayStat.dwOverSecs/60;
+				if (m_PhaseVoltStat[i].dayStat.dwQualSecs%60 >= 55)//做4秒的防误差处理
+					dwQualSecs += 1;
+				if (m_PhaseVoltStat[i].dayStat.dwMoniSecs%60 >= 55)
+					dwMoniSecs += 1;
+				if (m_PhaseVoltStat[i].dayStat.dwOverSecs%60 >= 55)
+					dwOverSecs += 1;
+				
+				//m_PhaseVoltStat[i].dayStat.wQualRate = (m_PhaseVoltStat[i].dayStat.dwQualSecs/60)*100*100/(m_PhaseVoltStat[i].dayStat.dwMoniSecs/60);
+				m_PhaseVoltStat[i].dayStat.wQualRate = dwQualSecs*100*100/dwMoniSecs;
 				if (m_PhaseVoltStat[i].dayStat.wQualRate > 10000)
 					m_PhaseVoltStat[i].dayStat.wQualRate = 10000;
-				m_PhaseVoltStat[i].dayStat.wOverRate = (m_PhaseVoltStat[i].dayStat.dwOverSecs/60)*100*100/(m_PhaseVoltStat[i].dayStat.dwMoniSecs/60);
+				//m_PhaseVoltStat[i].dayStat.wOverRate = (m_PhaseVoltStat[i].dayStat.dwOverSecs/60)*100*100/(m_PhaseVoltStat[i].dayStat.dwMoniSecs/60);
+				m_PhaseVoltStat[i].dayStat.wOverRate = dwOverSecs*100*100/dwMoniSecs;
 				if (m_PhaseVoltStat[i].dayStat.wOverRate > 10000)
 					m_PhaseVoltStat[i].dayStat.wOverRate = 10000;
 			}
@@ -810,10 +791,22 @@ void  CStatMgr::DoVoltStat(void)
 		{
 			if ((m_PhaseVoltStat[i].monStat.dwMoniSecs/60) != 0)	
 			{
-				 m_PhaseVoltStat[i].monStat.wQualRate = (m_PhaseVoltStat[i].monStat.dwQualSecs/60)*100*100/(m_PhaseVoltStat[i].monStat.dwMoniSecs/60);
+				dwQualSecs = m_PhaseVoltStat[i].monStat.dwQualSecs/60;
+				dwMoniSecs = m_PhaseVoltStat[i].monStat.dwMoniSecs/60;
+				dwOverSecs = m_PhaseVoltStat[i].monStat.dwOverSecs/60;
+				if (m_PhaseVoltStat[i].monStat.dwQualSecs%60 >= 49)//做4秒的防误差处理
+					dwQualSecs += 1;
+				if (m_PhaseVoltStat[i].monStat.dwMoniSecs%60 >= 49)
+					dwMoniSecs += 1;
+				if (m_PhaseVoltStat[i].monStat.dwOverSecs%60 >= 49)
+					dwOverSecs += 1;
+
+				 //m_PhaseVoltStat[i].monStat.wQualRate = (m_PhaseVoltStat[i].monStat.dwQualSecs/60)*100*100/(m_PhaseVoltStat[i].monStat.dwMoniSecs/60);
+				m_PhaseVoltStat[i].monStat.wQualRate = dwQualSecs*100*100/dwMoniSecs;
 				 if ( m_PhaseVoltStat[i].monStat.wQualRate > 10000)
 				 	 m_PhaseVoltStat[i].monStat.wQualRate = 10000;
-				 m_PhaseVoltStat[i].monStat.wOverRate = (m_PhaseVoltStat[i].monStat.dwOverSecs/60)*100*100/(m_PhaseVoltStat[i].monStat.dwMoniSecs/60);
+				//m_PhaseVoltStat[i].monStat.wOverRate = (m_PhaseVoltStat[i].monStat.dwOverSecs/60)*100*100/(m_PhaseVoltStat[i].monStat.dwMoniSecs/60);
+				m_PhaseVoltStat[i].monStat.wOverRate = dwOverSecs*100*100/dwMoniSecs;
 				 if (m_PhaseVoltStat[i].monStat.wOverRate > 10000) 
 				 	m_PhaseVoltStat[i].monStat.wOverRate = 10000;
 			}

@@ -192,5 +192,5 @@ private:
 	bool InitTermStat();			//读取TermInfo.dat文件信息
 };
 
-void AcandPluseClass1(WORD wPn);
+
 #endif

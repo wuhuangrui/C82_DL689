@@ -4419,20 +4419,24 @@ int CStdReader::OneAddrBroadcast(BYTE *pbTsa, BYTE *pbInBuf, WORD wInLen, TMtrPa
 			//memset(bBuf2, 0, sizeof(bBuf2));
 			GetCurTime(&tmTm);
 			{
-				/*tmMtr.nYear = OoLongUnsignedToWord(&pbData[1]);
-				tmMtr.nMonth = pbData[3];
-				tmMtr.nDay= pbData[4];
-				tmMtr.nHour= pbData[5];
-				tmMtr.nMinute= pbData[6];
-				tmMtr.nSecond= pbData[7]+2;//暂时先固定加1秒的通信延时
-				*/
-				
-				tmMtr.nYear = BcdToByte(pbData[3])+2000;
-				tmMtr.nMonth = BcdToByte(pbData[2]);
-				tmMtr.nDay=  BcdToByte(pbData[1]);
-				tmMtr.nHour=  BcdToByte(pbData[7]);
-				tmMtr.nMinute=  BcdToByte(pbData[6]);
-				tmMtr.nSecond=  BcdToByte(pbData[5]);+2;//暂时先固定加1秒的通信延时
+				if (bProId == PROTOCOLNO_DLT69845)
+				{
+					tmMtr.nYear = OoLongUnsignedToWord(&pbData[1]);
+					tmMtr.nMonth = pbData[3];
+					tmMtr.nDay= pbData[4];
+					tmMtr.nHour= pbData[5];
+					tmMtr.nMinute= pbData[6];
+					tmMtr.nSecond= pbData[7]+2;//暂时先固定加1秒的通信延时
+				}
+				else
+				{
+					tmMtr.nYear = BcdToByte(pbData[3])+2000;
+					tmMtr.nMonth = BcdToByte(pbData[2]);
+					tmMtr.nDay=  BcdToByte(pbData[1]);
+					tmMtr.nHour=  BcdToByte(pbData[7]);
+					tmMtr.nMinute=  BcdToByte(pbData[6]);
+					tmMtr.nSecond=  BcdToByte(pbData[5]);+2;//暂时先固定加1秒的通信延时
+				}
 				
 				if (IsInvalidTime(tmMtr))
 					return -1;
@@ -4806,8 +4810,8 @@ int CStdReader::Afn13Fn01_Broadcast(BYTE *pbTsa, BYTE bTsaLen, const BYTE *pbInB
 			dwLastSendClick = GetClick();
 			if (Send(bTxBuf, iTxLen) == iTxLen)
 			{
-				//if (RxHandleFrm(m_RtRunMdInfo.bNodeTmOut))
-				if (RxHandleFrm(1))
+				if (RxHandleFrm(m_RtRunMdInfo.bNodeTmOut))
+				//if (RxHandleFrm(1))
 				{
 					if (m_TRcv13762.bAfn==AFN_RTFWD && DtToFn(m_TRcv13762.bDt)==FN(1))
 					{
@@ -4899,7 +4903,6 @@ int CStdReader::ReadDL645_9707Time(BYTE * pDbTsa, TMtrPara tTMtrPara, TRdItem *p
 
 	memset(bRespData, 0, sizeof(bRespData));
 	iRet = Afn13Fn01_RtFwd(pDbTsa+1, pDbTsa[0], bFrm69845, iLen69845+4, NULL, pRdItem, bRespData, tTMtrPara.bProId, true);
-	//DTRACE(DB_CCT, ("Afn13Fn01_RtFwd iRet=%d\r\n", iRet));
 	if (iRet > 0)
 		memcpy(pbData, bRespData, 8);
 	else
@@ -4907,7 +4910,6 @@ int CStdReader::ReadDL645_9707Time(BYTE * pDbTsa, TMtrPara tTMtrPara, TRdItem *p
 
 	pRdItem->dwOAD = 0x40000209;
 	iLen69845 = DL645_9707MakeFrm(&tTMtrPara.bAddr[1], tTMtrPara.bAddr[0], tTMtrPara.bProId, tTMtrPara.bSubProId, pRdItem->dwOAD, &bFrm69845[4]);//注意，浙江的才这么改！tTMtrPara.bAddr[0]
-	//DTRACE(DB_CCT, ("Afn13Fn01_RtFwd 2 iRet=%d\r\n", iRet));
 	if (iLen69845 <= 0)
 	{
 		return -1;
@@ -4916,7 +4918,6 @@ int CStdReader::ReadDL645_9707Time(BYTE * pDbTsa, TMtrPara tTMtrPara, TRdItem *p
 	bFrm69845[3] = iLen69845;
 	memset(bRespData, 0, sizeof(bRespData));
 	iRet = Afn13Fn01_RtFwd(pDbTsa+1, pDbTsa[0], bFrm69845, iLen69845+4, NULL, pRdItem, bRespData, tTMtrPara.bProId, true);
-	DTRACE(DB_CCT, ("Afn13Fn01_RtFwd 3 iRet=%d\r\n", iRet));
 	if (iRet > 0)
 	{
 		memcpy(pbData+5, bRespData, 3);
