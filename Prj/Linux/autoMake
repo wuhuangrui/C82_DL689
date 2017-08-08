@@ -23,8 +23,11 @@ tar zcvf clou.tgz clou/
 echo "chmod 777 clou.tgz"
 chmod 777 clou.tgz
 
-echo "tar zcvf clmain.tgz clou/clmain"
-tar zcvf clmain.tgz clou/clmain
+
+echo "tar Jcvf clmain.tgz clmain/*"
+cp ./clou/clmain ./clmain/clmain
+tar Jcvf clmain.tar.xz clmain/*
+
 ls -l bin
 grep -i 'error' err
 grep -i '´íÎó' err

@@ -1,0 +1,25 @@
+#! /bin/sh
+#服务器打包：tar zcvf ClouUpdateFile.tgz /源目录
+#应用程序解压：tar zxvf /mnt/data/ClouUpdateFile.tgz -C /mnt/data/
+#cp /mnt/data/clmain/clmain /clou/clmain
+#本版本与上一个版本有更新的驱动和库需在这里拷贝
+#cp /mnt/data/clmain/*.ko /clou/drivers 
+#cp /mnt/data/clmain/*.so /clou/lib 
+#killall clmain
+echo 0 >/tmp/update.log
+#tar zcvf /mnt/data/clou.tgz /clou
+#cp /mnt/data/clou.tgz /mnt/app/clou.tgz
+
+rm -f /mnt/data/clou.tgz
+rm -f /mnt/app/clou.tgz
+rm -f /mnt/app/clou.tgz.crc
+#app 空间不够，clou.tgz clou.tgz.crc 放在ext中  added by whr 20170807
+rm -f /mnt/ext/clou.tgz
+rm -f /mnt/ext/clou.tgz.crc
+cp -f /mnt/data/clmain/clmain /clou/clmain
+cp -rf /clou /mnt/app/
+cp -f /mnt/data/clmain/.config /mnt/app/
+rm -f /mnt/data/clmain.*
+#rm -fr /mnt/data/clmain/*
+#reboot
+echo 1 >/tmp/update.log
