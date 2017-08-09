@@ -3065,8 +3065,8 @@ TItemDesc  g_Bank25Desc[] =   //标准版
 	{0x5022, 1, DI_LOW_PERM, DI_READ|DI_WRITE, 0, INFO_NONE}, //保存校准时的温度
 	{0x5023, 4, DI_LOW_PERM,DI_READ|DI_WRITE, 	0, INFO_NONE}, // k值应是在额定电压电流下（信号对应50mv）经过7022增益放大后的电Vu电流Vi的乘积。即k=(Vu*增益)*（Vi*增益）
 	
-	{0x5030, 4, DI_LOW_PERM,DI_READ|DI_WRITE, 	0, INFO_NONE},	//220v电压校准系数
-	{0x5031, 4, DI_LOW_PERM,DI_READ|DI_WRITE, 	0, INFO_NONE},	//RTC电池电压校准系数
+	//{0x5030, 4, DI_LOW_PERM,DI_READ|DI_WRITE, 	0, INFO_NONE},	//220v电压校准系数
+	//{0x5031, 4, DI_LOW_PERM,DI_READ|DI_WRITE, 	0, INFO_NONE},	//RTC电池电压校准系数
 };
 
 BYTE g_bBank25Default[] = 
@@ -3094,8 +3094,8 @@ BYTE g_bBank25Default[] =
 	0x00,//保存校准时的温度
 	0x52, 0x03, 0x00, 0x00, //5023 k值  0.05*0.17*100000
 
-	0x00, 0x00, 0x00, 0x00,	//220v电压校准系数
-	0x00, 0x00, 0x00, 0x00,	//RTC电池电压校准系数
+	//0x00, 0x00, 0x00, 0x00,	//220v电压校准系数
+	//0x00, 0x00, 0x00, 0x00,	//RTC电池电压校准系数
 };
 
 TItemDesc  g_Bank28Desc[] =   //标准版
