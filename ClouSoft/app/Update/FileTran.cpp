@@ -529,7 +529,7 @@ int UpdFile()
 		system(szTmp);
 		sprintf(szTmp, "rm -fr /mnt/data/clmain/*");
 		system(szTmp);		
-		sprintf(szTmp, "cp %s /mnt/data/clmain.tar.xz", USER_DATA_PATH"FileTrans.tmp");
+		sprintf(szTmp, "cp %s /mnt/data/clmain.tar.gz", USER_DATA_PATH"FileTrans.tmp");
 		if (system(szTmp) < 0)
 		{
 			DTRACE(DB_FAPROTO, ("cp FileTrans.tmp  Error\r\n"));
@@ -560,10 +560,10 @@ int UpdFile()
 		}
 		*/
 		//C82 no xz tool. changed by whr 20170728
-		sprintf(szTmp, "tar zxvf /mnt/data/clmain.tar.xz -C /mnt/data/");
+		sprintf(szTmp, "tar zxvf /mnt/data/clmain.tar.gz -C /mnt/data/");
 		if (system(szTmp) < 0)
 		{
-			DTRACE(DB_FAPROTO, ("tar zxvf /mnt/data/clmain.tar.xz -C /mnt/data/  Error\r\n"));
+			DTRACE(DB_FAPROTO, ("tar zxvf /mnt/data/clmain.tar.gz -C /mnt/data/  Error\r\n"));
 			return -1;			
 		}
 		sprintf(szTmp, "source /mnt/data/clmain/update &");
