@@ -24,9 +24,9 @@ echo "chmod 777 clou.tgz"
 chmod 777 clou.tgz
 
 
-echo "tar Jcvf clmain.tar.xz clmain/*"
+echo "tar zcvf clmain.tar.gz clmain/*"
 cp ./clou/clmain ./clmain/clmain
-tar Jcvf clmain.tar.xz clmain/
+tar Jcvf clmain.tar.gz clmain/
 
 ls -l bin
 grep -i 'error' err
