@@ -105,6 +105,7 @@ void CurrValToDb(int* piVal, BYTE* pbBuf, WORD wLen)
 			pbBuf[2+b*5] = DT_DB_LONG;	//∏Ò Ωdouble-long
 //				memcpy(&pbBuf[3+b*5], (BYTE *)&piVal[b], 4);
 			OoIntToDoubleLong(piVal[b],&pbBuf[3+b*5]);
+			DTRACE(DB_FAPROTO, ("VoltValToDb CurrValToDb[%d]=%d\r\n", b, piVal[b]));
 		}
 }
 
