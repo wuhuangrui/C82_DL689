@@ -91,8 +91,10 @@ void VoltValToDb(int* piVal, BYTE* pbBuf, WORD wLen)
 //					pbBuf[3+b*3] = (BYTE )piVal[b];	//保存到数据库的是自然格式，低位在前，高位在后
 //					pbBuf[4+b*3] = (BYTE )(piVal[b]>>8);
 				OoWordToLongUnsigned(piVal[b],&pbBuf[3+b*3]);
+				//DTRACE(DB_FAPROTO, (""));
 
-		}				
+		}
+		
 }
 
 void CurrValToDb(int* piVal, BYTE* pbBuf, WORD wLen)
