@@ -900,14 +900,12 @@ void DoYX()
 	if (IsAcPowerOff(&bValid) || bValid==1)
 		return ;
     
-#ifdef SYS_LINUX
-	 BYTE bDoorStat =  0x10;
-	 bDoorStat = GetDoorStatus(); //门节点分状态为高电平
-#endif
+
     int nRead = ReadItemEx(BN2, PN0, 0x1100, &bYxVal);
     if (nRead <= 0 || GetClick() < 5)
     	return;
 
+	#ifdef SYS_LINUX
 	/*
 	if(bDoorStat > 0)
 		bDoorStat = 0x00;
@@ -917,13 +915,18 @@ void DoYX()
 	bYxVal = (bYxVal&0x7f) | (bDoorStat&0x80);
 	*/
 
-	
-	if(bDoorStat > 0)
+	 BYTE bDoorStat =  0x10;
+	 bDoorStat = GetDoorStatus(); //门节点分状态为高电平
+	 if(bDoorStat > 0)
 		bDoorStat = 0x00;
 	else
 		bDoorStat = 0x10;
 
 	 bYxVal = (bYxVal&0xef) | bDoorStat;
+
+	#endif
+	
+
 	 
 
 
