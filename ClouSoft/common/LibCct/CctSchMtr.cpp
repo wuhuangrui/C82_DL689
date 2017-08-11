@@ -580,7 +580,7 @@ int CCctSchMeter::SaveSchMtrResult(DWORD dwPortOad, BYTE *pbBuf, WORD wLen, BYTE
 			p += 6;
 			tSchMtrRlt.bMtrPro = *p++;
 			p += 3;	//从节点序号(2) + 从节点设备类型(1)
-			bTotalNodeNum = p++;	//从节点下接从节点数量M
+			bTotalNodeNum = *p++;	//从节点下接从节点数量M
 			bSlvNum = *p++;
 			if (bTotalNodeNum == 0)   //add a virtual meter
 			{
