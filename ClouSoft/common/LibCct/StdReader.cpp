@@ -3958,10 +3958,10 @@ void CStdReader::DoAutoRead()
 void CStdReader::CctRunStateCheck()
 {
 	if (GetInfo(INFO_PLC_MOD_CHANGED))
-    {   
+	{   
 		memset((BYTE*)&m_TRtStat, 0, sizeof(m_TRtStat));
-        GetRooterTermAddr(m_TRtStat.bTermAddr,m_TRtStat.bTermLen);
-    }
+		GetRooterTermAddr(m_TRtStat.bTermAddr,m_TRtStat.bTermLen);
+	}
 
 	if (GetInfo(INFO_SYNC_MTR))	
 		m_TRtStat.fSyncAddr = false;

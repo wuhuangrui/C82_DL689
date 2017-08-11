@@ -498,6 +498,7 @@ void  CCctSchMeter::LoopSchMtrResult(TSchMtrRlt *pSchMtrRlt)
 	}while (iStart != -1);
 
 	//到这里fIsSameAcq=false，表明pSchMtrRlt与终端tDbSchMtrRlt没有相同的采集器，需要寻找一个空的位置保存该档案
+#ifndef  VER_ZJ   //浙江搜表不需要保留以前存在的采集器档案  changed by whr 20170811
 	if (!fIsSameAcq)
 	{
 		memset(tSchMtrRlt.bMtr, 0, 6);
@@ -505,6 +506,7 @@ void  CCctSchMeter::LoopSchMtrResult(TSchMtrRlt *pSchMtrRlt)
 		GetCurTime(&tSchMtrRlt.tSchMtrSucTime);
 		SaveOneSchMtrResult(&tSchMtrRlt);
 	}
+#endif
 }
 
 void CCctSchMeter::LoopMtrSysDb(TOobMtrInfo tMtrInfo)
@@ -562,6 +564,7 @@ int CCctSchMeter::SaveSchMtrResult(DWORD dwPortOad, BYTE *pbBuf, WORD wLen, BYTE
 	BYTE bRptNum;
 	BYTE bSlvNum;
 	BYTE bDevType;	//00H＝采集器；01H＝电能表；02H～FFH 保留
+	BYTE bTotalNodeNum = 0;  //
 
 	memset((BYTE*)&tSchMtrRlt, 0, sizeof(TSchMtrRlt));
 	tSchMtrRlt.dwPort = dwPortOad;
@@ -569,8 +572,46 @@ int CCctSchMeter::SaveSchMtrResult(DWORD dwPortOad, BYTE *pbBuf, WORD wLen, BYTE
 	bRptNum = *p++;	//上报从节点的数量n
 	for (BYTE i=0; i<bRptNum; i++)
 	{
-		bDevType = p[10];
+		bDevType = p[9];
 		if (bDevType == 0x00)	//采集器
+		{
+			revcpy(tSchMtrRlt.bAcqAddr, p, 6);
+			tSchMtrRlt.bAcqLen = 6;
+			p += 6;
+			tSchMtrRlt.bMtrPro = *p++;
+			p += 3;	//从节点序号(2) + 从节点设备类型(1)
+			bTotalNodeNum = p++;	//从节点下接从节点数量M
+			bSlvNum = *p++;
+			if (bTotalNodeNum == 0)   //add a virtual meter
+			{
+				tSchMtrRlt.bMtrLen = bMtrAddrLen;	
+				memset(tSchMtrRlt.bMtr, 0xee, sizeof(tSchMtrRlt.bMtr));
+				tSchMtrRlt.bMtrPro = 0;
+				GetCurTime(&tSchMtrRlt.tSchMtrSucTime);
+				memset(szCurTime, 0, sizeof(szCurTime));
+				DTRACE(DB_CCT_SCH, ("SaveSchMtrResult(): sampler no search meter. Cur time1=%s.\n", TimeToStr(tSchMtrRlt.tSchMtrSucTime, szCurTime)));
+				CheckMtrAddr(&tSchMtrRlt);
+				memset(szCurTime, 0, sizeof(szCurTime));
+				DTRACE(DB_CCT_SCH, ("SaveSchMtrResult(): sampler no search meter. Cur time2=%s.\n", TimeToStr(tSchMtrRlt.tSchMtrSucTime, szCurTime)));
+			}
+			else {
+				for (BYTE k=0; k<bSlvNum; k++)
+				{
+					tSchMtrRlt.bMtrLen = bMtrAddrLen;	
+					revcpy(tSchMtrRlt.bMtr, p, tSchMtrRlt.bMtrLen);
+					p += tSchMtrRlt.bMtrLen;
+					tSchMtrRlt.bMtrPro = *p++;
+					GetCurTime(&tSchMtrRlt.tSchMtrSucTime);
+					memset(szCurTime, 0, sizeof(szCurTime));
+					DTRACE(DB_CCT_SCH, ("SaveSchMtrResult(): Cur time1=%s.\n", TimeToStr(tSchMtrRlt.tSchMtrSucTime, szCurTime)));
+					CheckMtrAddr(&tSchMtrRlt);
+					memset(szCurTime, 0, sizeof(szCurTime));
+					DTRACE(DB_CCT_SCH, ("SaveSchMtrResult(): Cur time2=%s.\n", TimeToStr(tSchMtrRlt.tSchMtrSucTime, szCurTime)));
+				}
+			}
+
+		}
+		else	//电表
 		{
 			memset(tSchMtrRlt.bAcqAddr, 0, TSA_LEN);
 			tSchMtrRlt.bAcqLen = 0;
@@ -586,29 +627,6 @@ int CCctSchMeter::SaveSchMtrResult(DWORD dwPortOad, BYTE *pbBuf, WORD wLen, BYTE
 			memset(szCurTime, 0, sizeof(szCurTime));
 			DTRACE(DB_CCT_SCH, ("SaveSchMtrResult(): Cur time2=%s.\n", TimeToStr(tSchMtrRlt.tSchMtrSucTime, szCurTime)));
 
-		}
-		else	//电表
-		{
-			revcpy(tSchMtrRlt.bAcqAddr, p, 6);
-			tSchMtrRlt.bAcqLen = 6;
-			p += 6;
-			tSchMtrRlt.bMtrPro = *p++;
-			p += 3;	//从节点序号(2) + 从节点设备类型(1)
-			p++;	//从节点下接从节点数量M
-			bSlvNum = *p++;
-			for (BYTE k=0; k<bSlvNum; k++)
-			{
-				tSchMtrRlt.bMtrLen = bMtrAddrLen;	
-				revcpy(tSchMtrRlt.bMtr, p, tSchMtrRlt.bMtrLen);
-				p += tSchMtrRlt.bMtrLen;
-				tSchMtrRlt.bMtrPro = *p++;
-				GetCurTime(&tSchMtrRlt.tSchMtrSucTime);
-				memset(szCurTime, 0, sizeof(szCurTime));
-				DTRACE(DB_CCT_SCH, ("SaveSchMtrResult(): Cur time1=%s.\n", TimeToStr(tSchMtrRlt.tSchMtrSucTime, szCurTime)));
-				CheckMtrAddr(&tSchMtrRlt);
-				memset(szCurTime, 0, sizeof(szCurTime));
-				DTRACE(DB_CCT_SCH, ("SaveSchMtrResult(): Cur time2=%s.\n", TimeToStr(tSchMtrRlt.tSchMtrSucTime, szCurTime)));
-			}
 		}
 	}
 
