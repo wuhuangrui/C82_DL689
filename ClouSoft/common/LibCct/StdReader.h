@@ -4,6 +4,7 @@
 #include "CctAPI.h"
 #include "LoopBuf.h"
 #include "Comm.h"
+#include "VirtualComm.h"
 #include "sysarch.h"
 #include "sysapi.h"
 #include "CctSchMtr.h"
@@ -202,8 +203,9 @@ typedef struct {
 class CStdReader : public CCctSchMeter{
 private:
 	CLoopBuf m_LoopBuf;
-
-	CComm  m_Comm;
+	
+	//CComm  m_Comm;
+	CVirtualComm m_Comm;
 
 	TFrm13762 m_TRcv13762;
 
