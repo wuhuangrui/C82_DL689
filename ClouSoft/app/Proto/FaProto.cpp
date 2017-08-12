@@ -2548,11 +2548,6 @@ int CFaProto::Act_Response_Normal()
 			*pApdu++ = DR_ERROK;	//DAR--ok
 			//memcpy(pApdu, pbRxBuf, iRet);	//liuxin20170523屏蔽
 			//pApdu += iRet;
-			if (pOmMap->dwOM == 0xf2097f00)
-			{
-				memcpy(pApdu, pbRxBuf, iRet);	//liuxin20170523屏蔽
-				pApdu += iRet;
-			}
 		}
 		else
 		{
@@ -2567,7 +2562,16 @@ int CFaProto::Act_Response_Normal()
 		DTRACE(DB_FAPROTO, ("Act_Response_Normal failed, dwOMD=0x%08x !\r\n", dwOMD));
 	}
 
-	*pApdu++ = 0x00;	//Data optional
+	if (pOmMap->dwOM == 0xf2097f00 || iRet > 10)
+	{
+		memcpy(pApdu, pbRxBuf, iRet);	//added whr 20170812
+		pApdu += iRet;
+	}
+	else
+	{
+		*pApdu++ = 0x00;	//Data optional
+	}
+
 	*pApdu++ = 0x00;	//FollowReport
 	*pApdu++ = 0x00;	//表示没有时间标签
 
