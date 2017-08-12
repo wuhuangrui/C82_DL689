@@ -2548,6 +2548,11 @@ int CFaProto::Act_Response_Normal()
 			*pApdu++ = DR_ERROK;	//DAR--ok
 			//memcpy(pApdu, pbRxBuf, iRet);	//liuxin20170523фа╠н
 			//pApdu += iRet;
+			if (pOmMap->dwOM == 0xf2097f00)
+			{
+				memcpy(pApdu, pbRxBuf, iRet);	//liuxin20170523фа╠н
+				pApdu += iRet;
+			}
 		}
 		else
 		{
