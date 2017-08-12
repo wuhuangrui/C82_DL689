@@ -499,7 +499,6 @@ void  CCctSchMeter::LoopSchMtrResult(TSchMtrRlt *pSchMtrRlt)
 	}while (iStart != -1);
 
 	//到这里fIsSameAcq=false，表明pSchMtrRlt与终端tDbSchMtrRlt没有相同的采集器，需要寻找一个空的位置保存该档案
-#ifndef  VER_ZJ   //浙江搜表不需要保留以前存在的采集器档案  changed by whr 20170811
 	if (!fIsSameAcq)
 	{
 		memset(tSchMtrRlt.bMtr, 0, 6);
@@ -507,7 +506,7 @@ void  CCctSchMeter::LoopSchMtrResult(TSchMtrRlt *pSchMtrRlt)
 		GetCurTime(&tSchMtrRlt.tSchMtrSucTime);
 		SaveOneSchMtrResult(&tSchMtrRlt);
 	}
-#endif
+
 }
 
 void CCctSchMeter::LoopMtrSysDb(TOobMtrInfo tMtrInfo)
@@ -542,6 +541,7 @@ void CCctSchMeter::LoopMtrSysDb(TOobMtrInfo tMtrInfo)
 	}
 
 	//到这里fIsSameAcq=false，表明pSchMtrRlt与终端tDbSchMtrRlt没有相同的采集器，需要寻找一个空的位置保存该档案
+#ifndef  VER_ZJ   //浙江搜表不需要保留以前存在的采集器档案  changed by whr 20170811
 	if (!fIsSameAcq)
 	{
 		TSchMtrRlt tSchMtrRlt;
@@ -553,6 +553,7 @@ void CCctSchMeter::LoopMtrSysDb(TOobMtrInfo tMtrInfo)
 		const BYTE *pbMtrMask = GetMtrMask(BANK17, PN0, 0x6001);
 		SearchEmptySaveMeter(&tSchMtrRlt, (BYTE*)pbMtrMask);
 	}
+#endif
 }
 
 //描述：存储搜表结果()
