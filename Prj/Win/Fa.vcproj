@@ -2015,6 +2015,10 @@
 				RelativePath="..\..\ClouSoft\arch\win\sysstruct.h"
 				>
 			</File>
+			<File
+				RelativePath="..\..\ClouSoft\arch\win\VirtualComm.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="meterpro"

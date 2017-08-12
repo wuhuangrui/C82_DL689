@@ -16,6 +16,7 @@
 #include "ComStruct.h"
 #include "DbOIAPI.h"
 #include "LibDbAPI.h"
+#include "FaCfg.h"
 
 CCctSchMeter::CCctSchMeter(void)
 {
