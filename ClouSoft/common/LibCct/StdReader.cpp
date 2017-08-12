@@ -3946,6 +3946,8 @@ bool CStdReader::RxHandleFrm(DWORD dwSeconds, bool fIsDefHanleFrm)
 	return false;
 }
 
+BYTE test_frame[] = {0x68, 0x2A, 0x00, 0xC3, 0x00, 0x00, 0x40, 0x00, 0x00, 0x29, 0x06, 0x08, 0x00, 0x01, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x02, 0x02, 0x77, 0x55, 0x44, 0x33, 0x22, 0x11, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0xCD, 0x16};
+
 void CStdReader::DoAutoRead()
 {
 	if (!m_TRtStat.fPlcInit)
@@ -3953,10 +3955,22 @@ void CStdReader::DoAutoRead()
 
 	if (RxHandleFrm(1))
 		DefHanleFrm();
+	
+
 }
 
 void CStdReader::CctRunStateCheck()
 {
+	
+	m_Comm.SetAutoRecBuf(test_frame, sizeof(test_frame));
+	if (RxHandleFrm(1))
+		DefHanleFrm();
+	
+	Afn06Fn04_RptMtrInfo();
+	m_Comm.ClearAutoRecBuf();
+	
+	
+
 	if (GetInfo(INFO_PLC_MOD_CHANGED))
 	{   
 		memset((BYTE*)&m_TRtStat, 0, sizeof(m_TRtStat));

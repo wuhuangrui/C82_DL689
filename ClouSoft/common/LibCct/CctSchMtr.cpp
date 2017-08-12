@@ -542,6 +542,7 @@ void CCctSchMeter::LoopMtrSysDb(TOobMtrInfo tMtrInfo)
 	}
 
 	//到这里fIsSameAcq=false，表明pSchMtrRlt与终端tDbSchMtrRlt没有相同的采集器，需要寻找一个空的位置保存该档案
+	/*
 	if (!fIsSameAcq)
 	{
 		TSchMtrRlt tSchMtrRlt;
@@ -553,6 +554,7 @@ void CCctSchMeter::LoopMtrSysDb(TOobMtrInfo tMtrInfo)
 		const BYTE *pbMtrMask = GetMtrMask(BANK17, PN0, 0x6001);
 		SearchEmptySaveMeter(&tSchMtrRlt, (BYTE*)pbMtrMask);
 	}
+	*/
 }
 
 //描述：存储搜表结果()

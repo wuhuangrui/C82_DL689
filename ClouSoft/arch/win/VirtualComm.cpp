@@ -47,6 +47,7 @@ struct module_frame_s module_frame_table[] = {
 CVirtualComm::CVirtualComm()
 {
 	m_OpenFlag = false;
+	m_iAutoLen = 0;
 }
 
 CVirtualComm::~CVirtualComm()
@@ -107,6 +108,25 @@ int CVirtualComm::Read(LPVOID buf, DWORD dwLength)
 
 	if (iLen != 0)
 		memcpy(buf, m_RecBuf, iLen);
+	else if(m_iAutoLen != 0)
+	{
+		memcpy(buf, m_autoBuf, m_iAutoLen);
+		iLen = m_iAutoLen;
+	}
 
 	return iLen;
 }
+
+int CVirtualComm::SetAutoRecBuf(LPCVOID lpBuf, DWORD dwLength)
+ {
+		memcpy(m_autoBuf, lpBuf, dwLength);
+		m_iAutoLen = dwLength;
+		return 0;
+ }
+
+int CVirtualComm::ClearAutoRecBuf(void)
+ {
+		memset(m_autoBuf, 0, sizeof(m_autoBuf));
+		m_iAutoLen = 0;
+		return 0;
+ }
