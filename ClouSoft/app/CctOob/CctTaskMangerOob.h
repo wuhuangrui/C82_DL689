@@ -338,6 +338,8 @@ int MsToMtrNum(BYTE *pbMs);
 
 int DayFrzTimeMatch(BYTE *pSrc, BYTE *pRcsd);
 
+int FillInValueData(BYTE *pSrc, BYTE *pRcsd); //填充无效数据
+
 extern bool SearchAcqRule645ID(BYTE *pbCSD, BYTE bMtrPro, T645IdInfo *pT645IdInfo);
 extern int GetAcqRuleTableName(BYTE *pbCSD, char *pszTabName, WORD wTabNameLen, TAcqRuleInfo *pTAcqRuleInfo);
 extern int GetOneAcqRuleInfo(BYTE *pbPara, char *pszTabName, WORD wTabNameLen, TAcqRuleInfo *pTAcqRuleInfo);

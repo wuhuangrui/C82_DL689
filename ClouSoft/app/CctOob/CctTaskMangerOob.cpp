@@ -4606,6 +4606,86 @@ int MsToMtrNum(BYTE *pbMs)
 	return 0;
 }
 
+struct addr_info_s{
+	DWORD dwFrzOAD;  //填充OAD数据项
+	BYTE *pbDataPosition;  //填充数据项再缓冲区的位置
+	BYTE  bIdx;   //在Rcsd中的位置
+};
+
+
+
+//当日冻结上报时间与电表时间相差1天时，把记录中的数据改为无效数据填充，浙江测试需求
+int FillInValueData(BYTE *pSrc, BYTE *pRcsd)
+{
+	TTime tNowTime, tRdTime;
+	DWORD dwFrzOAD;
+	BYTE bRcsdNum;
+	BYTE bTypeLen;
+	BYTE *pSechFrzOad;
+	bool fExistFrzOad = false;
+	BYTE *pbDataEnd = NULL, *pbDataStart=NULL;   //pSrc数据区
+
+	struct addr_info_s sAddrInfo;
+	
+	pbDataStart = pbDataEnd = pSrc;
+
+	pSechFrzOad = pRcsd;
+	bRcsdNum = *pSechFrzOad++;
+
+			
+	for (BYTE bIdx=0; bIdx<bRcsdNum; bIdx++)
+	{
+		if (*pSechFrzOad++ == 0)	//choice 0 OAD
+		{
+			dwFrzOAD = OoOadToDWord(pSechFrzOad);
+			if (dwFrzOAD==0x202A0200)
+			{
+				bTypeLen = OoGetDataTypeLen(pSrc);
+				pSrc += bTypeLen;
+				pbDataEnd +=bTypeLen; 
+				pSechFrzOad += 4;
+			}
+			else
+			{
+				bTypeLen = OoGetDataTypeLen(pSrc);
+				*pSrc = 0;  //填充0 
+				pbDataEnd++;
+				pSrc += bTypeLen;
+				pSechFrzOad += 4;
+			}
+		}
+		else	//choice 1 ROAD
+		{
+			DWORD bMainOAD;
+			BYTE bLnkNum;
+
+			bMainOAD = OoOadToDWord(pSechFrzOad);
+			pSechFrzOad += 4;	//主OAD
+			bLnkNum = *pSechFrzOad++;
+			for (BYTE i=0; i<bLnkNum; i++)
+			{
+				if (bMainOAD == 0x50040200)
+				{
+				
+				}
+				bTypeLen = OoGetDataTypeLen(pSrc);
+				if (i==0)
+				{
+					*pbDataEnd = 0;
+					pbDataEnd++;
+				}
+				pSrc += bTypeLen;
+				pSechFrzOad += 4;
+			}
+		}
+	}
+
+	return (int)(pbDataEnd - pbDataStart);
+	
+}
+
+
+
 //描述：判断数据的冻结时标是否正确，这里不能用存储时标0x60420200判断，
 //		这个时间由普通采集方案的存储时标决定
 //参数：@pSrc 源数据
@@ -4628,7 +4708,7 @@ int DayFrzTimeMatch(BYTE *pSrc, BYTE *pRcsd)
 		if (*pSechFrzOad++ == 0)	//choice 0 OAD
 		{
 			dwFrzOAD = OoOadToDWord(pSechFrzOad);
-			if (dwFrzOAD==0x20210200 || dwFrzOAD==0x60400200 || dwFrzOAD==0x60410200)
+			if (dwFrzOAD==0x20210200 || dwFrzOAD==0x60400200 || dwFrzOAD==0x60410200 || dwFrzOAD==0x60420200)
 			{
 				fExistFrzOad = true;
 				GetCurTime(&tNowTime);
@@ -4653,7 +4733,8 @@ int DayFrzTimeMatch(BYTE *pSrc, BYTE *pRcsd)
 				if (bMainOAD == 0x50040200)
 				{
 					dwFrzOAD = OoOadToDWord(pSechFrzOad);
-					if (dwFrzOAD==0x20210200 || dwFrzOAD==0x60400200 || dwFrzOAD==0x60410200)
+					
+					if (dwFrzOAD==0x20210200 || dwFrzOAD==0x60400200 || dwFrzOAD==0x60410200 || dwFrzOAD==0x60420200)
 					{
 						fExistFrzOad = true;
 						GetCurTime(&tNowTime);
