@@ -3885,14 +3885,15 @@ bool CStdReader::DefHanleFrm()
 		default:
 			fRet = true;
 	}
-
+	//默认处理不了的返回false  changed by whr 20170822
 	if (fRet)
 	{
-		//DTRACE(DB_CCT, ("CStdReader::DefHanleFrm(): AFN=0x%02x Fn=%02d, unsupport!\n", bAfn, wFn));
+		DTRACE(DB_CCT, ("CStdReader::DefHanleFrm(): AFN=0x%02x Fn=%02d, unsupport!\n", bAfn, wFn));
 		return false;
 	}
-
-	return false;
+	
+	//默认处理成功返回true  changed by whr 20170822
+	return true;
 }
 
 //描述：数据处理
@@ -3923,7 +3924,9 @@ bool CStdReader::RxHandleFrm(DWORD dwSeconds, bool fIsDefHanleFrm)
 			if (nScanLen > 0)
 			{   
 				m_LoopBuf.DeleteFromBuf(nScanLen); //删除已经扫描的数据
-
+				return true;
+				//此部分代码已经不需要，都改在外面调整处理了  whr 20170822
+				/*
 				if (fIsDefHanleFrm)
 				{
 					if (DefHanleFrm() == false) //帧组成功了,但是没有被默认帧处理函数所处理,要出到外面去处理
@@ -3931,6 +3934,7 @@ bool CStdReader::RxHandleFrm(DWORD dwSeconds, bool fIsDefHanleFrm)
 				}
 				else
 					return true;
+				*/
 			}
 			else if(len>=sizeof(bBuf)-10) //缓冲区满了，但是还没有一个完整的帧
 			{
@@ -4013,6 +4017,7 @@ void CStdReader::RunThread()
 		}
 		
 		CctRunStateCheck();
+		
 		if (GetInitState())
 		{
 			DoAutoRead();
