@@ -131,7 +131,7 @@ DT_BOOL,	//是否启用
 
 //终端单地址广播校时参数
 BYTE bSigAddrBroadTime[] = {DT_STRUCT, 3,
-#ifdef ZHEJIANG_OLD_PRO
+#ifndef GW_OOB_PROTO_UPDATA_20170406
 DT_UNSIGN,	//时钟误差阈值  //changed by whr 20170814
 #else
 DT_INT,	//时钟误差阈值 
