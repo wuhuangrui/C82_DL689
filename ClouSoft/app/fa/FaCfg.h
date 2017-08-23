@@ -49,15 +49,12 @@
 
 #define GW_OOB_DEBUG_0x40010201	1	//台体测试软件9月份表地址为TSA,不是OCT-STRING
 
-#if 0
-#ifndef VER_HUNAN && VER_ZJ
+//#if 0
+#ifndef VER_HUNAN //&& VER_ZJ
 #define GW_OOB_PROTO_UPDATA_20170406	1//20170406勘误更新 浙江试挂按老协议，发货要求新协议
 #endif
-#endif
+//#endif
 
-#ifdef VER_ZJ
-#define ZHEJIANG_OLD_PRO  1
-#endif
 
 
 
