@@ -3957,7 +3957,7 @@ void CStdReader::DoAutoRead()
 	if (!m_TRtStat.fPlcInit)
 		return;
 
-	if (RxHandleFrm(1))
+	if (RxHandleFrm(1, false))
 		DefHanleFrm();
 }
 
