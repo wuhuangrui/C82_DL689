@@ -23,7 +23,7 @@ BYTE g_bTermSoftVer[OOB_SOFT_VER_LEN] = {
 						DT_STRUCT, 0x06, 
 						DT_VIS_STR, 0x04, 'C', 'L', 'O', 'U',			//厂商代号 4
 //						DT_VIS_STR, 0x04, 'Z', 'J', 'S', 'J',			//软件版本 4 ,过台子远程升级用
-						DT_VIS_STR, 0x04, '0', '8', '0', '0',			//软件版本 4 ,过台子远程升级用
+						DT_VIS_STR, 0x04, '0', '8', '0', '1',			//软件版本 4 ,过台子远程升级用
 //						DT_VIS_STR, 0x06, '1','7', '0','2','2','5',		//软件版本日期
 						DT_VIS_STR, 0x06, '1','7', '0','8','2','3',		//软件版本日期
 						DT_VIS_STR, 0x04, 'V', 'C', '8', '2',			//硬件版本 4 
@@ -1587,7 +1587,7 @@ BYTE g_bParaDefault[] =
 		DT_BOOL, 0x00,	//是否启用
 	//0x4205,终端单地址广播校时参数
 	DT_STRUCT, 3,
-	#ifdef ZHEJIANG_OLD_PRO
+	#ifndef GW_OOB_PROTO_UPDATA_20170406
 	DT_UNSIGN, 0x01,	// 时钟误差阈值 //added by whr zhejiang test. 20170814
 	#else
 	DT_INT, 0x01,	// 时钟误差阈值  
