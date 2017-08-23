@@ -3885,6 +3885,9 @@ bool CStdReader::DefHanleFrm()
 		default:
 			fRet = true;
 	}
+
+	return false;
+	/*
 	//默认处理不了的返回false  changed by whr 20170822
 	if (fRet)
 	{
@@ -3894,6 +3897,7 @@ bool CStdReader::DefHanleFrm()
 	
 	//默认处理成功返回true  changed by whr 20170822
 	return true;
+	*/
 }
 
 //描述：数据处理
