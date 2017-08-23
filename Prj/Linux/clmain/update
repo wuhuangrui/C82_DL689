@@ -6,20 +6,24 @@
 #cp /mnt/data/clmain/*.ko /clou/drivers 
 #cp /mnt/data/clmain/*.so /clou/lib 
 #killall clmain
+
+
 echo 0 >/tmp/update.log
 #tar zcvf /mnt/data/clou.tgz /clou
 #cp /mnt/data/clou.tgz /mnt/app/clou.tgz
 
-rm -f /mnt/data/clou.tgz
-rm -f /mnt/app/clou.tgz
-rm -f /mnt/app/clou.tgz.crc
-#app 空间不够，clou.tgz clou.tgz.crc 放在ext中  added by whr 20170807
-rm -f /mnt/ext/clou.tgz
-rm -f /mnt/ext/clou.tgz.crc
 cp -f /mnt/data/clmain/clmain /clou/clmain
 cp -rf /clou /mnt/app/
 cp -f /mnt/data/clmain/.config /mnt/app/
+rm -f /mnt/data/clou.tgz
 rm -f /mnt/data/clmain.*
+rm -f /mnt/data/clou.tgz
+rm -f /mnt/app/clou.tgz
+rm -f /mnt/app/clou.tgz.crc
+# 清除以下标准, 防止用U盘升级上一次的程序不成功
+rm -f /mnt/ext/clou.tgz.crc
+rm -f /mnt/ext/clou.tgz
+echo "1234567890" > /mnt/app/Uncompress
 #rm -fr /mnt/data/clmain/*
 #reboot
 echo 1 >/tmp/update.log
