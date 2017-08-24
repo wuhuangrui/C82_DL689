@@ -253,8 +253,8 @@ int ProtectState(void *arg)
 //·µ»Ø£º
 void TermiUpdate2()
 {
-	char str[64];
-	char command[64];
+	char str[200];
+	char command[200];
 	char szList[STORE_MAX_COUNT][STORE_FILE_LEN];
 	
 //	char szupdateList[STORE_MAX_COUNT][STORE_FILE_LEN];
@@ -10013,8 +10013,8 @@ void CctUpdate()
 void TermiUpdate(BYTE bType)
 {
 
-	char str[64];
-	char command[64];
+	char str[100];
+	char command[200];
 	char szList[STORE_MAX_COUNT][STORE_FILE_LEN];
 	int  iCnt = 0;
 	if (bType == 0)
@@ -10089,8 +10089,8 @@ void TermiUpdate(BYTE bType)
 
 void AppSysParaCfg(void)
 {
-	char szTemp[64];
-	char command[64];
+	char szTemp[100];
+	char command[200];
 	char szList[STORE_MAX_COUNT][STORE_FILE_LEN];
 	int  iCnt = 0;
 	int iSel = 0;
