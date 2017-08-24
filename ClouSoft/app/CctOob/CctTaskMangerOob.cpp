@@ -4556,6 +4556,14 @@ bool TiMatch(BYTE* pbStartTime, BYTE* pbEndTime, BYTE* pbTI, BYTE* pbFieldData)
 				SecondsToTime(dwFieldSec, &tFieldTime);
 			}
 		}
+		else	//wIntervV==0
+		{
+			if (dwStartSec==dwEndSec && dwStartSec==dwFieldSec)		//起止查询时间相同，浙江主站要求能读回当前时间点的数据
+			{
+				DTRACE(DB_FAFRM, ("TiMatch() start time equal to end time, dwStartSec=%ld, bIntervU=%d.\n", dwStartSec, bIntervU));
+				return true;
+			}			
+		}
 	}
 
 	while (dwStartSec < dwEndSec)
