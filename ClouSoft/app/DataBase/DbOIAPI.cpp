@@ -1192,6 +1192,7 @@ bool IsNeedRdSpec(const ToaMap* pOI)
 	case 0x81080300:
 	case 0x81080400:
 	case 0x81080500:
+	case 0x44000300:
 		return true;
 	}
 
@@ -1250,6 +1251,19 @@ int OIRead_Spec(ToaMap* pOI, BYTE* pbBuf, WORD wBufSize, int* piStart)
 
 			*piStart = -1;
 			return pbTmp - pbBuf;
+		case 0x4403:
+			pbTmp = pbBuf;
+			iLen = ReadItemEx(BN0, pOI->wPn, pOI->wID, pbTmp);					
+			if (iLen <= 0)
+			{
+				DTRACE(DB_FAPROTO, ("OIRead_Spec:wID = %d, wSn=%d, ReadItemEx failed !!\r\n", pOI->wID, wSn));
+				return -DA_OTHER_ERROR; //返回其它错误
+			}
+			pbTmp += iLen;
+
+			*piStart = -1;
+			return pbTmp - pbBuf;
+			
 		case 0x6000://采集档案配置表，测量点参数
 			pbTmp = pbBuf;
 			wSigFrmPnNum = wBufSize/PNPARA_LEN;

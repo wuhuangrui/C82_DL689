@@ -2408,6 +2408,43 @@ int SpecReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int* piStart, BYTE* p
 				}
 			}
 			break;
+		case 0x60140200:	//普通采集方案集
+		case 0x60160200:	//事件采集方案集
+		case 0x60180200:	//透明采集方案集
+		case 0x601C0200:	//上报采集方案集
+			if ((dwOAD & 0xFFFFFF00) == 0x60140200)
+				bSchType = SCH_TYPE_COMM;
+			else if ((dwOAD & 0xFFFFFF00) == 0x60160200)
+				bSchType = SCH_TYPE_EVENT;
+			else if ((dwOAD & 0xFFFFFF00) == 0x60180200)
+				bSchType = SCH_TYPE_TRANS;
+			else //0x601C0200
+				bSchType = SCH_TYPE_REPORT;
+		
+			for (WORD i=0; i<SCH_NO_NUM; i++)
+			{
+				memset(bBuf, 0, sizeof(bBuf));
+				if ((iRet = GetSchFromTaskDb(i, bSchType, bBuf)) > 0)
+				{
+					//p = OoGetField(bBuf, pOI->pFmt, pOI->wFmtLen, bSubIdx-1, &wDataLen, &bType);
+					//if (p!=NULL && (memcmp(pbRSD, p, wDataLen)==0)) //格式类型比较 && 数据比较
+					{
+						if (wCopyLen + iRet > wBufSize)
+						{
+							DTRACE(DB_FAPROTO, ("SpecReadRecord: Buffer overflow, iRet=%d, wBufSize=%d.\n", iRet, wBufSize));
+							goto SpecReadRecord_ret;
+						}
+						else
+						{
+							wCopyLen += iRet;
+							memcpy(pbBuf, bBuf, iRet);
+							pbBuf += iRet;
+							*pwRetNum += 1;
+						}
+					}
+				}
+			}
+			break;
 		default:
 			DTRACE(DB_FAPROTO, ("SpecReadRecord: RSD=0 unsupport dwOad=0x%08x.\n", dwOAD));
 			goto SpecReadRecord_ret;

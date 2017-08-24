@@ -397,7 +397,9 @@ int  CFaProto::VeryFrm()
 		return -2;
 
 	m_LnkComm.wRFrmLen = (WORD )m_bRxBuf[1] + ((WORD )(m_bRxBuf[2]&0x3f)<<8);	//总帧长度,除起始和结束符之外的帧字节数
-	m_LnkComm.bFunCode = m_bRxBuf[3]&0x0f;				//帧控制码
+	m_LnkComm.bFunCode = m_bRxBuf[3]&0x07;				//帧控制码
+	m_LnkComm.fIsScramble = m_bRxBuf[3]&0x08;			//扰码标志位
+	
 	m_LnkComm.fIsSegSend = ((m_bRxBuf[3]&0x20) != 0);		//链路层是否有分帧
 	m_LnkComm.bFrmHeaderLen = m_LnkComm.bCliAddrLen+6;	//0x68+Len(2byte)+C(1byte)+AF(1byte)+SA(SvrLen)+CA(1byte)
 	
@@ -582,6 +584,17 @@ bool  CFaProto::HandleFrm()
 		nRet = LPduSegFrmHandle();
 		if (nRet != 0)	//为0，表示链路分帧接收完毕，组合成一帧APDU，可以处理了
 			return nRet;
+	}
+
+	if(m_LnkComm.fIsScramble)
+	{
+		DTRACE(DB_FAPROTO,("HandleFrm: m_LnkComm.fIsScramble is true.\r\n"));
+
+		for(WORD i=0; i<m_LnkComm.wAPDULen; i++)
+		{
+			m_RxDPool.bBuf[i] = m_RxDPool.bBuf[i] - 0x33;
+		}
+
 	}
 
 	//在应用层APDU之外，偏移包括：起始字符(1Byte)+长度2Byte+控制域1Byte+地址AF(1Byte)+服务器地址SA(bSvrAddLen)+客户地址CA(1Byte)+HCS(2Byte)
@@ -3466,6 +3479,7 @@ int CFaProto::ProxyTimeoutDealSetThenGetReqList(BYTE * pbTx, BYTE *pbData)
 
 		pApdu += 4;
 		*pbData++ = 0; //645表不支持，设置、操作，直接回“拒绝读写”
+		*pbData++ = DAR_REQ_TIMEOUT; //645表不支持，设置、操作，直接回“拒绝读写”
 
 		pApdu++;	//跳过“延时读取时间”
 	}
@@ -4124,6 +4138,19 @@ int CFaProto::MakeFrm(BYTE *pbBuf, WORD wLen)
 		m_bTxBuf[5+m_LnkComm.bSvrAddLen] = 0;
 	else
 		m_bTxBuf[5+m_LnkComm.bSvrAddLen] = m_LnkComm.bCliAddr;
+
+	if(m_LnkComm.fIsScramble)
+	{
+		DTRACE(DB_FAPROTO,("MakeFrm: m_LnkComm.fIsScramble is true.\r\n"));
+		
+		m_bTxBuf[3] |= 0x08;
+
+		for(WORD i=0; i<wLen; i++)
+		{
+			*(pbBuf+i) = *(pbBuf+i) + 0x33;
+		}
+
+	}
 
 	//0x68+Len(2byte)+C(1byte)+AF(1byte)+SA(SvrLen+1)+CA(1byte)
 	WORD wHCS = CheckCrc16(&m_bTxBuf[1], m_LnkComm.bSvrAddLen+5); //帧头校验是除起始字符和HCS外的所有字节的校验

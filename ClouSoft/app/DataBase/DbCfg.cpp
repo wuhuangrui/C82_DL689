@@ -1114,7 +1114,7 @@ TItemDesc g_ParaDesc[] =   //参变量类对象
 	{0x4401, 	130, 		DI_HIGH_PERM,  DI_WRITE, 0, 	INFO_NONE,	FMT_UNK,		1,		},//应用连接认证密码，属性2
 
     {0x4402,    94,        DI_HIGH_PERM,  DI_WRITE, 0,     INFO_NONE,  FMT_UNK,        1,      }, //应用连接
-    {0x4403,    47,        DI_HIGH_PERM,  DI_WRITE, 0,     INFO_NONE,  FMT_UNK,        1,      }, //应用连接
+    {0x4403,    48,        DI_HIGH_PERM,  DI_WRITE, 0,     INFO_NONE,  FMT_UNK,        1,      }, //应用连接
     {0x4404,    2,        DI_HIGH_PERM,  DI_WRITE, 0,     INFO_NONE,  FMT_UNK,        1,      }, // 应用连接 
     {0x4405,    2,        DI_HIGH_PERM,  DI_WRITE, 0,     INFO_NONE,  FMT_UNK,        1,      }, // 应用连接    
 	
@@ -1684,7 +1684,7 @@ BYTE g_bParaDefault[] =
 	DT_LONG_U, 0x00,0x00,
 	DT_LONG_U, 0x00,0x00,
 	DT_BIT_STR,64, 0x00, 0x00, 0x00,0x00,0x00,0x00, 0x00, 0x00,
-	DT_BIT_STR,128, 0x00, 0x00, 0x00,0x00,0x00,0x00, 0x00, 0x00,
+	DT_BIT_STR,0x81,128, 0x00, 0x00, 0x00,0x00,0x00,0x00, 0x00, 0x00,
 	                           0x00, 0x00, 0x00,0x00,0x00,0x00, 0x00, 0x00,
 	DT_DB_LONG_U, 0x00,0x00,0x00,0x00,                           
 	// 0x4404
@@ -3231,7 +3231,7 @@ TBankCtrl g_Bank0Ctrl[SECT_NUM] = {
 	 sizeof(g_ParaDesc)/sizeof(TItemDesc),			//本SECTION数据项描述表的数据项个数
 	 g_bParaDefault,								//本SECTION数据库的默认值	
 	 sizeof(g_bParaDefault),						//本SECTION数据库的默认值的大小
-	 0x01,											//本SECTION数据库的当前版本,0表示没有版本管理
+	 0x02,											//本SECTION数据库的当前版本,0表示没有版本管理
 	 1,												//本SECTION数据的测量点个数
 	 1,												//本SECTION数据的镜像个数
 	 false,											//本BANK数据是否需要更新时间

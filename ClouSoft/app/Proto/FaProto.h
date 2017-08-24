@@ -520,6 +520,8 @@ typedef struct
 	BYTE bCliAddrLen;		//客户端地址长度
 	BYTE bCliAddrs[16];		//客户端地址
 
+	bool fIsScramble;		//扰码标志位
+
 //分帧参数
 	bool fIsSegSend;	//分帧标志位
 	WORD wRcvFrmSegNo;	//接收帧分帧序号

@@ -208,7 +208,7 @@ BYTE g_bApplyConnectContext[] = {DT_STRUCT,0x07,
     DT_LONG_U,
     DT_LONG_U, 
     DT_BIT_STR, 64, RLF,
-    DT_BIT_STR, 128, RLF,
+    DT_BIT_STR, 0x81, 128, RLF,
     DT_DB_LONG_U};  // 应用语境信息
 BYTE g_bApplyConnectClientAddr[] = {DT_UNSIGN}; //当前连接的客户机地址
 BYTE g_bApplyConnectAuthmech[] = {DT_ENUM}; // 连接认证机制
