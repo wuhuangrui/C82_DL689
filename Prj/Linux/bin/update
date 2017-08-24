@@ -1,0 +1,120 @@
+#!/bin/sh
+
+APP_PATH=/mnt/app
+CLOU_TGZ_PATH=/mnt/ext
+APP_DIR=/mnt/app/
+DATA_CFG_DIR=/mnt/data/oob/cfg 
+errcnt=1
+
+#如果目录不存在则不执行升级操作
+if [ -d $1 ]; then
+
+if [ -f /mnt/app/clou.tgz.bak ]; then
+rm /mnt/app/clou.tgz.bak
+fi
+
+#删掉旧的压缩文件，以后压缩文件, crc效验文件, 都放到/mnt/ext 目录下
+if [ -f /mnt/app/clou.tgz ]; then
+	rm /mnt/app/clou.tgz
+fi
+
+if [ -f /mnt/app/clou.tgz.crc ]; then
+	rm /mnt/app/clou.tgz.crc
+fi
+
+if [ ! -d /mnt/ext ]; then
+	mkdir /mnt/ext
+	mount /dev/mtdblock/5 /mnt/ext
+fi
+
+
+while [ "$errcnt" -le 10 ]; do 
+$1/checkcrc $1/ $1/
+if [ $? -eq 0 ]
+then
+        echo "-------------check crc ok, update now-------------"
+else
+        echo "-------------check crc fail, exit-------------"
+        rm -f ${APP_PATH}/update
+        exit 2
+fi
+
+echo "-------------update start---------------"
+if [ -f $1/uImage ];   then	
+	flash_eraseall /dev/mtd3
+	nandwrite -p /dev/mtd3 $1/uImage
+fi
+
+if [ -f $1/rdgb.cramfs ];   then
+	chmod +x $1/flash_eraseall
+	chmod +x $1/nandwrite
+	$1/flash_eraseall /dev/mtd4
+	$1/nandwrite /dev/mtd4 $1/rdgb.cramfs
+fi
+
+if [ -f $1/hzk16.bin ];   then
+	cp -f $1/hzk16.bin $APP_PATH
+fi
+
+if [ -f $1/clou.tgz ];   then
+	cp -f $1/clou.tgz $CLOU_TGZ_PATH
+fi
+
+if [ -f $1/.config ];   then
+	cp -f $1/.config $APP_PATH
+fi
+
+if [ -f $1/clou.tgz.crc ]; then
+	cp -f $1/clou.tgz.crc $CLOU_TGZ_PATH
+fi
+
+if [ -f $1/at91_gpio.ko ];   then
+	cp -f $1/at91_gpio.ko $APP_PATH
+fi
+
+if [ -f $1/at91_timer.ko ];   then
+	cp -f $1/at91_timer.ko $APP_PATH
+fi
+
+if [ -f $1/at91_lcd.ko ];   then
+	cp -f $1/at91_lcd.ko $APP_PATH
+fi
+
+if [ -f $1/AppInit ];   then
+	cp -f $1/AppInit $APP_PATH
+fi
+
+if [ ! -d $DATA_CFG_DIR ]; then
+mkdir $DATA_CFG_DIR
+fi
+
+rm -f $DATA_CFG_DIR/*
+
+cp -f $1/*.dft  $DATA_CFG_DIR
+
+cp -f $1/*.mpc  $DATA_CFG_DIR
+
+$1/checkcrc $1/ $CLOU_TGZ_PATH/
+if [ $? -eq 0 ]
+then
+        echo "-------------check crc ok-------------"        
+        echo "-------------update success---------------"
+        exit 0
+else
+        errcnt=$(($errcnt + 1)) 
+        echo "-------------check crc fail, retry---------------"        
+fi
+done
+
+
+#if [ "$errcnt" -ge 10 ]; then
+#	rm $CLOU_TGZ_PATH/clou.tgz
+#	rm $CLOU_TGZ_PATH/clou.tgz.crc
+#fi
+
+rm -f ${APP_PATH}/update
+
+else
+echo directory $1 no exit.
+
+fi
