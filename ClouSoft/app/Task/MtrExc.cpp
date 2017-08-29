@@ -605,10 +605,49 @@ int OoProReadMtrExcEvtRecord(WORD wOI, BYTE bAttr, BYTE* pbRecBuf, WORD wRecLen,
 		pbRec += wItemLen;	 
 		pbTmpRec += iLen;
 		wTotalLen += iLen;
-	}
+	}	
 
-	memcpy(pbTmpRec, pbRec, tDataFields.wTotalLen);
-	wTotalLen += tDataFields.wTotalLen;
+	for (bIndex=0; bIndex<tDataFields.wNum; bIndex++)	
+	{
+		memset(bOadBuf, 0, sizeof(bOadBuf));
+		if (ReadParserField(&tDataFields, bIndex, bOadBuf, &bType, &wItemOffset, &wItemLen) <= 0)
+			return -1;	//直接返回，固定字段不应答有问题
+
+		if (bType!=DT_OAD || wItemLen==0)
+			return -1;
+
+		dwOAD = OoOadToDWord(bOadBuf+1);
+		dwOAD &= OAD_FEAT_MASK;		//去除属性特征再抄表
+		if (dwOAD == 0x60410200)
+		{
+			*pbTmpRec = DT_DATE_TIME_S;		//补贴一个时标类型
+			pbTmpRec++;
+			wTotalLen++;
+
+			memcpy(pbTmpRec, pbRec, wItemLen);
+			pbTmpRec += wItemLen;
+			pbRec += wItemLen;
+			wTotalLen += wItemLen;
+		}
+		else
+		{
+			if (IsAllAByte(pbRec, 0, wItemLen))		//无效数据，只填1个字节空类型
+			{
+				*pbTmpRec = DT_NULL;
+				pbTmpRec++;
+				wTotalLen++;
+			}
+			else
+			{
+				memcpy(pbTmpRec, pbRec, wItemLen);
+				pbTmpRec += wItemLen;
+				wTotalLen += wItemLen;
+			}
+
+			pbRec += wItemLen;
+		}
+	}
+	
 	if (wTotalLen <= wBufSize)
 	{
 		memcpy(pbRecBuf, bTmpRecBuf, wTotalLen);
@@ -632,6 +671,8 @@ int GetMtrExcEvtRecord(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbRecBuf, WORD w
 	DWORD dwROAD;
 	int iLen;
 	char* pszFileName;
+	WORD wMaxNum = 0, wTotalLen = 0;
+	BYTE bBuf[30];
 
 	dwROAD= GetOAD(wOI, bAttr, bIndex);
 	DelEvtOad(dwROAD, 0);
@@ -639,6 +680,48 @@ int GetMtrExcEvtRecord(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbRecBuf, WORD w
 	pszFileName = GetEvtRecFileName(dwROAD&0xffff1f00);
 	if (pszFileName == NULL)
 		return -1;
+
+	if (bIndex == 0)	//读取全部事件记录
+	{
+		//跳过数据类型和元素个数
+		pbRecBuf[0] = DT_ARRAY;
+		wTotalLen = 2;		
+
+		memset(bBuf, 0, sizeof(bBuf));
+		if (OoReadAttr(wOI, ATTR5, bBuf, NULL, NULL) > 0)	//最大记录数
+			wMaxNum = OoLongUnsignedToWord(bBuf+1);		
+
+		if (wMaxNum == 0)
+			return -1;
+
+ 		for(bIndex=1; bIndex<=wMaxNum; bIndex++)
+ 		{
+			// 读取记录
+			iLen = ReadLastNRec(pszFileName, bIndex, pbRecBuf+wTotalLen, wBufSize);
+			if (iLen <= 0)	
+			{	
+				if (bIndex == 1) //无记录
+					return iLen;
+				else
+					break;	//已读不出数据退出
+			}
+
+			if ((wTotalLen+iLen) > wBufSize)	//数据已超
+			{				
+				break;
+				//return -1;
+			}
+
+			iLen = OoProReadMtrExcEvtRecord(wOI, bAttr, pbRecBuf+wTotalLen, iLen, wBufSize);
+			if (iLen <= 0)
+				return iLen;
+			else
+				wTotalLen += iLen;
+		}
+
+		pbRecBuf[1] = bIndex-1;	//修正个数
+		return wTotalLen;
+	}
 
 	// 读取记录
 	iLen = ReadLastNRec(pszFileName, bIndex, pbRecBuf, wBufSize);
@@ -648,6 +731,88 @@ int GetMtrExcEvtRecord(WORD wOI, BYTE bAttr, BYTE bIndex, BYTE* pbRecBuf, WORD w
 	return OoProReadMtrExcEvtRecord(wOI, bAttr, pbRecBuf, iLen, wBufSize);
 }
 
+bool RefreshMtrExcMem()
+{
+	WORD wOI, wRecLen = 0;
+	BYTE bClrFlag = 0;
+	BYTE bRelaOAD[EVT_ATTRTAB_LEN];
+	BYTE* pbRelaOAD = bRelaOAD;
+	BYTE bCapNum = 0;
+	int i = 0,nIndex = 0,  iLen = 0, nOADLen = 0;
+	TMtrPara tMtrPara;
+	TMtrRdCtrl* pMtrRdCtrl;
+	DWORD dwOAD = 0;
+	bool fTrigerSave = false;
+
+	for (nIndex=0; nIndex<MTR_EXC_NUM; nIndex++)
+	{
+		DTRACE(DB_METER, ("RefreshMtrExcMem nIndex=%d.\n", nIndex));
+
+		wOI = GetMtrExcOI(nIndex);
+		if (wOI == 0)
+			continue;
+
+		if (ReadItemEx(BN11, nIndex, MTREXC_CLR_ID, &bClrFlag) <= 0)
+			continue;
+
+		if (bClrFlag != MTREXC_CLR_VALID)
+		{
+			continue;	//不需要清零
+		}	
+
+		for (WORD wPn=1; wPn<POINT_NUM; wPn++)
+		{
+			if(!IsMtrPn(wPn))
+				continue;
+
+			GetMeterPara(wPn, &tMtrPara);
+			pMtrRdCtrl = GetMtrRdCtrl(wPn, tMtrPara.bAddr);			
+			if (pMtrRdCtrl == NULL)
+				continue;
+
+			FreeMem(pMtrRdCtrl->bGlobal, pMtrRdCtrl->allocTab, MTR_TAB_NUM, MEM_TYPE_MTREXC, wOI);
+
+			memset(bRelaOAD, 0, sizeof(bRelaOAD));
+			iLen = OoReadAttr(wOI, ATTR3, pbRelaOAD, NULL, NULL);	//属性3 关联属性表
+			bCapNum = (pbRelaOAD[1]>CAP_OAD_NUM) ? CAP_OAD_NUM : pbRelaOAD[1];		
+			if (iLen>0 && pbRelaOAD[0]==DT_ARRAY && bCapNum>0)
+			{
+				for (i=0; i<bCapNum; i++)	//关联属性表元素个数
+				{
+					dwOAD = OoOadToDWord(&pbRelaOAD[5*i+3]);
+					dwOAD &= OAD_FEAT_MASK;	//去除属性特征
+					nOADLen = OoGetDataLen(DT_OAD, &pbRelaOAD[5*i+3]);
+					if (nOADLen <= 0)
+					{
+						wRecLen = 0;
+						break;
+					}
+
+					wRecLen += nOADLen;
+				}
+
+				if (wRecLen > 0)
+				{
+					AllocMem(pMtrRdCtrl->bGlobal, pMtrRdCtrl->allocTab, MTR_TAB_NUM, MEM_TYPE_MTREXC, wOI, wRecLen);
+				}
+			}
+
+			PutMtrRdCtrl(wPn, tMtrPara.bAddr, false);
+			SaveMtrRdCtrl(wPn, pMtrRdCtrl);
+
+		}
+		
+		bClrFlag = 0;
+		WriteItemEx(BN11, nIndex, MTREXC_CLR_ID, &bClrFlag);	//清除完所有的数据再将标识清零
+		fTrigerSave = true;
+	}
+
+	if (fTrigerSave)
+		TrigerSaveBank(BN11, 0, -1);
+
+	DTRACE(DB_METER, ("RefreshMtrExcMem Success.\n"));
+	return 	true;	
+}
 
 BYTE DoMtrExc(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModified)
 {
@@ -657,20 +822,31 @@ BYTE DoMtrExc(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModifi
 	WORD i, wIndex, wJudgeOadNum = 0;
 	WORD wRSDLen = 0, wRCSDLen = 0;
 	bool fTrigerSave;
-	WORD wOI, wFailCnt = 0;
+	WORD wOI;
+	BYTE bFailCnt = 0;
 	BYTE bRSDBuf[32], bRCSDBuf[256];
 	DWORD dwJudgeOAD[MAX_JUDGE_OAD];
 	BYTE bRelaOAD[EVT_ATTRTAB_LEN];
 	BYTE bBuf[60];
 	BYTE bOADBuf[4];
 	TMtrExcTmp* pMtrExcTmp = &pMtrRdCtrl->mtrExcTmp;	
+	BYTE bTryCnt;
 
+	OoReadAttr(0x310F, ATTR6, bBuf, NULL, NULL);
+	bTryCnt = bBuf[3];
+	if(bTryCnt == 0)
+		bTryCnt =3;
+
+	ReadItemEx(BN2, wPn, 0x6004, &bFailCnt);
+	
 	if (GetInfo(INFO_MTR_EXC_RESET))		
 	{
 		DTRACE(DB_METER, ("DoMtrExc start do INFO_MTR_EXC_RESET...at click=%ld.\n", GetClick()));
 		ClrMtrExc();	//事件清零
 		InitMtrExc();	//初始化建表 （事件判断中间数据在抄表线程中，有效测量点才初始化）
 		DTRACE(DB_METER, ("DoMtrExc end do INFO_MTR_EXC_RESET...at click=%ld.\n", GetClick()));
+		SetInfo(INFO_MTR_EXC_MEM);
+		return 1;
 	}
 
 	for (i=0; i<MTR_EXC_NUM; i++)
@@ -714,7 +890,8 @@ BYTE DoMtrExc(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModifi
 								*pfModified = true; //测量点数据已修改
 							}
 						}
-						wFailCnt = 0;
+						bFailCnt = 0;
+						WriteItemEx(BN2, wPn, 0x6004, &bFailCnt);
 						if (IsMtrErr(wPn))
 						{
 							OnMtrErrRecv(wPn);
@@ -725,8 +902,10 @@ BYTE DoMtrExc(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModifi
 					{
 						if (IsMtrErr(wPn))
 							break;
-						wFailCnt++;
-						if (wFailCnt >= 3)
+						if (bFailCnt < bTryCnt/*3*/)
+							bFailCnt++;
+						WriteItemEx(BN2, wPn, 0x6004, &bFailCnt);
+						if (bFailCnt >= bTryCnt/*3*/)
 						{
 							OnMtrErrEstb(wPn);
 							DoPortRdErr(true);
@@ -842,7 +1021,7 @@ bool ReadAndSaveMtrExcRec(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wOI, BY
 	#endif
 
 	int iRet, iLen, iRecLen = 0, nMtrExcIdx = 0;
-	WORD i, wItemOffset = 0, wItemLen = 0;
+	WORD i, k = 0, wItemOffset = 0, wItemLen = 0;
 	bool fReadSuccess = true, fOnMtrExcHap, fOnMtrExcEnd;
 	BYTE bCapNum, bIndex, bType = 0, bChnNum = 0, bTsaLen = 0;
 	int nOADLen, nLastRecPhyIdx;
@@ -850,7 +1029,7 @@ bool ReadAndSaveMtrExcRec(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wOI, BY
 	BYTE bBuf[MTR_EXC_REC_LEN], bTmpBuf[100];
 	BYTE bRecBuf[MTR_EXC_REC_LEN];
 	BYTE bFixBuf[20];
-	TTime tmCurRec;	
+	TTime tmCurRec, tmLastRd;	
 	//TFieldParser tFixFields = { g_bMtrExcFixOAList, sizeof(g_bMtrExcFixOAList) };	//固定字段
 	BYTE* pbBuf = bBuf;
 	BYTE* pbRec = bRecBuf;
@@ -901,25 +1080,45 @@ bool ReadAndSaveMtrExcRec(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wOI, BY
 			memset(bTmpBuf, 0, sizeof(bTmpBuf));
 			dwOAD &= OAD_FEAT_MASK;		//去除属性特征再抄表
 			if (dwOAD == 0x40000200)	//hyl 3105不在这里抄表
-				continue;
-			iLen = GetMtrItemMem(&pMtrRdCtrl->mtrTmpData, dwOAD, bTmpBuf);
-			if (iLen<=0 || IsAllAByte(bTmpBuf, 0, nOADLen))	//没抄到
 			{
-				DTRACE(DB_METER, ("ReadAndSaveMtrExcRec: Rd ---> wOI=0x%04x dwOAD=%08x\r\n", wOI, dwOAD));
-				if (GetRdMtrState(pMtrPro->bThrId) == RD_ERR_OK)
+				continue;
+			}
+			else if (dwOAD == 0x60410200)	//最近一次抄表成功时间,取最近一次抄到正向有功的时标,这里数据库没存格式1c,需在读数据时特殊处理
+			{
+				SecondsToTime(pExcTmp->dwItemRdTime[EP_POS_ITEM_INDEX], &tmLastRd);
+				OoTimeToDateTimeS(&tmLastRd, pbBuf);
+				pbBuf += nOADLen;
+				continue;
+			}
+
+			iLen = GetMtrItemMem(&pMtrRdCtrl->mtrTmpData, dwOAD, bTmpBuf);
+			if (iLen<=0 || IsAllAByte(bTmpBuf, 0, nOADLen) ||fOnMtrExcHap || fOnMtrExcEnd)	//没抄到 刚发生事件和刚恢复事件时直抄最新数据
+			{
+				if (GetRdMtrState(pMtrPro->bThrId)!=RD_ERR_OK && fOnMtrExcHap==false && fOnMtrExcEnd==false)	//非事件发生或恢复时
 				{
-					if ((iRet=AskMtrItem(pMtrPro, RESPONSE_TYPE_NORAML, dwOAD, bTmpBuf, bRSDBuf, nOADLen, bRCSDBuf, wRCSDLen)) > 0)	//抄表正常
+					DTRACE(DB_METER, ("ReadAndSaveMtrExcRec: rd break ---> wOI=0x%04x dwOAD=%08x\r\n", wOI, dwOAD));
+					break;
+				}
+
+				for (k=0; k<2; k++)	//失败了重发1次
+				{
+					DTRACE(DB_METER, ("ReadAndSaveMtrExcRec: Rd ---> k=%d, wOI=0x%04x dwOAD=%08x\r\n", k, wOI, dwOAD));
+					iRet = AskMtrItem(pMtrPro, RESPONSE_TYPE_NORAML, dwOAD, bTmpBuf, bRSDBuf, nOADLen, bRCSDBuf, wRCSDLen);
+					if (iRet > 0)	//抄表正常
 					{
+						DTRACE(DB_METER, ("ReadAndSaveMtrExcRec: Rd OK ---> wOI=0x%04x dwOAD=%08x iRet=%d.\r\n", wOI, dwOAD, iRet));
 						if (SaveMtrItemMem(&pMtrRdCtrl->mtrTmpData, dwOAD, bTmpBuf, nOADLen))	//不用跳过DAR zhq modify 17-02-17
 						{						
 							SaveMtrDataHook(dwOAD, &pMtrRdCtrl->mtrExcTmp, 0);
 							*pfModified = true; //测量点数据已修改
 						}
 
-						memcpy(pbBuf, bTmpBuf+1, nOADLen);	//+1 跳过DAR
+						memcpy(pbBuf, bTmpBuf, nOADLen);	//不用跳过DAR zhq modify 170727
+						break;
 					}
 					else if (iRet == -2) //不支持的入无效
 					{
+						DTRACE(DB_METER, ("ReadAndSaveMtrExcRec: Unsupport ID ---> wOI=0x%04x dwOAD=%08x.\r\n", wOI, dwOAD));
 						if (nOADLen > 0)
 						{
 							memset(bTmpBuf, INVALID_DATA, sizeof(bTmpBuf));
@@ -931,17 +1130,18 @@ bool ReadAndSaveMtrExcRec(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wOI, BY
 
 							memset(pbBuf, 0, nOADLen);	//全0为无效数据
 						}
+						break;
 					}
 					else
 					{
 						memset(pbBuf, 0, nOADLen);	//全0为无效数据
+						if (GetRdMtrState(pMtrPro->bThrId) != RD_ERR_OK)
+						{
+							DTRACE(DB_METER, ("ReadAndSaveMtrExcRec: break due to stop mtr! ---> wOI=0x%04x dwOAD=%08x.\r\n", wOI, dwOAD));
+							break;
+						}
 						//fReadSuccess = false;
 					}
-				}
-				else
-				{
-					memset(pbBuf, 0, nOADLen);	//全0为无效数据
-					//fReadSuccess = false;		//改为失败后不重试
 				}
 			}
 			else
@@ -1628,10 +1828,7 @@ bool DoMtrEnergyDec(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pf
 				}
 								
 				if (ui64Energy<ui64PreEnergy && (ui64PreEnergy-ui64Energy)<9999990000LL)	//有功电能值下降且发生标志置0；（防止电表走到满刻度重新走字）
-				{
 					bCurErcFlag[i] = ERC_STATE_HAPPEN;	//发生
-					//DTRACE(DB_METER_EXC, ("EnergyDec::###### EnergyDec event happened!!! ######\r\n"));
-				}
 				else if (ui64Energy >= ui64PreEnergy)	//有功电能值没有下降且发生标志置1；
 					bCurErcFlag[i] = ERC_STATE_RECOVER;	//恢复
 				else
@@ -1900,12 +2097,11 @@ bool DoMtrEnergyErr(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pf
 				fInit[i] = true;
 			}
 
+			bTotalErcFlag = ERC_STATE_MIDDLE;
 			if (bCurErcFlag[0]==ERC_STATE_HAPPEN || bCurErcFlag[1]==ERC_STATE_HAPPEN)	//正有 或 反有发生
 				bTotalErcFlag = ERC_STATE_HAPPEN;
-			else if (bCurErcFlag[0]==ERC_STATE_RECOVER && bCurErcFlag[1]==ERC_STATE_RECOVER)	//正有和反有都恢复
+			else if (bCurErcFlag[0]==ERC_STATE_RECOVER || bCurErcFlag[1]==ERC_STATE_RECOVER)	//正有 或 反有恢复
 				bTotalErcFlag = ERC_STATE_RECOVER;
-			else
-				bTotalErcFlag = ERC_STATE_MIDDLE;
 
 			UpdateMtrExcStateAndSaveRec(pMtrRdCtrl, pMtrPro, wOI, bRelaOAD, bTotalErcFlag, &pCtrl->bState, pfModified);
 		}
@@ -2118,7 +2314,6 @@ bool DoMtrFlew(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 					continue;
 				}
 
-				//DTRACE(DB_METER_EXC, ("EnergyErr::******RunTask:pn=%d, TimeDec=%d\r\n", wPn, GetClick()-pCtrl->dwSeconds[i]));
 				//按照最大功率走过的电量
 				if((GetClick()-pCtrl->dwSeconds[i]) < ((DWORD)bMtrInterv*60/2))
 				{
@@ -2162,12 +2357,11 @@ bool DoMtrFlew(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 				fInit[i] = true;
 			}
 
+			bTotalErcFlag = ERC_STATE_MIDDLE;
 			if (bCurErcFlag[0]==ERC_STATE_HAPPEN || bCurErcFlag[1]==ERC_STATE_HAPPEN)	//正有 或 反有发生
 				bTotalErcFlag = ERC_STATE_HAPPEN;
-			else if (bCurErcFlag[0]==ERC_STATE_RECOVER && bCurErcFlag[1]==ERC_STATE_RECOVER)	//正有和反有都恢复
+			else if (bCurErcFlag[0]==ERC_STATE_RECOVER || bCurErcFlag[1]==ERC_STATE_RECOVER)	//正有或反有恢复
 				bTotalErcFlag = ERC_STATE_RECOVER;
-			else
-				bTotalErcFlag = ERC_STATE_MIDDLE;
 
 			UpdateMtrExcStateAndSaveRec(pMtrRdCtrl, pMtrPro, wOI, bRelaOAD, bTotalErcFlag, &pCtrl->bState, pfModified);
 		}
@@ -2887,7 +3081,7 @@ int DoMtrExcMethod4(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPar
 		memset(bBuf, 0x00, sizeof(bBuf));
 		bBuf[0] = DT_ARRAY;
 		bBuf[1] = 1;
-		memcpy(bBuf, pbPara, 5);
+		memcpy(bBuf+2, pbPara, 5);
 		goto END_OK;
 	}
 
@@ -2942,7 +3136,7 @@ int DoMtrExcMethod5(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPar
 		goto END_ERR;
 	
 	iLen = OoReadAttr(wOI, ATTR3, bBuf, NULL, NULL);	//属性3 关联对象属性表
-	if ((iLen<=0) || (bBuf[1]!=DT_ARRAY) || (bBuf[1]==0x00))	//读数据有问题或读出为空，无法删除
+	if ((iLen<=0) || (bBuf[0]!=DT_ARRAY) || (bBuf[1]==0x00))	//读数据有问题或读出为空，无法删除
 		goto END_ERR;
 
 	bOADNum = (bBuf[1]>CAP_OAD_NUM) ? CAP_OAD_NUM : bBuf[1];
@@ -3095,8 +3289,8 @@ void ClrMtrExc(int nIndex)
 
 	if (bClrFlag != MTREXC_CLR_VALID)
 	{
-		bClrFlag = 0;
-		WriteItemEx(BN11, wPn, MTREXC_CLR_ID, &bClrFlag);	//清除完所有的数据再将标识清零
+		//bClrFlag = 0;
+		//WriteItemEx(BN11, wPn, MTREXC_CLR_ID, &bClrFlag);	//清除完所有的数据再将标识清零
 		return;	//不需要清零
 	}	
 
@@ -3131,9 +3325,9 @@ void ClrMtrExc(int nIndex)
 	}
 
 	//将清零标识清除
-	bClrFlag = 0;
-	WriteItemEx(BN11, wPn, MTREXC_CLR_ID, &bClrFlag);	//清除完所有的数据再将标识清零
-	TrigerSaveBank(BN11, 0, -1);
+	//bClrFlag = 0;
+	//WriteItemEx(BN11, wPn, MTREXC_CLR_ID, &bClrFlag);	//清除完所有的数据再将标识清零
+	//TrigerSaveBank(BN11, 0, -1);
 }
 
 

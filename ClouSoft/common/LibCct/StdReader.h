@@ -177,6 +177,7 @@ typedef struct {
 	bool fIsNeedRtReq;	//是否需要路由主动请求，瑞斯康不需要，鼎信、东软需要
 	BYTE bTermLen;	//终端地址长度
 	BYTE bTermAddr[TSA_LEN];	//终端逻辑地址
+	DWORD dwGetSyncAddrInfoClick;  //收到档案同步信号的时刻
 }TRtStat;
 
 typedef struct {
@@ -193,6 +194,7 @@ typedef struct {
 	BYTE bRdFailTsa[TSA_LEN];	//上次抄读失败的表地址
 	TTime tLastUdpTime;	
 	DWORD dwLstDirClk;			//上次任务直抄的时间
+	DWORD dwBcWaitClick;  // 广播命令后需要等待的时间
 
 	TTaskCfg tCurExeTaskCfg;	//当前正在执行的任务配置单元
 	TransSchSate tTransSchSate;
@@ -223,6 +225,7 @@ private:
 
 	int m_iPn;
 	DWORD m_dwLastWaitSec;//上一次路由回复等待时间,下发广播帧时会用该变量
+	bool m_fIsLastLocalModuleState; //  记录变动前上一次载波模块状态
 public:
 	
 	CStdReader(void);
@@ -240,6 +243,8 @@ public:
 	void  LockReader();
 
 	void  UnLockReader();
+
+	bool ModuleInfoCheck();
 private:
 	void LockDirRd();
 
@@ -251,12 +256,18 @@ private:
 
 	bool GetInitState();
 
+	bool Is3762Afn13Fn01(BYTE *pbData, int iLen);
+	bool IsValid3762Frame(BYTE *pbData, int iLen, TFrm13762 &tmpInfo3762);
+	bool Copy376ToBuf(BYTE *pbData, int iMaxLen, TFrm13762 *pRcv13762);
+
 public:
 	bool Afn01Fn01_HardwareInit();
 
 	bool Afn01Fn02_ParmInit();
 
 	bool Afn01Fn03_DataInit();
+
+	bool Afn03Fn04_ReadMainNodeAddr(BYTE* pbBuf);
 
 	void Afn03Fn10_RptRtRunInfo(BYTE* pbBuf);
 
@@ -307,7 +318,7 @@ public:
 
 	bool Afn12Fn03_RtResume();
 
-	int Afn13Fn01_RtFwd(BYTE *pbTsa, BYTE bTsaLen, const BYTE *pbInBuf, WORD wInLen, TMtrRdCtrl *pMtrRdCtrl, TRdItem *pRdItem, BYTE *pbOutBuf, BYTE bProId, bool fAnaly645data=false, bool fIs645Proxy=false);
+	int Afn13Fn01_RtFwd(BYTE *pbTsa, BYTE bTsaLen, const BYTE *pbInBuf, WORD wInLen, TMtrRdCtrl *pMtrRdCtrl, TRdItem *pRdItem, BYTE *pbOutBuf, BYTE bProId, bool fAnaly645data=false, bool fIs645Proxy=false, BYTE *pbRcvFrm=NULL, WORD *pwRcvLen=0);
 
 	int Afn14Fn1_RtReqRd();
 
@@ -320,7 +331,7 @@ public:
 
 	bool ReadPlcModuleInfo();
 
-	int DirectReadMeterData(WORD wMtrSn, BYTE *pbBuf);
+	int DirectReadMeterData(BYTE *pbTsa, BYTE bTsaLen, BYTE bProId, DWORD dwID, BYTE *pbInBuf, WORD wInLen, BYTE *pbOutBuf, BYTE *pbRcvFrm, WORD *pwRcvLen);
 
 
 //////////////////////////////ProtoProc//////////////////////////////////////
@@ -355,6 +366,7 @@ public:
 	int SaveTransSchMsg(BYTE bSchNo, BYTE *pbMsgBuf, WORD wMsgLen);
 
 	int DoFwdData(BYTE *pbTsa, BYTE bTsaLen, const BYTE *pbReqBuf, WORD wReqLen, WORD wTimeOut, BYTE *pbRespBuf, bool fGetApdu = false);
+	int DoFwdData(BYTE * pbReqBuf, WORD wReqLen, WORD wTimeOut, BYTE * pbRespBuf, int iMaxResLen);
 #if 0
 	
 #if 0
@@ -382,6 +394,7 @@ public:
 
 	void DoOtherTask();
 
+	bool DoReadRptErc();
 	//------------------------------------------------------------
 	bool StartBoardCast(int iMin);
 	
@@ -420,13 +433,14 @@ public:
 	void RunThread();
 	int DL645_9707MakeFrm(BYTE *pbMtr, BYTE bMtrLen, BYTE bProId, BYTE bSubProId, DWORD dwOAD, BYTE *bpBuf);
 	int DL645_EXTMakeFrm(BYTE *pbMtr, BYTE bMtrLen, BYTE bProId, BYTE bSubProId, DWORD dwOAD, BYTE *bpBuf);
-	int GetDL645_9707DataVal(BYTE *psData, BYTE bsLen, BYTE bProId, BYTE bSubProId, DWORD dwOAD, BYTE *pbData, TRdItem *pRdItem=NULL, bool fAnaly645Data=false);
+	int GetDL645_9707DataVal(BYTE *psData, BYTE bsLen, BYTE bProId, BYTE bSubProId, DWORD dwOAD, BYTE *pbData, TRdItem *pRdItem=NULL, WORD wPn=0);
 	int GetDL645_EXTDataVal(BYTE *psData, BYTE bsLen, BYTE bProId, BYTE bSubProId, DWORD dwOAD, BYTE *pbData);
 	int OneAddrBroadcast(BYTE *pbTsa, BYTE *pbInBuf, WORD wInLen, TMtrPara tTMtrPara, TRdItem *pRdItem, BYTE *pbData, BYTE bProId);
 	int Afn13Fn01_Broadcast(BYTE *pbTsa, BYTE bTsaLen, const BYTE *pbInBuf, WORD wInLen, TRdItem *pRdItem, BYTE *pbOutBuf, BYTE bProId, BYTE bWaitTm);
 	int ReadDL645_9707Time(BYTE * pDbTsa, TMtrPara tTMtrPara, TRdItem *pRdItem, BYTE *pbData, BYTE bProId);
 	int MtrBroadcast();
 	int BroadcastAdjustTime();
+	int Broadcast(BYTE *pbTsa, BYTE bTsaLen, BYTE *pbReqBuf, WORD wReqLen, WORD wTimeOut, BYTE *pbRespBuf, BYTE bPro = 0);
 
 	//全事件接口
 	int DL645V07AskItemErc(TRdItem* pRdItem, BYTE* pbAddr, BYTE bAddrLen, BYTE bProId, DWORD dwOAD, BYTE* pbRxBuf);

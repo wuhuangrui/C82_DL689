@@ -192,7 +192,7 @@ void UpdModemInfo(TModemInfo* pModemInfo)
 		p += 8;
 
 		iLen = ReadItemEx(BN0, bChannel, 0x4503, bTmpBuf);
-		if (iLen>0 && memcmp(bTmpBuf, bBuf, iLen))
+		if (iLen>0 && memcmp(bTmpBuf, bBuf, iLen)!=0)
 			WriteItemEx(BN0, bChannel, 0x4503, bBuf);
 
 		TraceBuf(DB_FAPROTO, "UpdModemInfo:", bBuf, p-bBuf);
@@ -205,7 +205,7 @@ void UpdModemInfo(TModemInfo* pModemInfo)
 		memcpy(p, pModemInfo->bCCID, 20);
 
 		iLen = ReadItemEx(BN0, bChannel, 0x4505, bTmpBuf);
-		if (iLen>0 && memcmp(bTmpBuf, bBuf, iLen))
+		if (iLen>0 && memcmp(bTmpBuf, bBuf, iLen)!=0)
 			WriteItemEx(BN0, bChannel, 0x4505, bBuf);
 	}
 }
@@ -220,7 +220,7 @@ void UpdSIMNum(TModemInfo* pModemInfo)
 	ReadItemEx(BANK17, PN0, 0x6010, &bChannel);
 
 	ReadItemEx(BN0, bChannel, 0x4508, bBuf);
-	if (!memcmp(&bBuf[2], pModemInfo->bCNUM, 16))	//相同不刷新
+	if (memcmp(&bBuf[2], pModemInfo->bCNUM, 16) == 0)	//相同不刷新
 		return;
 
 	memset(bBuf, 0, sizeof(bBuf));
@@ -239,7 +239,7 @@ void UpdSIMCIMI(BYTE* pbBuf)
 	ReadItemEx(BANK17, PN0, 0x6010, &bChannel);
 
 	ReadItemEx(BN0, bChannel, 0x4506, bBuf);
-	if (!memcmp(&bBuf[2], pbBuf, 15))	//相同不刷新
+	if (memcmp(&bBuf[2], pbBuf, 15) == 0)	//相同不刷新
 		return;
 
 	memset(bBuf, 0, sizeof(bBuf));

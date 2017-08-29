@@ -214,10 +214,7 @@ public:
 	{
 		return m_iGrp;
 	}
-	BYTE GetTurnsStatus(void)						//获得轮次状态.
-	{
-		return m_bTurnsStatus;
-	}
+	BYTE GetTurnsStatus(void);						//获得轮次状态.
 	
 	bool IfOverLimit(void)							//是否超限.
 	{
@@ -250,6 +247,7 @@ protected:
 	virtual bool GetSysCtrlFlg(int iGrp) = 0;					//获取系统库指定总加组本类控制的状态标志.
 	virtual bool SetSysCtrlFlg(int iGrp, bool fStatus) = 0;		//设置系统库指定总加组本类控制的状态标志.
 	virtual bool RstSysCtrlStatus(int iGrp) = 0;	//复位系统库当前总加组本类控制状态(可能包括轮次状态,投入状态标志,报警状态标志等等).
+	virtual bool SetSysCtrlTurnsStatus(int iGrp, BYTE bTurnsStatus) = 0;			//设定控制轮次输出状态.
 
 	//显示函数；
 	virtual bool IsAlarmStatus() = 0;

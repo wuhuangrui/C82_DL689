@@ -28,6 +28,7 @@ bool CGuarantee::Init(void)
 	ClrCmd();		//清除内存中本类控制的控制命令.
 	RstCtrl();		//复位内存中本类控制状态量.
 
+	m_fInCtrl = false;
 	m_fUnconnect = false;
 
 	return true;
@@ -40,35 +41,38 @@ bool CGuarantee::DoCtrl(void)
 	char cTime[20];
 	BYTE bBuf[1];
 
-	//检测连续无通讯是否超时.
-	ReadItemEx(BN2, PN0, 0x2021, bBuf); //连续无通讯超时后进入保电状态
-	if (bBuf[0]==1 || IsAutoGuaranteePeriod())	//进入保电状态
-	{
-		if (!m_fUnconnect)
-		{
-			SetSysCtrlStatus(AUTO_GUARANTEE);
-			SetValidStatus(true);
-			ClrCmd();	//必须清除内存中的命令备份,以便在通讯恢复后,能够重新扫描系统库命令.
-			m_fUnconnect = true;
-			DTRACE(DB_LOADCTRL, ("CGuarantee::DoCtrl: Long time no communication with the host, Guarantee launch at %s\n", 
-								 TimeToStr(m_tmNow, cTime)));
-		}
-
-		return true;
-	}
-	else
-	{
-		if (m_fUnconnect)
-		{
-			RstSysCtrlStatus();
-			RstCtrl();
-			m_fUnconnect = false;
-			DTRACE(DB_LOADCTRL, ("CGuarantee::DoCtrl: Communication with the host resume, Guarantee quit at %s\n", 
-								 TimeToStr(m_tmNow, cTime)));
-		}
-	}
-
 	DoCmdScan();
+
+	if (!m_fInCtrl)
+	{
+		//检测连续无通讯是否超时.
+		ReadItemEx(BN2, PN0, 0x2021, bBuf); //连续无通讯超时后进入保电状态
+		if (bBuf[0]==1 || IsAutoGuaranteePeriod())	//进入保电状态
+		{
+			if (!m_fUnconnect)
+			{
+				SetSysCtrlStatus(AUTO_GUARANTEE);
+				SetValidStatus(true);
+				ClrCmd();	//必须清除内存中的命令备份,以便在通讯恢复后,能够重新扫描系统库命令.
+				m_fUnconnect = true;
+				DTRACE(DB_LOADCTRL, ("CGuarantee::DoCtrl: Long time no communication with the host, Guarantee launch at %s\n", 
+									 TimeToStr(m_tmNow, cTime)));
+			}
+
+			return true;
+		}
+		else
+		{
+			if (m_fUnconnect)
+			{
+				RstSysCtrlStatus();
+				RstCtrl();
+				m_fUnconnect = false;
+				DTRACE(DB_LOADCTRL, ("CGuarantee::DoCtrl: Communication with the host resume, Guarantee quit at %s\n", 
+									 TimeToStr(m_tmNow, cTime)));
+			}
+		}
+	}
 
 	if (!IsValid())
 	{
@@ -164,6 +168,7 @@ void CGuarantee::DoCmdScan(void)
 		{
 			SetSysCtrlStatus(INPUT_GUARANTEE);
 			SetValidStatus(true);
+			m_fInCtrl = true;
 			DTRACE(DB_LOADCTRL, ("CGuarantee::DoCmdScan: guarantee launch at %s\n",
 								 TimeToStr(m_tmNow, cTime)));
 			//***记录到系统库日志中.
@@ -171,6 +176,7 @@ void CGuarantee::DoCmdScan(void)
 		}
 		else //(NewCmd.bAct == 2)	//新命令是'保电控'解除命令.
 		{
+			m_fInCtrl = false;
 			RstSysCtrlStatus();		//必须在清除系统库命令前,设置系统库'保电控'状态.
 			ClrSysCmd();
 			ClrCmd();

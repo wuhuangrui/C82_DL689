@@ -5,6 +5,7 @@ extern unsigned char iconMsg[32];
 extern unsigned char iconBat[5][32];
 extern unsigned char iconAlarm[32];
 extern unsigned char iconOnline[16];
+extern unsigned char iconOnlineNull[16];
 extern unsigned char iconRssi[5][32];
 extern unsigned char iconSess[6][32];
 extern unsigned char iconSessA[2][32];

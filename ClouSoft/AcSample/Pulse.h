@@ -13,7 +13,6 @@
 #define PULSE_HI_POSE_ID	0x2414	//脉冲正向有功高精度电能ID
 #define PULSE_LO_POSE_ID	0x2419	//脉冲正向有功低精度电能ID
 
-
 #define PULSE_PN_NUM		8		//脉冲计量点个数
 
 #define TICK_BUF_LENGTH 	2000
@@ -149,7 +148,7 @@ class CPulseManager {	//脉冲管理类
 		void CalcPnStatEnergy(WORD wPnIndex, bool fClrDayEnergy, bool fClrMonthEnergy);		//计算/清0某个测量点的统计数据
 		void CheckPulseCfg(WORD wOI);	//检查脉冲配置是否为空，为空时配类型和0个元素
 		void ClrPnStartVal(WORD wBank, WORD wPn, WORD wID);
-		
+
 	private:
 		BYTE m_bYMFlag;			//脉冲占用遥信标志 1：占用， 0：不占用
 		BYTE m_bPulseNum;		//脉冲总路数

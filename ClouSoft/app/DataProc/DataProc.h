@@ -19,7 +19,7 @@
 #include  "DbConst.h"
 
 
-#define BLOCK_ITEMNUM		(RATE_NUM+2)	//带费率数的电能块数据项目数
+#define BLOCK_ITEMNUM		TOTAL_RATE_NUM //(RATE_NUM+2)	//带费率数的电能块数据项目数
 
 #define		INTVCAL		1	//计算间隔
 #define		INTV15M  	2	//15分钟间隔

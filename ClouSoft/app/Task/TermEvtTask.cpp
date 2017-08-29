@@ -461,8 +461,8 @@ const BYTE g_bECtBCfg[] = {
 };
 //0x3202 购电参数设置记录
 const BYTE g_bPChCfg[] = {
-	0x01,0x01,
-	0x51,0x81,0x0C,0x22,0x01,
+	0x01,0x00,
+	//0x51,0x81,0x0C,0x22,0x01,
 };
 //0x3203 电控告警事件记录
 const BYTE g_bECtCfg[] = {
@@ -1377,6 +1377,10 @@ bool IsEvtBeforeOAD(DWORD dwOAD)
 {
 	BYTE bFeat;
 	bFeat = (BYTE)((dwOAD&~OAD_FEAT_MASK) >> OAD_FEAT_BIT_OFFSET);
+
+	if ((bFeat!=EVT_S_BF_HP) && (bFeat!=EVT_S_AFT_HP) && (bFeat!=EVT_S_BF_END)  &&  (bFeat!=EVT_S_AFT_END))
+		bFeat = EVT_S_AFT_HP;
+
 	if ((bFeat==EVT_S_BF_HP) ||(bFeat==EVT_S_BF_END))
 		return true;
 	else
@@ -1391,6 +1395,10 @@ bool IsOADNeedAcqData(DWORD dwOAD, BYTE bState)
 {
 	BYTE bFeat;
 	bFeat = (BYTE)((dwOAD&~OAD_FEAT_MASK) >> OAD_FEAT_BIT_OFFSET);
+
+	if ((bFeat!=EVT_S_BF_HP) && (bFeat!=EVT_S_AFT_HP) && (bFeat!=EVT_S_BF_END)  &&  (bFeat!=EVT_S_AFT_END))
+		bFeat = EVT_S_AFT_HP;
+
 	if ((bState==bFeat) ||((bState!=EVT_S_BF_HP)&&(bFeat==EVT_S_BF_END)))	//状态一致，或者事件发生后读结束前EVT_S_BF_END		
 		return true;
 	else
@@ -1405,6 +1413,10 @@ bool IsOADNeedSaveData(DWORD dwOAD, BYTE bState)
 {
 	BYTE bFeat;
 	bFeat = (BYTE)((dwOAD&~OAD_FEAT_MASK) >> OAD_FEAT_BIT_OFFSET);
+
+	if ((bFeat!=EVT_S_BF_HP) && (bFeat!=EVT_S_AFT_HP) && (bFeat!=EVT_S_BF_END)  &&  (bFeat!=EVT_S_AFT_END))
+		bFeat = EVT_S_AFT_HP;
+
 	//事件发生后，存储发生前和发生后的数据
 	//事件结束后，存储结束前和结束后的数据
 	if (((bState==EVT_S_AFT_HP) && ((bFeat==EVT_S_BF_HP)||(bFeat==EVT_S_AFT_HP)))
@@ -6981,7 +6993,7 @@ bool SendEvtMsg(DWORD dwCnOAD, DWORD dwEvtOAD,WORD wRecIdx, BYTE bStage, BYTE bS
 	tEvtMsg.wRecIdx = wRecIdx;
 	tEvtMsg.bStage = bStage;
 
-	if (bStage == EVT_STAGE_TASK)
+	if (bStage==EVT_STAGE_TASK || (bStage==EVT_STAGE_ERCRPT && (dwEvtOAD&0xFF000000)==0x30000000))
 	{
 		tEvtMsg.bSchNo = bSchNo;
 		tEvtMsg.wIdex = wIdex;
@@ -6992,12 +7004,30 @@ bool SendEvtMsg(DWORD dwCnOAD, DWORD dwEvtOAD,WORD wRecIdx, BYTE bStage, BYTE bS
 		*pbPtr++ = 0; //OAD
 		pbPtr += OoDWordToOad(0x202A0200, pbPtr);
 		*pbPtr++ = 1; //ROAD
-		memcpy(pbPtr, pbROAD, wRoadLen);
-		pbPtr += wRoadLen;
+		if (sizeof(tEvtMsg.bRcsd) - (pbPtr - tEvtMsg.bRcsd) >= wRoadLen)
+		{
+			memcpy(pbPtr, pbROAD, wRoadLen);
+			pbPtr += wRoadLen;
+		}
 		tEvtMsg.wRcsdLen = pbPtr - tEvtMsg.bRcsd;
 	}
-	//else
-	//	AddEvtOad(tEvtMsg.dwOAD, 0);	//新生成还未上报
+	else if (bStage == EVT_STAGE_ERCRPT)
+	{
+		tEvtMsg.bSchNo = bSchNo;
+		tEvtMsg.wIdex = wIdex;
+		BYTE* pbPtr = tEvtMsg.bRcsd;
+		*pbPtr++ = DT_OAD;
+		pbPtr += OoDWordToOad(dwEvtOAD, pbPtr);
+		*pbPtr++ = DT_OCT_STR;
+		pbPtr += EncodeLength(wRoadLen, pbPtr);
+		if (sizeof(tEvtMsg.bRcsd) - (pbPtr - tEvtMsg.bRcsd) >= wRoadLen)
+		{
+			memcpy(pbPtr, pbROAD, wRoadLen);
+			pbPtr += wRoadLen;
+		}
+
+		tEvtMsg.wRcsdLen = pbPtr - tEvtMsg.bRcsd;
+	}
 
 	if ((dwCnOAD&0xfff00000) == 0x45000000)	//GPRS通道
 	{
@@ -7044,6 +7074,12 @@ int GetEvtRec(TEvtMsg* pEvtMsg, BYTE* pbRecBuf, WORD wBufSize, BYTE bType)
 		memset(szTableName, 0, sizeof(szTableName));
 		GetEvtTaskTableName(pEvtMsg->bSchNo, pEvtMsg->wIdex, szTableName);
 		pszFileName = szTableName;
+	}
+	else if (pEvtMsg->bStage == EVT_STAGE_ERCRPT)
+	{
+		memcpy(pbRecBuf, pEvtMsg->bRcsd, pEvtMsg->wRcsdLen);
+
+		return pEvtMsg->wRcsdLen;
 	}
 	else
 	{
@@ -7299,16 +7335,20 @@ int DoYXChgJudge(struct TEvtCtrl* pEvtCtrl)
 		return 0;
 	}
 
-//#if FA_TYPE == FA_TYPE_K32
+#ifdef SYS_LINUX
+	bDoorStat = GetDoorStatus(); //门节点分状态为高电平
+#endif
+
 	int nRead = ReadItemEx(BN2, PN0, 0x1100, &bStaByte);
     if (nRead <= 0)
     	return -1;
 
-	#ifdef VER_ZJ
-	bStaByte <<= 7;
-	#endif
+	if(bDoorStat > 0)	//增加门节点状态量变位事件
+		bDoorStat = 0x00;
+	else
+		bDoorStat = 0x10;
 
-
+	bStaByte = (bStaByte&0xef) | bDoorStat;
     	
     //bStaByte >>= 4; //取遥信状态（高四位）；
 
@@ -7323,12 +7363,26 @@ int DoYXChgJudge(struct TEvtCtrl* pEvtCtrl)
 	bChgByte = bStaByte ^ pCtrl->bStaByte;
 	pCtrl->bStaByte = bStaByte;
 
-    if (bChgByte != 0)
-       pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
+	if (bChgByte != 0)	//状态改变产生变位事件
+	{ 
+		if (pEvtCtrl->pEvtBase[0].bJudgeState != EVT_JS_HP)		//产生事件
+		{
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_HP;
+			pEvtCtrl->bDelaySec = 2;
+			DTRACE(DB_TASK, ("DoYXChgJudge: YX Power On Init, bJudgeState=%d, bState=%d, Click=%x.\r\n", pEvtCtrl->pEvtBase[0].bJudgeState, pEvtCtrl->pEvtBase[0].bState, GetClick()));	
+		}
+	}
 	else
-		pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
-
-    return pEvtCtrl->pEvtBase[0].bJudgeState;
+	{	
+		if (pEvtCtrl->pEvtBase[0].bState == EVT_S_AFT_HP)	//发生事件还没有记录保留原bJudgeState状态 
+		{
+			pEvtCtrl->pEvtBase[0].bJudgeState = EVT_JS_END;
+			pEvtCtrl->bDelaySec = 0;	
+			DTRACE(DB_TASK, ("DoYXChgJudge: YX Power On Init, bJudgeState=%d, bState=%d, Click=%x.\r\n", pEvtCtrl->pEvtBase[0].bJudgeState, pEvtCtrl->pEvtBase[0].bState, GetClick()));
+		}
+	}
+	//DTRACE(DB_TASK, ("DoYXChgJudge: YX Power On Init, bJudgeState=%d, bState=%d, Click=%x.\r\n", pEvtCtrl->pEvtBase[0].bJudgeState, pEvtCtrl->pEvtBase[0].bState, GetClick()));
+	return pEvtCtrl->pEvtBase[0].bJudgeState;
 }
 
 
@@ -7980,7 +8034,7 @@ int FwdRead69845PwrEvt(TMtrPara* pMtrPara, BYTE* pbBuf)
 		pMtrPara->CommPara.dwBaudRate = CBR_2400;
 
 	wAPDULen = MakeEvtAPDUFrm(bCmdFrm+bFrmHead);	//组抄读698.45电表停上电事件帧
-	wTxLen = DL69845MakeFrm(pMtrPara->wPn, pMtrPara->bAddr, bCmdFrm, bCmdFrm+bFrmHead, wAPDULen);
+	wTxLen = DL69845MakeFrm(pMtrPara->wPn, pMtrPara->bAddr, bCmdFrm, bCmdFrm+bFrmHead, wAPDULen, false);
 
 	for (i=0; i<3; i++)
 	{
@@ -8403,6 +8457,7 @@ int PowOffJudge(struct TEvtCtrl* pEvtCtrl)
 		else if(GetClick() - pCtrl->wLastPwrOffClick >= 5)////持续停电5秒以上才报
 		{
 			pCtrl->fPowerOff = true;
+			WriteItemEx(BN2, PN0, 0x210e, (BYTE* )&fPowerOff);
 		}
 		else
 		{

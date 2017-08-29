@@ -32,6 +32,7 @@ BYTE GetRdMtrState(BYTE bThrId);
 
 int DirAskMtrData(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bAddrLen, BYTE* pApdu, WORD wApduLen, WORD wTimeOut, BYTE* pbData);
 int MtrDoFwd(TCommPara CommPara, BYTE* pTx, WORD wTxLen, BYTE* pbData, WORD wBufSize, WORD wFrmTimeOut, WORD wByteTimeOut);
+int MtrDoFwd376(BYTE* pTx, WORD wTxLen, BYTE* pbData, WORD wBufSize, WORD wFrmTimeOut, WORD wByteTimeOut);
 
 //////////////////////////////////////////////////////////////////////////////////
 //抄表ID搜索相关函数

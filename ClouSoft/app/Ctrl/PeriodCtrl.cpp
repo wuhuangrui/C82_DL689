@@ -259,6 +259,9 @@ bool CPeriodCtrl::GetSysCmd(int iGrp)
 	if (m_NewCmd.bAct!=1 && m_NewCmd.bAct!=2)
 		return false;
 
+	if (m_NewCmd.bAct==1 && IsAllAByte(&bCmd[1], 0, sizeof(bCmd)-1))
+		m_NewCmd.bFlgs = 0xff; //控制方法6投入默认全部时段投入
+
 	if (m_NewCmd.dwTime == 0) //终端时间往前调了,系统库中的命令时间被清掉了
 	{
 		if (CurCmdTime()!=0 && iGrp==m_iGrp) //旧的命令已经被处理,只是系统库中的命令时间被清掉了
@@ -292,13 +295,35 @@ bool CPeriodCtrl::ClrSysCmd(int iGrp)
 	return true;
 }
 
+//描述: 设置系统库本类控制轮次输出状态.
+//参数:@iGrp	当前控制的总加组.
+//		@bTurnsStatus	轮次状态
+//返回: 如果设置成功返回 true,否则返回 false.
+bool CPeriodCtrl::SetSysCtrlTurnsStatus(int iGrp, BYTE bTurnsStatus)
+{
+	BYTE bBuf[10];
+	memset(bBuf, 0, sizeof(bBuf));
+
+	BYTE *pbtr = bBuf;
+	*pbtr++ = DT_STRUCT;
+	*pbtr++ = 2;					//结构成员个数
+	*pbtr++ = DT_OI;				//总加组对象
+	pbtr += OoWordToOi(0x2300+iGrp, pbtr);
+	*pbtr++ = DT_BIT_STR;
+	*pbtr++ = 8;
+	*pbtr++ = bTurnsStatus;
+	WriteItemEx(BN0, iGrp, 0x8231, bBuf);
+
+	return true;
+}
+
 //描述: 获取指定时间所处的时段.
 //参数:@bTime	要获取的总加组.
 //返回: 所处时段有功控投入,返回时段号,否则返回 -1.
 int CPeriodCtrl::GetTimePeriod(TTime Time)
 {
 	BYTE b = (BYTE)Time.nHour*2 + (BYTE)(Time.nMinute>=30 ? 1 : 0);  //把一天内的时间转换成以半小时做单位
-	BYTE b1 = b / 4;	//本时段位于的字节偏移
+	BYTE b1 = (b / 4)*2 + 3;	//本时段位于的字节偏移
 	BYTE b2 = b % 4;	//本时段位于字节内的偏移
 
 	BYTE bBuf[30];
@@ -364,16 +389,16 @@ bool CPeriodCtrl::GetPeriodLimit(int iGrp, int iScheme, int iPeriodIdx, int64& r
 	//2008-04-10 因为该参数是变长的,需进一步确认某个方案参数的起始地址.
 	int i;
 
-	if ((i=GetIdxOfAll1InPst(bBuf[7]&0x07, iScheme)) < 0)	//只用0,1,2三位.
+	if ((i=GetIdxOfAll1InPst(bBuf[7]&0xe0, iScheme)) < 0)	//只用5,6,7三位.
 		return false;	//没有对应的方案定值,返回 false.
 
 	BYTE* pb = &bBuf[8];
 
-	const ToaMap *p = GetOIMap(0x81030300);
+	const ToaMap *p = GetOIMap(0x81030200);
 	if (p ==NULL)
 		return false;
 
-	if ((pb=OoGetField(bBuf, p->pFmt, p->wFmtLen, 1+i, &wLen, &bType)) == NULL)//取得对应方案的功率定值
+	if ((pb=OoGetField(bBuf, p->pFmt+2, p->wFmtLen-2, 2+i, &wLen, &bType)) == NULL)//取得对应方案的功率定值
 	{
 		return false;
 	}
@@ -382,7 +407,7 @@ bool CPeriodCtrl::GetPeriodLimit(int iGrp, int iScheme, int iPeriodIdx, int64& r
 	//	return false;	//相应的时段没有功控定值,返回 false.
 
 	riPwrLimit = OoLong64ToInt64(pb+6+iPeriodIdx*9);				//获取相应的功控定值.
-	if ((pb=OoGetField(bBuf, p->pFmt, p->wFmtLen, 5, &wLen, &bType)) == NULL)//取得'时段控'定值浮动系数.
+	if ((pb=OoGetField(bBuf, p->pFmt+2, p->wFmtLen-2, 5, &wLen, &bType)) == NULL)//取得'时段控'定值浮动系数.
 	{
 		DTRACE(DB_LOADCTRL, ("CPeriodCtrl::GetPeriodLimit: There is something wrong when call OoGetField() !\n"));
 		return false;
@@ -406,17 +431,23 @@ bool CPeriodCtrl::SetSysCtrlFlg(int iGrp, bool fStatus)
 {
 	if (fStatus)
 	{
-		BYTE bBuf[1+1+6*8];
+		TGrpCtrlSetSta tGrpCtrlSetSta;
+		memset(&tGrpCtrlSetSta, 0, sizeof(tGrpCtrlSetSta));
 
-		if (ReadItemEx(BN0, PN0, 0x104f, bBuf) <=0)	//读"终端控制设置状态"ID
+		if (!GetGrpCtrlSetSta(iGrp, &tGrpCtrlSetSta))
 		{
-			DTRACE(DB_LOADCTRL, ("CPeriodCtrl::SetSysCtrlFlg: There is something wrong when call ReadItemEx() !\n"));
+			DTRACE(DB_LOADCTRL, ("CPeriodCtrl::SetSysCtrlFlg: There is something wrong when call GetGrpCtrlSetSta() !\n"));
 			return false;
 		}
-		bBuf[1+1+6*(iGrp-GRP_START_PN)+0] = m_CtrlCmd.bScheme;	//写'功控定值方案号'.
-		bBuf[1+1+6*(iGrp-GRP_START_PN)+1] = m_CtrlCmd.bFlgs;	//写'功控时段有效标志位'.
 
-		WriteItemEx(BN0, PN0, 0x104f, bBuf);					//写"终端控制设置状态"ID
+		tGrpCtrlSetSta.bSchemeNum = m_CtrlCmd.bScheme;
+		tGrpCtrlSetSta.bValidFlag = m_CtrlCmd.bFlgs;
+
+		if (!SetGrpCtrlSetSta(iGrp, &tGrpCtrlSetSta))
+		{
+			DTRACE(DB_LOADCTRL, ("CPeriodCtrl::SetSysCtrlFlg: There is something wrong when call SetGrpCurCtrlSta() !\n"));
+			return false;
+		}
 
 		return CGrpCtrl::ChgSysCtrlFlgs(iGrp, 0x01, fStatus, PWR_CTL);//时段控使用0位.
 	}

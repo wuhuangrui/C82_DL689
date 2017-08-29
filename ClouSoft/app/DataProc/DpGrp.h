@@ -23,7 +23,7 @@ typedef struct{
 }TGrpFrzStartData;
 
 typedef struct{
-	BYTE bPn;		//测量点号	
+	WORD wPn;		//测量点号	
 	BYTE bProp;		//测量点号类型	
 	BYTE bOp;		//运算符
 	BYTE bDir;		//方向符
@@ -89,6 +89,7 @@ private:
 	TTime m_tmLast;	//用于记录判断准点的时间切换
 
 	BYTE  m_bMtrNum; //测量点总数
+	BYTE  m_bPwrSlideMin; //平均功率滑差周期
 
 	//参数信息
 	int m_iCT[PN_NUM];			//总加组的相关测量点的CT参数,对应总加组的测量点配置序号而不是测量点号
@@ -127,6 +128,8 @@ private:
 	DWORD m_dwMonStartEnSec[2];	//总加组月起点示值的更新时标(含有功、无功)
 };
 
+void SetMtrParaChg(bool fFlg);
+bool IsMtrParaChg();
 extern void SetGrpParaChg(bool fFlg);
 extern bool IsGrpParaChg();
 extern void SetCtrlGrpParaChg(bool fFlg);

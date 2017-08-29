@@ -1851,15 +1851,7 @@
 				Name="LibDb"
 				>
 				<File
-					RelativePath="..\..\ClouSoft\common\LibDb\DataManager.cpp"
-					>
-				</File>
-				<File
 					RelativePath="..\..\ClouSoft\common\LibDb\DataManager.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\ClouSoft\common\LibDb\LibDbAPI.cpp"
 					>
 				</File>
 				<File

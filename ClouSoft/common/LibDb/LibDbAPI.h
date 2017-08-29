@@ -18,7 +18,7 @@
 
 
 TItemDesc* BinarySearchItem(TItemDesc* pItemDesc, WORD num, WORD wID);
-int BinarySearchIndex(TItemDesc* pItemDesc, DWORD num, WORD wID);
+int BinarySearchIndex(TItemDesc* pItemDesc, WORD num, WORD wID);
 bool InitItemDesc(TBankCtrl* pBankCtrl);
 int ReadItem(WORD wImg, WORD wPn, WORD wID, TItemAcess& rItemAcess, 
 			 DWORD dwStartTime, DWORD dwEndTime, TBankCtrl* pBankCtrl);

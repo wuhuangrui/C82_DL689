@@ -181,7 +181,8 @@
 #define INFO_MTR_ALL_CLEAR					131	//电表档案更新
 
 #define INFO_UPD_MTR_CTRL					132	//更新抄表控制结构
-#define INFO_END	   						133//空消息,作为所有消息的结束
+#define INFO_MTR_EXC_MEM					133	//抄表事件动态内存分配
+#define INFO_END	   						134//空消息,作为所有消息的结束
 									//把本通知恒定作为最后一个
 
 #define INFO_NUM	   	    		(INFO_END+1)

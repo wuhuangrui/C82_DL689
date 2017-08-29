@@ -44,6 +44,7 @@ CStdReader::CStdReader()
 	GetCurTime(&m_TRunStateInfo.tLastUdpTime);	
 	
 	m_fRxComlpete = false;
+    m_fIsLastLocalModuleState = true;
 
 	m_iPn = -1;
 	m_dwLastWaitSec = 0;
@@ -60,9 +61,145 @@ void CStdReader::InitRcv()
 	m_LoopBuf.Init(1024);
 }
 
+bool CStdReader::IsValid3762Frame(BYTE *pbData, int iLen, TFrm13762 &tmpInfo3762)
+{
+	BYTE *pbPtr = pbData;
+    WORD wOffSet = 0;  // 帧头0x68之前的字符个数
+    bool fRxComplete = false;
+
+
+	memset((BYTE*)&tmpInfo3762, 0, sizeof(tmpInfo3762));
+	if (iLen > 0)
+	{
+		BYTE bStep = 0;
+		for (int i = 0; i < iLen; i++)
+		{
+			BYTE b = *pbPtr;
+			switch(bStep)
+			{
+				case 0:	//0x68 
+					if (b == 0x68)
+					{
+						tmpInfo3762.bHead = 0x68;
+						bStep = 1;
+                        wOffSet = i;
+					}
+					pbPtr++;
+					break;
+				case 1:	//Len
+					tmpInfo3762.wDataLen = ByteToWord(pbPtr);	pbPtr += 2;
+					bStep = 2;
+					if (tmpInfo3762.wDataLen != iLen-wOffSet)
+						goto IsValid3762Frame_end;
+					break;
+				case 2:	//Ctrl
+					tmpInfo3762.bCtrl = b;	pbPtr++;
+					bStep = 3;
+					break;
+				case 3:	//R Addr
+					memcpy(tmpInfo3762.bR, pbPtr, 6);	pbPtr += 6;	i += 6;
+					if (tmpInfo3762.bR[0] & 0x04)	//通信模块标识,为0时，无地址域A
+					{
+						BYTE bRelayNum = (tmpInfo3762.bR[0]>>4);
+
+						memcpy(tmpInfo3762.bSrcAddr, pbPtr, 6); 
+						pbPtr += 6; i += 6;
+
+						for (BYTE j = 0; j < bRelayNum; j++)
+						{
+							memcpy(&tmpInfo3762.bRelayAddr[j*6], pbPtr, 6); 
+							pbPtr += 6; i += 6;
+						}
+						memcpy(tmpInfo3762.bDesAddr, pbPtr, 6); 
+						pbPtr += 6; i += 6;
+					}
+					bStep = 4;
+				case 4:	//AFN	Dt
+					b=*pbPtr++; 
+					tmpInfo3762.bAfn = b;	i++;
+					b=*pbPtr++;
+					tmpInfo3762.bDt[0] = b;	i++;
+					b=*pbPtr++;
+					tmpInfo3762.bDt[1] = b;	i++;
+					bStep = 5;
+					break;
+				case 5:	//user data
+					if (tmpInfo3762.wDataLen > i+2)
+					{
+					    //-2 : CS 0x16 数据长度要减去帧头0x68之前的字符个数
+						tmpInfo3762.wDtLen = tmpInfo3762.wDataLen-(i-wOffSet)-2;	
+						memcpy(tmpInfo3762.bDtBuf, pbPtr, tmpInfo3762.wDtLen);
+					}
+					else
+					{
+						tmpInfo3762.wDtLen  = 0;	
+					}
+
+					pbPtr += tmpInfo3762.wDtLen;	
+					i += tmpInfo3762.wDtLen;
+					b = *pbPtr++;
+					bStep = 6;
+				case 6:
+					tmpInfo3762.bCs = b;	
+					bStep = 7;
+					break;
+				default:
+					if (b == 0x16)
+					{
+						BYTE bBuf[512] = {0};
+						WORD wLen;
+
+						tmpInfo3762.bEnd = 0x16;
+						wLen = Pro1376_2ToBuf((TFrm13762*)&tmpInfo3762, bBuf);
+						if (CheckCS(bBuf+3, wLen-5) == tmpInfo3762.bCs)
+						{
+							fRxComplete = true;
+						}
+					}
+			}
+		}
+	}
+
+IsValid3762Frame_end:
+
+	return fRxComplete;
+}
+
+bool CStdReader::Is3762Afn13Fn01(BYTE *pbData, int iLen)
+{
+	TFrm13762 tmp13762;
+	bool fRet = false;
+	if (IsValid3762Frame(pbData, iLen, tmp13762) == true)
+	{
+		if (tmp13762.bAfn == AFN_RTFWD && DtToFn(tmp13762.bDt)==FN(1))
+			fRet = true;
+	}
+
+	return fRet;
+}
+
+bool CStdReader::ModuleInfoCheck()
+{
+    if(GetPlcStatus() != PLC_MODULE_EXIST) 
+    {   
+        return false;
+    }
+
+#ifndef SYS_WIN  //VC调试直接查吧
+    ResetPlc();
+    RxHandleFrm(60); // 等待模块上报
+    GetInfo(INFO_PLC_MOD_CHANGED);  //  因是集中器复位模块，避免错误状态
+#endif
+
+    if(!m_TRtStat.fGetPlcInfo)
+    {
+        ReadPlcModuleInfo();		
+    } 
+}
+
 void CStdReader::InitPhyPort()
 {
-	BOOL fOpenOK = m_Comm.Open(COMM_CCT_PLC, CBR_9600, 8, ONESTOPBIT, EVENPARITY);
+	bool fOpenOK = m_Comm.Open(COMM_CCT_PLC, CBR_9600, 8, ONESTOPBIT, EVENPARITY);
 	if (!fOpenOK)
 		DTRACE(DB_CCT, ("CStdReader::Init fail to open COMM%d for StdReader.\n", COMM_CCT_PLC));
 	else
@@ -89,6 +226,7 @@ void CStdReader::LockDirRd()
 	//获取端口权限
 	m_TRunStateInfo.fDirRdFlg = true;
 	LockReader();
+    m_TRunStateInfo.dwLstDirClk = GetClick();
 	if (!m_TRunStateInfo.fRtPause)
 	{
 		m_TRunStateInfo.fRtPause = true;
@@ -178,6 +316,35 @@ bool CStdReader::Afn01Fn03_DataInit()
 	return InitRouter(FN(3));
 }
 
+//描述:	读主节点
+bool CStdReader::Afn03Fn04_ReadMainNodeAddr(BYTE* pbBuf)
+{
+    BYTE bCtrl;
+    BYTE bR[6] = {0}; 
+    BYTE bTxBuf[256] = {0};
+    int iTxLen;
+    
+    bCtrl = 0x41;
+    iTxLen = Make1376_2Frm(NULL, 0, bCtrl, bR, AFN_QRYDATA, FN(4), NULL, 0, bTxBuf);
+    ClearRcv(); 
+    
+    for (BYTE bTryCnt=0; bTryCnt<1; bTryCnt++)
+    {
+        if (Send(bTxBuf, iTxLen) == iTxLen)
+        {
+            if (RxHandleFrm(6))
+            {
+                if (m_TRcv13762.bAfn==AFN_QRYDATA && DtToFn(m_TRcv13762.bDt)==FN(4))
+                {
+                    memcpy(pbBuf, m_TRcv13762.bDtBuf, 6);
+                    return true;
+                }
+            }
+        }
+    }    
+    return false;
+}
+
 //描述：对路由上报的模块信息处理
 void  CStdReader::Afn03Fn10_RptRtRunInfo(BYTE* pbBuf)
 {
@@ -251,7 +418,6 @@ void  CStdReader::Afn03Fn10_RptRtRunInfo(BYTE* pbBuf)
 		m_RtRunMdInfo.bTrySendCnt = 1;
 		m_RtRunMdInfo.bModule = AR_LNK_RSC;
 		m_pszName = "RSC";
-		m_TRtStat.fSyncAddr = true;
 		m_TRtStat.fIsNeedRtReq = false;
 	}
 	else if (pbBuf[31]=='S' && pbBuf[30]=='L')
@@ -264,7 +430,7 @@ void  CStdReader::Afn03Fn10_RptRtRunInfo(BYTE* pbBuf)
 	else if (pbBuf[31]=='D' && pbBuf[30]=='G')
 	{
 		m_RtRunMdInfo.bTrySendCnt = 3;
-		m_RtRunMdInfo.bModule = AR_LNK_LS;
+		m_RtRunMdInfo.bModule = AR_LNK_SGD;
 		m_pszName = "SGD";
 		m_TRtStat.fIsNeedRtReq = true;
 	}
@@ -792,6 +958,11 @@ bool CStdReader::RtCtrl(BYTE bFn)
 	BYTE bTxBuf[64] = {0};
 	int iTxLen;
 	
+    if(GetPlcStatus() != PLC_MODULE_EXIST) 
+    {   
+        DTRACE(DB_CCT, ("AFN12-F%d: localModule abnormal.\n", bFn));
+        return false;
+    }
 
 	if (bFn == FN(1))
 	{
@@ -868,7 +1039,7 @@ bool CStdReader::Afn12Fn03_RtResume()
 //		@pbOutBuf 为F1的抄读内容
 //		@bProId 为协议类型
 //返回：返回数据长度
-int CStdReader::Afn13Fn01_RtFwd(BYTE *pbTsa, BYTE bTsaLen, const BYTE *pbInBuf, WORD wInLen, TMtrRdCtrl *pMtrRdCtrl, TRdItem *pRdItem, BYTE *pbOutBuf, BYTE bProId, bool fAnaly645data, bool fIs645Proxy)
+int CStdReader::Afn13Fn01_RtFwd(BYTE *pbTsa, BYTE bTsaLen, const BYTE *pbInBuf, WORD wInLen, TMtrRdCtrl *pMtrRdCtrl, TRdItem *pRdItem, BYTE *pbOutBuf, BYTE bProId, bool fAnaly645data, bool fIs645Proxy, BYTE *pbRcvFrm, WORD *pwRcvLen)
 {
 	BYTE bCtrl;
 	//BYTE bRevTsa[TSA_LEN];
@@ -941,6 +1112,24 @@ GOTO_RxHandleFrm:
 							}
 							else if (bProId == PROTOCOLNO_DLT645 || bProId == PROTOCOLNO_DLT645_V07)
 							{
+								if (pbRcvFrm != NULL)
+								{
+									for (BYTE i=0; i<wRcvFrmLen; i++)
+									{
+										if (pData[0]==0x68 && pData[7]==0x68 && pData[wRcvFrmLen-i-1]==0x16)
+										{
+											memcpy(pbRcvFrm, pData, wRcvFrmLen-i);
+											*pwRcvLen = wRcvFrmLen-i;
+											break;
+										}
+										else
+										{
+											*pwRcvLen = 0;
+										}
+										pData++;
+									}
+								}
+
 								if (!fAnaly645data)
 								{
 									DWORD dwOAD;
@@ -949,12 +1138,15 @@ GOTO_RxHandleFrm:
 										dwOAD = pRdItem->dwOAD;
 									else
 										dwOAD = OoOadToDWord(&pRdItem->bRCSD[1+pRdItem->wRcsdIdx*5+1]);
-									iRet = GetDL645_9707DataVal(pData, wRcvFrmLen, bProId, 0, dwOAD, pbOutBuf, pRdItem);
+									TOobMtrInfo tTMtrInfo;
+									GetMeterInfo(pbTsa, bTsaLen, &tTMtrInfo);
+									iRet = GetDL645_9707DataVal(pData, wRcvFrmLen, bProId, 0, dwOAD, pbOutBuf, pRdItem, tTMtrInfo.wPn);
 									if (iRet < 0)
 										goto RET_RTFWD;
 								}
 								else
 								{
+									pData = m_TRcv13762.bDtBuf;
 									for (BYTE i=0; i<wRcvFrmLen; i++)
 									{
 										if (pData[0]==0x68 && pData[7]==0x68 && pData[wRcvFrmLen-i-1]==0x16)
@@ -1222,16 +1414,47 @@ bool CStdReader::ReadPlcModuleInfo()
 }
 
 //描述：直接抄读数据
-//参数：@wMtrSn
-//		@pbBuf 为array CSD,array ROAD
-int CStdReader::DirectReadMeterData(WORD wMtrSn, BYTE *pbBuf)
+//参数：@pbTsa 表地址
+//		@bTsaLen 表地址长度
+//		@bProId 协议类型
+//		@dwID 协议ID
+//		@pbInBuf 组帧数据内容
+//		@wInLen 组帧数据内容长度
+//		@pbOutBuf 输出数据内容
+//		@pbRcvFrm 接收的完整645报文
+//		@pwRcvLen 接收的完整645报文长度
+//返回：输出数据内容长度 >2有实际数据
+int CStdReader::DirectReadMeterData(BYTE *pbTsa, BYTE bTsaLen, BYTE bProId, DWORD dwID, BYTE *pbInBuf, WORD wInLen, BYTE *pbOutBuf, BYTE *pbRcvFrm, WORD *pwRcvLen)
 {
-	wMtrSn;
-	pbBuf;
-	return -1;
+	TRdItem tRdItem;
+	BYTE bMtrAddr[17];
+	BYTE bBuf[256], bData[20];
+
+	memcpy(bMtrAddr, pbTsa, bTsaLen);
+	EncodeRouterMtrAddr(bMtrAddr, bTsaLen);
+
+	bBuf[0] = PRO_TYPE_TRANS;
+	bBuf[1] = 0x00;	//通信延时相关标识
+	bBuf[2] = 0x00;	//附属相关延时标识
+
+	if (dwID == 0x04001503)
+	{
+		memset(bData, 0, sizeof(bData));
+		bData[0] = 2;		//PA
+		bData[4] = 0x78;	//C0
+		bData[5] = 0x56;	//C1
+		bData[6] = 0x34;	//C2
+		bData[7] = 0x12;	//C3
+		memcpy(bData+8, pbInBuf, 12);
+		bBuf[3] = Make645WriteItemFrm(CCT_MTRPRO_07, bMtrAddr, dwID, &bBuf[4], bData, sizeof(bData));
+	}
+	else
+	{
+		bBuf[3] = Make645AskItemFrm(bProId, bMtrAddr, dwID, &bBuf[4]);
+	}
+
+	return Afn13Fn01_RtFwd(pbTsa, bTsaLen, bBuf, bBuf[3]+4, NULL, &tRdItem, pbOutBuf, bProId, true, false, pbRcvFrm, pwRcvLen);
 }
-
-
 
 int CStdReader::Set_OAD_to_645_meter(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pApdu, WORD wApduLen, WORD wTimeOut, BYTE* pbData)
 {
@@ -1767,13 +1990,24 @@ int CStdReader::Read_RecordData_from_645_meter(BYTE bType, BYTE bChoice, BYTE* b
 	pbData += 4;
 
 	//RSD
-	BYTE bRsdLen = ScanRSD(pApdu, false);
-	pApdu += bRsdLen;
+	int iRsdLen = ScanRSD(pApdu, false);
+	if (iRsdLen >= 0)
+		pApdu += iRsdLen;
+	else
+		return -1;
 
 	//RCSD
-	BYTE bRcsdLen = ScanRCSD(pApdu, false);
-	memcpy(pbData, pApdu, bRcsdLen);
-	pbData += bRcsdLen;
+	int iRcsdLen = ScanRCSD(pApdu, false);
+	if (iRcsdLen >= 0)
+	{
+		memcpy(pbData, pApdu, iRcsdLen);
+		pbData += iRcsdLen;
+	}
+	else
+	{
+		return -1;
+	}
+
 	bRcsdNum = *pApdu++;
 
 	BYTE *pRespDataState = pbData;	//记录数据+M条记录 = 2 BYTE
@@ -2014,13 +2248,17 @@ int CStdReader::DirAskProxy(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, 
 				pbData += 4;
 
 				//RSD
-				BYTE bRsdLen = ScanRSD(pApdu, false);
-				pApdu += bRsdLen;
+				int iRsdLen = ScanRSD(pApdu, false);
+				if (iRsdLen >= 0)
+					pApdu += bRsdLen;
 
 				//RCSD
-				BYTE bRcsdLen = ScanRCSD(pApdu, false);
-				memcpy(pbData, pApdu, bRcsdLen);
-				pbData += bRcsdLen;
+				int iRcsdLen = ScanRCSD(pApdu, false);
+				if (iRcsdLen >= 0)
+				{
+					memcpy(pbData, pApdu, bRcsdLen);
+					pbData += bRcsdLen;
+				}
 				bRcsdNum = *pApdu++;
 
 				BYTE *pRespDataState = pbData;	//记录数据+M条记录 = 2 BYTE
@@ -2469,7 +2707,8 @@ int CStdReader::Make1376_2Frm(BYTE *pbTsa, BYTE bTsaLen, BYTE bCtrl, BYTE *pbR, 
 	p += 2;
 	memcpy(p, pbInbuf, wInLen);
 	p += wInLen;
-	*p++ = CheckCS(pbCtrl, p-pbCtrl);
+	*p = CheckCS(pbCtrl, p-pbCtrl);
+	p++;
 	*p++ = 0x16;
 	WordToByte(p-pbRespBuf, pbRespBuf+1);
 
@@ -2801,6 +3040,122 @@ int CStdReader::SaveTransSchMsg(BYTE bSchNo, BYTE *pbMsgBuf, WORD wMsgLen)
 	return SaveRecord(pszTableName, pbMsgBuf);
 }
 
+bool CStdReader::Copy376ToBuf(BYTE * pbData, int iMaxLen, TFrm13762 *pRcv13762)
+{
+	BYTE *pbStart = pbData;
+	bool fRet = true;
+
+	*pbData++ = pRcv13762->bHead;
+	WordToByte(pRcv13762->wDataLen, pbData);
+	pbData += 2;
+	
+	if (pRcv13762->wDataLen > iMaxLen)
+	{
+		fRet = false;
+		DTRACE(DB_FAPROTO, ("Copy376ToBuf pRcv13762->wDataLen too large\r\n"));
+		goto Copy376ToBuf_end;
+	}
+	*pbData++ = pRcv13762->bCtrl;
+	memcpy(pbData, pRcv13762->bR, 6);
+	pbData +=6;
+	if (pRcv13762->bR[0] & 0x04)	//通信模块标识,为0时，无地址域A
+	{
+		BYTE bRelayNum = (pRcv13762->bR[0]>>4);
+
+		memcpy(pbData, pRcv13762->bDesAddr, 6); 
+		pbData += 6;
+
+		for (BYTE j = 0; j < bRelayNum; j++)
+		{
+			memcpy(pbData, &pRcv13762->bRelayAddr[j*6], 6); 
+			pbData += 6;
+		}
+		memcpy(pbData, &pRcv13762->bDesAddr[0], 6); 
+		pbData += 6;
+	}
+	*pbData++ = pRcv13762->bAfn;
+	*pbData++ = pRcv13762->bDt[0];
+	*pbData++ = pRcv13762->bDt[1];
+	if (pRcv13762->wDtLen > sizeof(pRcv13762->bDtBuf) || (pRcv13762->wDtLen > iMaxLen-65))
+	{
+		fRet = false;
+		*pbData++ = 0;
+		*pbData++ = 0;	
+		DTRACE(DB_FAPROTO, ("Copy376ToBuf pRcv13762->wDtLen too large\r\n"));
+	}
+	else
+	{
+		WordToByte(pRcv13762->wDtLen, pbData);
+		pbData += 2;
+		memcpy(pbData, pRcv13762->bDtBuf, pRcv13762->wDtLen);
+		pbData += pRcv13762->wDtLen;
+	}
+
+	*pbData++ = pRcv13762->bCs;
+	*pbData++ = pRcv13762->bEnd;
+
+Copy376ToBuf_end:
+
+
+	return fRet;
+
+}
+
+int CStdReader::DoFwdData(BYTE * pbReqBuf, WORD wReqLen, WORD wTimeOut, BYTE * pbRespBuf, int iMaxResLen)
+{
+	bool fRet = false;
+	int iRcvLen = 0;
+	BYTE bResult = DAR_REQ_TIMEOUT;
+
+	if (Is3762Afn13Fn01(pbReqBuf, wReqLen) == true)
+	{
+	
+		LockDirRd();
+
+		for (BYTE bTryCnt=0; bTryCnt<3; bTryCnt++)
+		{
+			if (Send(pbReqBuf, wReqLen) == wReqLen)
+			{
+				if (RxHandleFrm(wTimeOut/m_RtRunMdInfo.bTrySendCnt))
+				{
+					if (m_TRcv13762.bAfn==AFN_RTFWD && DtToFn(m_TRcv13762.bDt)==FN(1))
+					{
+						if (m_TRcv13762.wDataLen > iMaxResLen)
+						{
+							fRet = false;
+							bResult = DAR_OUT_OF_BOUNDS;
+							break;
+						}
+						if (Copy376ToBuf(pbRespBuf, iMaxResLen, &m_TRcv13762)==false)
+						{
+							fRet = false;
+							bResult = DAR_OUT_OF_BOUNDS;
+							break;
+						}
+						iRcvLen = m_TRcv13762.wDataLen;
+							
+					}
+				}
+			}
+		}
+
+
+		if (fRet == false)
+		{
+			pbRespBuf[0] = 0;	//DAR
+			pbRespBuf[1] = bResult;	//请求超时
+			pbRespBuf[2] = 0;	//上报
+			pbRespBuf[3] = 0;	//时间标签
+			iRcvLen = 4;
+		}
+		UnLockDirRd();
+	}
+	else
+		iRcvLen = -1;
+
+	return iRcvLen;
+}
+
 int CStdReader::DoFwdData(BYTE *pbTsa, BYTE bTsaLen, const BYTE *pbReqBuf, WORD wReqLen, WORD wTimeOut, BYTE *pbRespBuf, bool fGetApdu)
 {
 	BYTE bCtrl;
@@ -3093,7 +3448,10 @@ bool CStdReader::DoAllAcqSch()
 	BroadcastAdjustTime();
 
 	if (QueryFrzTaskReadState())
+	{	
 		fRet = DoCommSch();
+		DoReadRptErc();
+	}
 	return fRet;
 }
 
@@ -3218,6 +3576,240 @@ bool CStdReader::DoTransSch()
 	return true;
 }
 
+//对上报的状态字处理
+bool CStdReader::DoReadRptErc()
+{
+	int iRet;
+	WORD wLen = 0;
+	WORD wRcvLen = 0;
+	BYTE bCnt, bChnNum;
+	DWORD dwID = 0;
+	DWORD dwChnOAD;
+	BYTE i, j, k;
+	BYTE bBuf[128];
+	BYTE bRestWord[12];
+	BYTE bRptBuf[1024];
+	BYTE bRcvFrm[256];
+	TOobMtrInfo tMtrInfo;
+	TErcRdCtrl* pErcRdCtrl;
+	BYTE bPnRdStatWord[256];
+	BYTE bPnRdStatWordFlg[PN_MASK_SIZE];		
+
+	const BYTE* pbPnMask = GetPlcPnMask();	//取得载波表的屏蔽位.
+	if (pbPnMask == NULL)
+	{
+		return false;
+	}
+
+	WORD wPn = 0;
+	while (1)
+	{
+		wPn = SearchPnFromMask(pbPnMask, wPn);	//这里搜出的测量点都是载波的
+		if (wPn >= POINT_NUM)
+		{
+			return true;
+		}
+
+		if (GetMeterInfo(wPn, &tMtrInfo))
+		{
+			if (tMtrInfo.bProType == PROTOCOLNO_DLT645_V07)
+			{
+				//(1)判断是否需要抄读状态字，主要是为了有b1回复帧的电表，需要抄读状态字
+				wRcvLen = 0;
+				ReadItemEx(BN0, PN0, 0x3B19, bPnRdStatWordFlg);
+				if (bPnRdStatWordFlg[wPn/8] & (1<<(wPn%8)))
+				{
+					bPnRdStatWordFlg[wPn/8] &= (~(1<<(wPn%8)));
+					WriteItemEx(BN0, PN0, 0x3B19, bPnRdStatWordFlg);
+
+					memset(bPnRdStatWord, 0, sizeof(bPnRdStatWord));
+					iRet = DirectReadMeterData(tMtrInfo.bTsa, tMtrInfo.bTsaLen, tMtrInfo.bProType, 0x04001501, bBuf, sizeof(bBuf), bPnRdStatWord, bRcvFrm, &wRcvLen);
+					if (iRet > 2)
+					{
+						k = 0;
+						memset(bBuf, 0, sizeof(bBuf));
+						for(i=0; i<12; i++)//把上报的状态字后面带的新增次数保存下来
+						{
+							for (j=0; j<8; j++)
+							{
+								if (bPnRdStatWord[i] & (1<<j))
+								{
+									bBuf[12 + i*8 + j] = bPnRdStatWord[12 + 1 + k];//中间有个AA
+									k ++;
+								}
+							}
+						}
+
+						memcpy(bPnRdStatWord + 12, bBuf + 12, 96);//把新增次数存到内部区域
+						TraceBuf(DB_CCT, "Write bPnRdStatWord:", bPnRdStatWord, 108);
+						WriteItemEx(BN0, wPn, 0x3B20, bPnRdStatWord);
+					}
+				}
+
+				//(2)抄读主动上报状态字，判断有那些事件上报
+				memset(bPnRdStatWord, 0, sizeof(bPnRdStatWord));
+				ReadItemEx(BN0, wPn, 0x3B20, bPnRdStatWord);
+				if (IsAllAByte(bPnRdStatWord, 0, 12))
+				{				
+					wPn++;				
+					continue;
+				}
+				TraceBuf(DB_CCT, "Read bPnRdStatWord:", bPnRdStatWord, 108);
+
+				//(3)根据状态字标志位，处理对应事件
+				//以下事件对应没有事件记录，不用抄事件记录，直接生成记录
+				if (((bPnRdStatWord[0] & 0xbe) > 0) || ((bPnRdStatWord[1] & 0x03) > 0))//对那些只有标识位而无事件ID的特殊处理
+				{
+					DTRACE(DB_CCT, ("The Erc Have no record!!!\n"));
+					//当主动上报字有非次数判断的事件位发生置位时（比如ESAM错误）
+					//则一次性将所有类似的位全部判断完，并处理掉
+					memset(bRestWord, 0xff, sizeof(bRestWord));
+					for(i=1; i<=9; i++)
+					{
+						if(i == 6)
+							continue;
+
+						BYTE bPos = i >> 3;
+						BYTE bMask = 1 << (i&0x7);
+						if(bPnRdStatWord[bPos] & bMask)
+						{
+							bPnRdStatWord[bPos] &= (~bMask);
+							bRestWord[bPos] &= (~bMask);
+						}
+					}
+
+					if (wRcvLen > 0)
+					{
+						memset(bBuf, 0, sizeof(bBuf));
+						int iLen = OoReadAttr(0x4300, ATTR10, bBuf, NULL, NULL);	//读取配置参数
+						if (iLen>0 && bBuf[0]==DT_ARRAY)
+						{
+							bChnNum = (bBuf[1]>CN_RPT_NUM) ? CN_RPT_NUM : bBuf[1];
+							for (i=0; i<bChnNum; i++)
+							{
+								dwChnOAD = OoOadToDWord(&bBuf[5*i+3]);	//通道OAD
+								SendEvtMsg(dwChnOAD, tMtrInfo.dwPortOAD, 0, EVT_STAGE_ERCRPT, 0, 0, bRcvFrm, wRcvLen);
+							}
+						}
+					}
+
+					iRet = DirectReadMeterData(tMtrInfo.bTsa, tMtrInfo.bTsaLen, tMtrInfo.bProType, 0x04001503, bRestWord, sizeof(bRestWord), bBuf, bRcvFrm, &wRcvLen);
+				}
+
+				//以下事件有对应事件记录，需要抄读事件记录
+				memset(bRestWord, 0xff, sizeof(bRestWord));
+				for (i=0; i<12; i++)    //遍历所有事件
+				{
+					for (j=0; j<8; j++)
+					{
+						wLen = 0;
+						if(bPnRdStatWord[i] & (1<<j))    //上报了该事件的对应状态字
+						{
+							bPnRdStatWord[i] &= (~(1<<j));
+							bCnt = bPnRdStatWord[12 + i*8 + j];    //取得新增次数
+							bPnRdStatWord[12 + i*8 + j] = 0;       //取完后，清次数
+							WriteItemEx(BN0, wPn, 0x3B20, bPnRdStatWord);
+							bRestWord[i] &= (~(1<<j));
+							dwID = GetMtrEvtTimesID(i*8+j);
+							if (dwID == 0)
+								continue;
+
+							pErcRdCtrl = GetRd07645ErcMap(dwID);
+							if (pErcRdCtrl == NULL)
+								continue;
+
+							memset(bRptBuf, 0, sizeof(bRptBuf));
+							iRet = DirectReadMeterData(tMtrInfo.bTsa, tMtrInfo.bTsaLen, tMtrInfo.bProType, dwID, bBuf, sizeof(bBuf), bBuf, bRcvFrm, &wRcvLen);
+							if (iRet > 2)
+							{
+								memcpy(bRptBuf, bRcvFrm, wRcvLen);
+								wLen = wRcvLen;
+							}
+
+							//主动上报这块不用计算新增次数了，而是用上报中的新增次数
+							if (bCnt == 0xff) //没有次数的那种事件上送FF
+								bCnt = 1;
+							else if (bCnt > 10)
+								bCnt = 10; //最近10次
+							for (BYTE bIndex=0; bIndex<bCnt; bIndex++)
+							{
+								for (k=0; k<pErcRdCtrl->bNum; k++)
+								{
+									iRet = DirectReadMeterData(tMtrInfo.bTsa, tMtrInfo.bTsaLen, tMtrInfo.bProType, pErcRdCtrl->dwRdID[k]+bIndex, bBuf, sizeof(bBuf), bBuf, bRcvFrm, &wRcvLen);
+									if (iRet > 2)
+									{
+										if (wLen+wRcvLen > sizeof(bRptBuf))
+										{
+											break;
+										}
+										memcpy(bRptBuf+wLen, bRcvFrm, wRcvLen);
+										wLen += wRcvLen;
+									}
+								}
+								if (wLen+wRcvLen > sizeof(bRptBuf))
+								{
+									DTRACE(DB_CCT, ("bRptBuf not enough!!!\n"));
+									break;
+								}
+							}
+						}
+
+						if (wRcvLen > 0)
+						{
+							memset(bBuf, 0, sizeof(bBuf));
+							int iLen = OoReadAttr(0x4300, ATTR10, bBuf, NULL, NULL);	//读取配置参数
+							if (iLen>0 && bBuf[0]==DT_ARRAY)
+							{
+								bChnNum = (bBuf[1]>CN_RPT_NUM) ? CN_RPT_NUM : bBuf[1];
+								for (i=0; i<bChnNum; i++)
+								{
+									dwChnOAD = OoOadToDWord(&bBuf[5*i+3]);	//通道OAD
+									SendEvtMsg(dwChnOAD, tMtrInfo.dwPortOAD, 0, EVT_STAGE_ERCRPT, 0, 0, bRptBuf, wLen);
+								}
+							}
+						}
+					}
+				}
+				iRet = DirectReadMeterData(tMtrInfo.bTsa, tMtrInfo.bTsaLen, tMtrInfo.bProType, 0x04001503, bRestWord, sizeof(bRestWord), bBuf, bRcvFrm, &wRcvLen);
+
+				//再读主动上报状态字确认是否还有事件上报
+				memset(bPnRdStatWord, 0, sizeof(bPnRdStatWord));
+				iRet = DirectReadMeterData(tMtrInfo.bTsa, tMtrInfo.bTsaLen, tMtrInfo.bProType, 0x04001501, bBuf, sizeof(bBuf), bPnRdStatWord, bRcvFrm, &wRcvLen);
+				if (iRet>2 && !IsAllAByte(bPnRdStatWord, 0, 12))
+				{
+					k = 0;
+					memset(bBuf, 0, sizeof(bBuf));
+					for(i = 0; i < 12; i ++)//把上报的状态字后面带的新增次数保存下来
+					{
+						for (j = 0; j < 8; j ++)
+						{
+							if (bPnRdStatWord[i] & (1 << (j%8)))
+							{
+								bBuf[12 + i*8 + j] = bPnRdStatWord[12 + 1 + k];//中间有个AA
+								k ++;
+							}
+						}
+					}
+
+					memcpy(bPnRdStatWord + 12, bBuf + 12, 96);//把新增次数存到内部区域
+					TraceBuf(DB_CCT, "Write bPnRdStatWord:", bPnRdStatWord, 108);
+					WriteItemEx(BN0, wPn, 0x3B20, bPnRdStatWord);
+				}
+
+				DTRACE(DB_CCT, ("This Pn = %d Erc to done!!\n", wPn));
+				return true;            //该表所对应的事件都已经处理完了，一次处理一块，避免阻塞时间太长
+			}
+			else if (tMtrInfo.bProType == PROTOCOLNO_DLT69845)
+			{
+
+			}
+		}
+
+		wPn++;
+	}
+
+	return false;
+}
 
 #define PER_RD_MTR_CNT	10
 //描述：更新电表档案到路由模块
@@ -3232,6 +3824,11 @@ bool CStdReader::SyncMeterAddr()
 
 	TMtrInfo tDbMtrInfo[POINT_NUM];
 	WORD wDbMtrNum;
+
+    if(m_RtRunMdInfo.bNodeType == 0)
+    {
+        return true;
+    }
 
 	memset((BYTE*)&tDbMtrInfo, 0, sizeof(tDbMtrInfo));
 	wDbMtrNum = GetPlcNodeAddr(tDbMtrInfo, POINT_NUM);
@@ -3447,7 +4044,17 @@ void CStdReader::CctRunStateMonitor()
 	TTime tNowTime;
 	const BYTE bDlyMin = 1;
 
-	if (m_TRtStat.fIsNeedRtReq)
+	if(m_TRunStateInfo.dwBcWaitClick!=0)
+	{
+		if(m_TRunStateInfo.dwLstDirClk!=0 && GetClick()>m_TRunStateInfo.dwLstDirClk+m_TRunStateInfo.dwBcWaitClick)
+		{
+			m_TRunStateInfo.dwLstDirClk = 0;
+			m_TRunStateInfo.dwBcWaitClick = 0;
+			m_TRunStateInfo.fRtPause = false;	//恢复路由
+			Afn12Fn03_RtResume();
+		}
+	}
+	else if(m_TRtStat.fIsNeedRtReq)
 	{
 		if (GetClick()-m_TRunStateInfo.dwLstDirClk > 120)
 		{
@@ -3711,6 +4318,12 @@ DWORD CStdReader::Send(BYTE *pSendBuf, DWORD dwLen)
 		return 0;
 	}
 
+    if(GetPlcStatus() !=PLC_MODULE_EXIST)
+    {   
+        DTRACE(DB_CCT, ("CStdReader :: localmodule abnormal"));
+		return 0;
+    }
+
 	if (dwLen>0 && IsDebugOn(DB_CCTTXFRM))
 	{	
 		char szBuf[48];
@@ -3748,7 +4361,8 @@ DWORD CStdReader::Receive(BYTE *pRecvBuf, DWORD wLen)
 int CStdReader::RcvFrame(BYTE* pbBlock, int nLen)
 {
 	BYTE *pbPtr = pbBlock;
-	
+    WORD wOffSet = 0;  // 帧头0x68之前的字符个数
+
 	m_fRxComlpete = false;
 
 	memset((BYTE*)&m_TRcv13762, 0, sizeof(m_TRcv13762));
@@ -3765,6 +4379,7 @@ int CStdReader::RcvFrame(BYTE* pbBlock, int nLen)
 					{
 						m_TRcv13762.bHead = 0x68;
 						bStep = 1;
+                        wOffSet = i;
 					}
 					pbPtr++;
 					break;
@@ -3806,7 +4421,8 @@ int CStdReader::RcvFrame(BYTE* pbBlock, int nLen)
 				case 5:	//user data
 					if (m_TRcv13762.wDataLen > i+2)
 					{
-						m_TRcv13762.wDtLen = m_TRcv13762.wDataLen-i-2;	//-2 : CS 0x16
+					    //-2 : CS 0x16 数据长度要减去帧头0x68之前的字符个数
+						m_TRcv13762.wDtLen = m_TRcv13762.wDataLen-(i-wOffSet)-2;	
 						memcpy(m_TRcv13762.bDtBuf, pbPtr, m_TRcv13762.wDtLen);
 					}
 					else
@@ -3858,7 +4474,15 @@ bool CStdReader::DefHanleFrm()
 			break;
 		case AFN_QRYDATA:
 			if (wFn == FN(10))
+            {         
 				Afn03Fn10_RptRtRunInfo(m_TRcv13762.bDtBuf);
+                if(m_TRcv13762.bCtrl&&0x40)  
+                {
+                    m_TRtStat.fGetPlcInfo = true;
+                }
+            }            
+            fRet = true;
+            DTRACE(DB_CCT, ("DefHanleFrm 03F10 fRet=%d\n",fRet));
 			break;
 		case AFN_REP:
 			if (wFn == FN(1))	//上报从节点信息
@@ -3886,18 +4510,17 @@ bool CStdReader::DefHanleFrm()
 			fRet = true;
 	}
 
-	return false;
-	/*
-	//默认处理不了的返回false  changed by whr 20170822
+    return !fRet;
+
+/*
 	if (fRet)
 	{
-		DTRACE(DB_CCT, ("CStdReader::DefHanleFrm(): AFN=0x%02x Fn=%02d, unsupport!\n", bAfn, wFn));
+		//DTRACE(DB_CCT, ("CStdReader::DefHanleFrm(): AFN=0x%02x Fn=%02d, unsupport!\n", bAfn, bFn));
 		return false;
 	}
-	
-	//默认处理成功返回true  changed by whr 20170822
-	return true;
-	*/
+
+	return false;	
+*/	
 }
 
 //描述：数据处理
@@ -3910,7 +4533,11 @@ bool CStdReader::RxHandleFrm(DWORD dwSeconds, bool fIsDefHanleFrm)
 	if (dwSeconds == 0)
 		dwOldTick = GetTick()-1;
 	do
-	{	
+	{ 
+	    if(GetPlcStatus() != PLC_MODULE_EXIST) 
+        {
+            break;
+        }   
 		memset(bBuf, 0, sizeof(bBuf));
 		len = m_LoopBuf.GetBufLen();
 
@@ -3928,7 +4555,7 @@ bool CStdReader::RxHandleFrm(DWORD dwSeconds, bool fIsDefHanleFrm)
 			if (nScanLen > 0)
 			{   
 				m_LoopBuf.DeleteFromBuf(nScanLen); //删除已经扫描的数据
-				
+
 				if (fIsDefHanleFrm)
 				{
 					if (DefHanleFrm() == false) //帧组成功了,但是没有被默认帧处理函数所处理,要出到外面去处理
@@ -3936,7 +4563,6 @@ bool CStdReader::RxHandleFrm(DWORD dwSeconds, bool fIsDefHanleFrm)
 				}
 				else
 					return true;
-				
 			}
 			else if(len>=sizeof(bBuf)-10) //缓冲区满了，但是还没有一个完整的帧
 			{
@@ -3954,41 +4580,82 @@ bool CStdReader::RxHandleFrm(DWORD dwSeconds, bool fIsDefHanleFrm)
 
 void CStdReader::DoAutoRead()
 {
-	if (!m_TRtStat.fPlcInit)
-		return;
-
-	if (RxHandleFrm(1, false))
-		DefHanleFrm();
+	//if (!m_TRtStat.fPlcInit)
+	if(GetPlcStatus() != PLC_MODULE_EXIST) 
+    {   
+		//return;
+    }
+    
+	if (RxHandleFrm(1))
+    {   
+		//DefHanleFrm();  // 和RxHandleFrm()里面的函数一样，故暂时屏蔽
+    }
 }
 
 void CStdReader::CctRunStateCheck()
 {
+    DWORD dwWaitClick = 20;
+
 	if (GetInfo(INFO_PLC_MOD_CHANGED))
-	{   
+    {   
 		memset((BYTE*)&m_TRtStat, 0, sizeof(m_TRtStat));
-		GetRooterTermAddr(m_TRtStat.bTermAddr,m_TRtStat.bTermLen);
+        GetRooterTermAddr(m_TRtStat.bTermAddr,m_TRtStat.bTermLen);
+        if(GetPlcStatus() == PLC_MODULE_EXIST) 
+        {   
+            m_fIsLastLocalModuleState = true;
+            m_LoopBuf.ClrBuf();
+            ResetPlc();
+            RxHandleFrm(60);
+        }
+        else
+		{
+            m_fIsLastLocalModuleState = false;
+        }
+    }  
+
+	if(GetPlcStatus() != PLC_MODULE_EXIST) 
+	{   
+	    m_fIsLastLocalModuleState = false;  // 集中器启动时，未插模块，启动后插入模块，还是让模块上报，60是不上报再查询
+		return ;
 	}
 
 	if (GetInfo(INFO_SYNC_MTR))	
-		m_TRtStat.fSyncAddr = false;
+    {
+        m_TRtStat.dwGetSyncAddrInfoClick = GetClick();
+        DTRACE(DB_CRITICAL, ("GetInfo INFO_SYNC_MTR, Please Wait %ds !\n",dwWaitClick));	
+    }
 
-	if (!m_TRtStat.fGetPlcInfo)
+    if(m_TRtStat.dwGetSyncAddrInfoClick!=0 && GetClick()-m_TRtStat.dwGetSyncAddrInfoClick>=dwWaitClick)
+    {        
+		m_TRtStat.fSyncAddr = false;        
+    }
+
+	if (!m_TRtStat.fGetPlcInfo && m_fIsLastLocalModuleState)
 	{
 		Afn12Fn02_RtPause();
 		if (ReadPlcModuleInfo())
 			m_TRtStat.fGetPlcInfo = true;
 		Afn12Fn03_RtResume();
 	}
+
 	if (m_TRtStat.fGetPlcInfo && !m_TRtStat.fSetMainNode)
 	{
 		Afn12Fn02_RtPause();
-		if (Afn05Fn01_SetMainNodeAddr())
+        BYTE bMainNodeAddr[6] = {0};
+        Afn03Fn04_ReadMainNodeAddr(bMainNodeAddr);
+        if (Afn05Fn01_SetMainNodeAddr())
+        {
 			m_TRtStat.fSetMainNode = true;
+        }
 		Afn12Fn03_RtResume();
 	}
 	if (m_TRtStat.fSetMainNode && !m_TRtStat.fSyncAddr)
 	{
-		Afn12Fn02_RtPause();
+	    if(m_TRtStat.dwGetSyncAddrInfoClick != 0)
+        {
+            m_TRtStat.dwGetSyncAddrInfoClick = 0;
+            Afn12Fn02_RtPause();
+        }   		
 		SyncMeterAddr();
 		Afn12Fn01_RtRestart();
 		m_TRtStat.fSyncAddr = true;
@@ -4005,6 +4672,7 @@ void CStdReader::RunThread()
 	DTRACE(DB_CCT, ("CStdReader::Cct thread started.\n"));
 
 	Init();
+    ModuleInfoCheck();
 
 	while(1)
 	{
@@ -4019,17 +4687,24 @@ void CStdReader::RunThread()
 		}
 		
 		CctRunStateCheck();
-		
+
+        #if 0
 		if (GetInitState())
 		{
 			DoAutoRead();
 			DoOtherTask();
 		}
 		else
+        {      
 			Sleep(100);
+        }
+        #else
+        DoAutoRead();
+		DoOtherTask();
+        #endif
 
 		UnLockReader();
-		Sleep(1000);    // don't lock fast. add some delay time. add by whr 20170523
+		Sleep(200);    // don't lock fast. add some delay time. add by whr 20170523
 		UpdThreadRunClick(iMonitorID);
 	}
 
@@ -4194,7 +4869,7 @@ int CStdReader::DL645_EXTMakeFrm(BYTE *pbMtr, BYTE bMtrLen, BYTE bProId, BYTE bS
 }
 
 //注意，对返回帧的地址和ID都还没有做进一步的正确性比较的
-int CStdReader::GetDL645_9707DataVal(BYTE *psData, BYTE bsLen, BYTE bProId, BYTE bSubProId, DWORD dwOAD, BYTE *pbData, TRdItem *pRdItem, bool fAnaly645data)
+int CStdReader::GetDL645_9707DataVal(BYTE *psData, BYTE bsLen, BYTE bProId, BYTE bSubProId, DWORD dwOAD, BYTE *pbData, TRdItem *pRdItem, WORD wPn)
 {
 	int i=0,  j;
 	BYTE bCtrl;
@@ -4267,6 +4942,19 @@ int CStdReader::GetDL645_9707DataVal(BYTE *psData, BYTE bsLen, BYTE bProId, BYTE
 			{
 				goto MTRRET_ERR;
 			}
+
+			//读取后续帧和复位主动上报状态字
+			if (bProId==PROTOCOLNO_DLT645_V07 && bCtrl==0xb1)							
+			{	
+				if ((dwMtrID&0xff000000) < 0x30000000) //电量、需量、瞬时量正常不会有多帧
+				{
+					BYTE bPnRdStatWordFlg[PN_MASK_SIZE];
+					ReadItemEx(BN0, PN0, 0x3B19, bPnRdStatWordFlg);//抄读主动上报状态字电表标志位
+					bPnRdStatWordFlg[wPn/8] |= (1<<(wPn%8));
+					WriteItemEx(BN0, PN0, 0x3B19, bPnRdStatWordFlg);
+				}
+			}
+
 			//memcpy(buf, &psData[i+14], iDataLen-4);
 			if (dwMtrID == 0x4000101)
 			{
@@ -4442,12 +5130,12 @@ int CStdReader::OneAddrBroadcast(BYTE *pbTsa, BYTE *pbInBuf, WORD wInLen, TMtrPa
 					tmMtr.nDay=  BcdToByte(pbData[1]);
 					tmMtr.nHour=  BcdToByte(pbData[7]);
 					tmMtr.nMinute=  BcdToByte(pbData[6]);
-					tmMtr.nSecond=  BcdToByte(pbData[5]);+2;//暂时先固定加1秒的通信延时
+					tmMtr.nSecond=  BcdToByte(pbData[5])+2;//暂时先固定加1秒的通信延时
 
 					pbData[0] = DT_DATE_TIME_S;
 					OoTimeToDateTimeS(&tmMtr, &pbData[1]);
 				}
-				
+
 				if (IsInvalidTime(tmMtr))
 					return -1;
 			}
@@ -4558,7 +5246,7 @@ int CStdReader::OneAddrBroadcast(BYTE *pbTsa, BYTE *pbInBuf, WORD wInLen, TMtrPa
 						tmMtr.nDay=  BcdToByte(bBuf1[1]);
 						tmMtr.nHour=  BcdToByte(bBuf1[7]);
 						tmMtr.nMinute=  BcdToByte(bBuf1[6]);
-						tmMtr.nSecond=  BcdToByte(bBuf1[5]);+1;//暂时先固定加1秒的通信延时
+						tmMtr.nSecond=  BcdToByte(bBuf1[5])+1;//暂时先固定加1秒的通信延时
 					}
 
 					GetCurTime(&tmTm);
@@ -4695,6 +5383,185 @@ int CStdReader::MtrBroadcast()
 	return iRet;
 }
 
+//描述:启动广播命令,用来实现广播校时,广播冻结等功能
+//参数:@bCtrl 控制字,保持跟698.42兼容,扩展BC_CTL_ADJTIME 0x10为广播校时
+// 					00H=透明传输; 01H=DLT/645-1997; 02H=DLT/645-2007; 03H=相位识别功能; 04H FFH保留。
+//	   @pbFrm 报文内容
+// 	   @bFrmLen  报文长度
+int CStdReader::Broadcast(BYTE *pbTsa, BYTE bTsaLen, BYTE *pbReqBuf, WORD wReqLen, WORD wTimeOut, BYTE *pbRespBuf, BYTE bPro)
+{
+	DWORD dwFrmLen;
+	WORD  wDelay =0, wWait=0;
+	BYTE bBuf[256] = {0};
+	BYTE n=0;
+	bool fBdtime = false;
+	TTime tBd;
+    BYTE bCtrl = 0x41;
+    BYTE bR[6];
+    BYTE bTxBuf[256] = {0};
+    int i,j;
+    int iOffSet = 0;
+    bool fIsBcsucceed = false;
+
+    BYTE bCliAddrLen;
+    BYTE bFrmHeaderLen;	//0x68+Len(2byte)+C(1byte)+AF(1byte)+SA(SvrLen)+CA(1byte)
+    WORD wRFrmLen;
+    WORD wCrcFrm;
+    BYTE bFrmEnd;
+    
+	if(wReqLen == 0)
+		return -1;
+
+    LockDirRd();
+
+	//检查是否为广播校时帧
+	if(bPro == PROTOCOLNO_DLT645_V07)
+    {       
+    	for (n=0;n<wReqLen;n++)
+    	{
+    		if (pbReqBuf[n]==0x68 && pbReqBuf[n+7]==0x68) //广播对时功能码                 
+    		{
+    		    if(pbReqBuf[n+8]==0x08)
+                {
+                    fBdtime = true;
+                }    			
+    			break;
+    		}
+    	}
+    }
+    else if(bPro == PROTOCOLNO_DLT69845)
+    {
+        //68 1A 00 43 C0 AA 10 DF E7 07 01 28 40 00 7F 00 1C 07 E1 05 11 0E 37 14 00 5C D8 16                   
+        for(n=0;n<wReqLen;n++)
+        {
+            //if(pbReqBuf[n]==0x68 && ((pbReqBuf[n+4]&0xC0)==0xC0) && ((pbReqBuf[n+4]&0x0F)==0x00) && pbReqBuf[n+5]==0xAA)
+            if(pbReqBuf[n]==0x68)
+            {
+                wRFrmLen =(WORD )pbReqBuf[n+1] + ((WORD )(pbReqBuf[n+2]&0x3f)<<8);
+                bFrmEnd = pbReqBuf[n+wRFrmLen+1];
+                if(bFrmEnd==0x16)
+                {
+                    bCliAddrLen = (pbReqBuf[n+4]&0x0F)+1;
+                    bFrmHeaderLen = bCliAddrLen+6;
+                    if(pbReqBuf[n+bFrmHeaderLen+2]==ACTION_REQ
+                        && pbReqBuf[n+bFrmHeaderLen+2+3] == 0x40
+                        && pbReqBuf[n+bFrmHeaderLen+2+3+1] == 0x00
+                        && pbReqBuf[n+bFrmHeaderLen+2+3+1+1] == 0x7f
+                        && pbReqBuf[n+bFrmHeaderLen+2+3+1+1+2] == DT_DATE_TIME_S)
+                    {
+                        fBdtime = true;               
+                    }
+                    break;
+                }                
+            }                    
+        }
+    }
+
+    bCtrl = 0x41;
+    bR[0] = 0x01; //D2通信模块标识：0表示对集中器的通信模块操作;1表示对载波表的通信模块操作。
+    bR[1] = 0;		//信道
+    bR[2] = 0;
+    bR[3] = 0;
+    bR[4] = 0;
+    bR[5] = 0;
+
+	if(fBdtime) //广播校时，非广播校时帧则直接进行广播
+	{
+		bBuf[0] = 0x00;
+		bBuf[1] = wReqLen;
+		memcpy(&bBuf[2], pbReqBuf, wReqLen);
+        dwFrmLen = Make1376_2Frm(NULL, 0, bCtrl, bR, AFN_QRYDATA, FN(9), bBuf, wReqLen+2, bTxBuf);
+		DTRACE(DB_CCT, ("CStdReader::Broadcast :Query Delay time.\r\n"));
+
+		for (j=0; j<2; j++) //最多重发3次
+		{		
+			if (Send(bTxBuf, dwFrmLen) == dwFrmLen)
+			{
+				if (RxHandleFrm(3))
+				{
+					if (m_TRcv13762.bAfn==AFN_QRYDATA && DtToFn(m_TRcv13762.bDt)==FN(9))  //目前未考虑接受到异常帧的情况
+					{
+				        wDelay = ByteToWord(m_TRcv13762.bDtBuf);
+				        DTRACE(DB_CCT, ("CStdReader::Broadcast :Query Delay time:%d seconds.\r\n", wDelay));
+					    break;						
+					}
+				}
+			}
+		} 
+
+		if(wDelay > 0)
+		{
+			//根据延时时间重新计算
+			if(bPro == PROTOCOLNO_DLT645_V07)
+            {         
+    			tBd.nSecond = BcdToByte(pbReqBuf[n+10]-0x33);
+    			tBd.nMinute = BcdToByte(pbReqBuf[n+11]-0x33);
+    			tBd.nHour = BcdToByte(pbReqBuf[n+12]-0x33);
+    			tBd.nDay = BcdToByte(pbReqBuf[n+13]-0x33);
+    			tBd.nMonth = BcdToByte(pbReqBuf[n+14]-0x33);
+    			tBd.nYear = BcdToByte(pbReqBuf[n+15]-0x33)+2000;
+    			DWORD dwSeconds = TimeToSeconds(tBd);
+    			dwSeconds += wDelay;
+    			SecondsToTime(dwSeconds, &tBd);
+    			pbReqBuf[n+10] = ByteToBcd(tBd.nSecond)+0x33;
+    			pbReqBuf[n+11] = ByteToBcd(tBd.nMinute)+0x33;
+    			pbReqBuf[n+12] = ByteToBcd(tBd.nHour)+0x33;
+    			pbReqBuf[n+13] = ByteToBcd(tBd.nDay)+0x33;
+    			pbReqBuf[n+14] = ByteToBcd(tBd.nMonth)+0x33;
+    			pbReqBuf[n+15] = ByteToBcd(tBd.nYear-2000)+0x33;
+    			pbReqBuf[n+16] = CheckSum(&pbReqBuf[n], wReqLen-n-2);
+            }
+            else if(bPro = PROTOCOLNO_DLT69845)
+            {  // 698.45
+                OoDateTimeSToTime((BYTE*)(pbReqBuf+n+bFrmHeaderLen+10),&tBd);
+    			DWORD dwSeconds = TimeToSeconds(tBd);
+    			dwSeconds += wDelay;
+    			SecondsToTime(dwSeconds, &tBd);             
+                OoTimeToDateTimeS(&tBd, (BYTE*)(pbReqBuf+n+bFrmHeaderLen+10));
+                wCrcFrm = CheckCrc16(&pbReqBuf[n+1], wRFrmLen-2);
+                WordToByte(wCrcFrm,&pbReqBuf[n+wRFrmLen-1]);
+            }
+		}
+	}
+
+	dwFrmLen = 0;
+	DTRACE(DB_CCT, ("CStdReader::Broadcast: start.\r\n"));
+	bBuf[0] = 0x00;
+	bBuf[1] = wReqLen;
+	memcpy(&bBuf[2], pbReqBuf, wReqLen);
+    dwFrmLen = Make1376_2Frm(NULL, 0, bCtrl, bR, AFN_CTRL, FN(3), bBuf, wReqLen+2, bTxBuf);
+	for (i=0; i< 2; i++) 
+	{
+	    m_TRunStateInfo.dwBcWaitClick = 0;
+		if (Send(bTxBuf, dwFrmLen) == dwFrmLen)
+		{
+			if (RxHandleFrm(3))
+			{
+                if (m_TRcv13762.bAfn==AFN_CON && DtToFn(m_TRcv13762.bDt)==FN(1))  //目前未考虑接受到异常帧的情况
+				{
+                    wWait = ByteToWord(m_TRcv13762.bDtBuf+4);
+                    fIsBcsucceed = true;
+				    DTRACE(DB_CCT, ("CStdReader::Broadcast :Query Delay time:%d seconds.\r\n", wWait));
+                    if(wWait>0)
+                    {
+                        //Sleep(wWait*1000);
+                        m_TRunStateInfo.dwBcWaitClick = wWait;
+                    }		
+                    break;
+				}		
+			}			
+		}
+	} 
+
+    UnLockDirRd();
+
+    if(fIsBcsucceed)
+    {
+        return 0;
+    }
+	return -1;    
+}
+
 //广播校时
 int CStdReader::BroadcastAdjustTime()
 {
@@ -4752,6 +5619,7 @@ int CStdReader::BroadcastAdjustTime()
 				memcpy(&bFrm69845[2], bBufY, sizeof(bBufY));
 				bFrm69845[1] = sizeof(bBufY);
 				DTRACE(DB_CCT, ("BroadcastAdjustTime: Start...\n")); 
+                m_dwLastWaitSec = 0;
 				Afn05Fn3_StartBoardCast(bFrm69845, sizeof(bBufY)+2);
 				//直接在这里延时等待，完了再发对象帧的,这样在等待期间就响应不了别的命令了
 				//这得讨论一下怎么做
@@ -4781,10 +5649,11 @@ int CStdReader::BroadcastAdjustTime()
 				bBuf1[15] = 0x00;	//时间标签
 
 				bBufY[0] = 0xAA;
-				iStep = Make698_45Frm(bBufY, 1, 0x43, 3, 0, SER_ADDR_TYPE_SIG, bBuf1, 16, bFrm69845+2);//对象表的地址及长度待定!!!
+				iStep = Make698_45Frm(bBufY, 1, 0x43, 3, 0, SER_ADDR_TYPE_BC, bBuf1, 16, bFrm69845+2);//对象表的地址及长度待定!!!
 				bFrm69845[1] = iStep;
 				DTRACE(DB_CCT, ("OneAddrBroadcast 69845 write id=0x40000200.\r\n")); 
 				memset(bRespData, 0, sizeof(bRespData));
+                m_dwLastWaitSec = 0;
 				Afn05Fn3_StartBoardCast(bFrm69845, iStep+2);
 				//直接在这里延时等待，,这样在等待期间就响应不了别的命令了
 				//这得讨论一下怎么做
@@ -4792,6 +5661,7 @@ int CStdReader::BroadcastAdjustTime()
 					m_dwLastWaitSec = 180;
 				Sleep(m_dwLastWaitSec*1000);
 			}
+            m_dwLastWaitSec = 0;
 			Afn12Fn03_RtResume();
 		}
 	}
@@ -4832,8 +5702,8 @@ int CStdReader::Afn13Fn01_Broadcast(BYTE *pbTsa, BYTE bTsaLen, const BYTE *pbInB
 			dwLastSendClick = GetClick();
 			if (Send(bTxBuf, iTxLen) == iTxLen)
 			{
-				if (RxHandleFrm(m_RtRunMdInfo.bNodeTmOut))
-				//if (RxHandleFrm(1))
+				//if (RxHandleFrm(m_RtRunMdInfo.bNodeTmOut))
+				if (RxHandleFrm(1))
 				{
 					if (m_TRcv13762.bAfn==AFN_RTFWD && DtToFn(m_TRcv13762.bDt)==FN(1))
 					{

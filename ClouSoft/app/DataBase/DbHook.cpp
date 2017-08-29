@@ -152,6 +152,33 @@ int PostWriteItemExHook(WORD wBank, WORD wPn, WORD wID, BYTE* pbBuf, BYTE bPerm,
 			WriteItemEx(BN10, PN0, 0xa1d0, bTmpBuf);
 		}
 	}
+	#ifdef SYS_LINUX
+	else if(wBank==BN2 && wID == 0x5039)
+	{
+		AcSetPulseRatio(pbBuf);//不能调用InitSample();
+		TraceBuf(DB_FAPROTO,"\r\nPostWriteItemExHook: wBank=BN2,wID=0x5039,pbBuf= ",pbBuf,1);
+
+	}
+	else if((wBank==BN25 && 
+				((wID >= 0x5001 && wID <= 0x5005)
+				  ||(wID == 0x500f) 
+				  )
+			)
+			||
+			(wBank==BN28 && 
+				((wID >= 0x0011 && wID <= 0x0019)
+				  ||(wID == 0x001f) 
+				  )
+			)
+			
+		  )
+	{// 交采参数变化
+		BYTE bCnt = 0;
+		AcSetPulseRatio(&bCnt);//不能调用InitSample();
+//			InitSample();
+//			DTRACE(DB_FAPROTO,("PostWriteItemExHook: AC_PARA change-> InitSample\r\n"));
+	}
+	#endif
 
 	return nRet;
 }

@@ -147,7 +147,7 @@ int CFaProto::RcvBlock(BYTE *pbBuf,int wLen)
         switch (m_nRxStep) 
 		{
 		case 0:
-			if( b == 0x68 )
+			if (b == 0x68)
 			{
 				memset(m_bRxBuf, 0, sizeof(m_bRxBuf));
 				m_bRxBuf[0] = b;	
@@ -280,10 +280,14 @@ int CFaProto::ProRecordToApduInfo(BYTE *pbApdu, TApduInfo *pApduInfo)
 	pApduInfo->pbOAD = pbApdu;
 	pbApdu += pApduInfo->wOADLen;
 	pApduInfo->pbRSD = pbApdu;
-	pApduInfo->wRSDLen = ScanRSD(pbApdu, false);	
+	int iRet = ScanRSD(pbApdu, false);
+	if (iRet >= 0)
+		pApduInfo->wRSDLen = iRet;
 	pbApdu += pApduInfo->wRSDLen;
 	pApduInfo->pbRCSD = pbApdu;
-	pApduInfo->wRCSDLen = ScanRCSD(pbApdu, false);	
+	iRet = ScanRCSD(pbApdu, false);
+	if (iRet >= 0)
+		pApduInfo->wRCSDLen = iRet;
 	pbApdu += pApduInfo->wRCSDLen;
 
 	return pbApdu - pbApdu0;
@@ -399,7 +403,6 @@ int  CFaProto::VeryFrm()
 	m_LnkComm.wRFrmLen = (WORD )m_bRxBuf[1] + ((WORD )(m_bRxBuf[2]&0x3f)<<8);	//总帧长度,除起始和结束符之外的帧字节数
 	m_LnkComm.bFunCode = m_bRxBuf[3]&0x07;				//帧控制码
 	m_LnkComm.fIsScramble = m_bRxBuf[3]&0x08;			//扰码标志位
-	
 	m_LnkComm.fIsSegSend = ((m_bRxBuf[3]&0x20) != 0);		//链路层是否有分帧
 	m_LnkComm.bFrmHeaderLen = m_LnkComm.bCliAddrLen+6;	//0x68+Len(2byte)+C(1byte)+AF(1byte)+SA(SvrLen)+CA(1byte)
 	
@@ -1715,9 +1718,12 @@ GOTO_RSD10:	//方法10比较特殊
 			{
 				int iRcsdLen;
 				//RCSD
-				iRcsdLen = ScanRCSD(tApduInfo.pbRCSD, false);	
-				memcpy(pApdu, tApduInfo.pbRCSD, iRcsdLen);	
-				pApdu += iRcsdLen;
+				iRcsdLen = ScanRCSD(tApduInfo.pbRCSD, false);
+				if (iRcsdLen >= 0)
+				{
+					memcpy(pApdu, tApduInfo.pbRCSD, iRcsdLen);	
+					pApdu += iRcsdLen;
+				}
 				//*pApdu++ = 0x00;	//Data
 				//*pApdu++ = GetErrOfGet(nRet);	//对象不存在
 				*pApdu++ = 0x01;	//Data
@@ -1821,9 +1827,12 @@ GOTO_RSD10:	//方法10比较特殊
 			{
 				int iRcsdLen;
 				//RCSD
-				iRcsdLen = ScanRCSD(tApduInfo.pbRCSD, false);	
-				memcpy(pApdu, tApduInfo.pbRCSD, iRcsdLen);	
-				pApdu += iRcsdLen;
+				iRcsdLen = ScanRCSD(tApduInfo.pbRCSD, false);
+				if (iRcsdLen >= 0)
+				{
+					memcpy(pApdu, tApduInfo.pbRCSD, iRcsdLen);	
+					pApdu += iRcsdLen;
+				}
 				*pApdu++ = 0x01;	//Data
 			}
 			else
@@ -1882,20 +1891,26 @@ GOTO_RSD10:	//方法10比较特殊
 			{
 				int iRcsdLen;
 				//RCSD
-				iRcsdLen = ScanRCSD(tApduInfo.pbRCSD, false);	
-				memcpy(pApdu, tApduInfo.pbRCSD, iRcsdLen);	
-				pApdu += iRcsdLen;
+				iRcsdLen = ScanRCSD(tApduInfo.pbRCSD, false);
+				if (iRcsdLen >= 0)
+				{
+					memcpy(pApdu, tApduInfo.pbRCSD, iRcsdLen);	
+					pApdu += iRcsdLen;
+				}
 				*pApdu++ = 0x01;	//Data
 			}
 			else
 			{
-				DWORD dwOAD;
-				*pApdu++ = 0x01;	//1个RCSD
-				*pApdu++ = 0x00;	//CSD里选择OAD
-				dwOAD = OoOadToDWord(tApduInfo.pbOAD);
-				dwOAD = dwOAD + 0x00010000;	//如0x60140200 + 0x00010000 = 0x60150200
-				pApdu += OoDWordToOad(dwOAD, pApdu);
-				*pApdu++ = 0x01;	//DAR
+				if (OoOadToDWord(tApduInfo.pbOAD) != 0x60020200)
+				{
+					DWORD dwOAD;
+					*pApdu++ = 0x01;	//1个RCSD
+					*pApdu++ = 0x00;	//CSD里选择OAD
+					dwOAD = OoOadToDWord(tApduInfo.pbOAD);
+					dwOAD = dwOAD + 0x00010000;	//如0x60140200 + 0x00010000 = 0x60150200
+					pApdu += OoDWordToOad(dwOAD, pApdu);
+					*pApdu++ = 0x01;	//DAR
+				}
 			}
 		}
 		else
@@ -1927,7 +1942,7 @@ GOTO_RSD10:	//方法10比较特殊
 
 int CFaProto::Get_request_record_list()
 {
-		static const int iApdu1Offset = 128;
+	static const int iApdu1Offset = 128;
 	static const int iApdu2Offset = 128;
 	TApduInfo tApduInfo;
 	const ToaMap* pOI = NULL;
@@ -2001,9 +2016,12 @@ int CFaProto::Get_request_record_list()
 					{
 						int iRcsdLen;
 						//RCSD
-						iRcsdLen = ScanRCSD(tApduInfo.pbRCSD, false);	
-						memcpy(pApdu2, tApduInfo.pbRCSD, iRcsdLen);	
-						pApdu2 += iRcsdLen;
+						iRcsdLen = ScanRCSD(tApduInfo.pbRCSD, false);
+						if (iRcsdLen >= 0)
+						{
+							memcpy(pApdu2, tApduInfo.pbRCSD, iRcsdLen);	
+							pApdu2 += iRcsdLen;
+						}
 						//*pApdu++ = 0x00;	//Data
 						//*pApdu++ = GetErrOfGet(nRet);	//对象不存在
 						*pApdu2++ = 0x01;	//Data
@@ -2026,11 +2044,11 @@ int CFaProto::Get_request_record_list()
 						}
 						else
 						{
-						*pApdu2++ = 0x01;	//Data
+							*pApdu2++ = 0x01;	//Data
 							*pApdu2++ = 0x01;	//记录条数
 							for (int i=0; i<tApduInfo.pbRCSD[0]; i++) //CSD个数
 							{
-						*pApdu2++ = 0x00;	//对象不存在
+								*pApdu2++ = 0x00;	//对象不存在
 							}
 						}
 					}
@@ -2080,9 +2098,12 @@ int CFaProto::Get_request_record_list()
 					{
 						int iRcsdLen;
 						//RCSD
-						iRcsdLen = ScanRCSD(tApduInfo.pbRCSD, false);	
-						memcpy(pApdu2, tApduInfo.pbRCSD, iRcsdLen);	
-						pApdu2 += iRcsdLen;
+						iRcsdLen = ScanRCSD(tApduInfo.pbRCSD, false);
+						if (iRcsdLen >= 0)
+						{
+							memcpy(pApdu2, tApduInfo.pbRCSD, iRcsdLen);	
+							pApdu2 += iRcsdLen;
+						}
 						//*pApdu++ = 0x00;	//Data
 						//*pApdu++ = GetErrOfGet(nRet);	//对象不存在
 						*pApdu2++ = 0x01;	//Data
@@ -2665,7 +2686,7 @@ int CFaProto::Act_Response_List()
 //描述：Act命令-list-read模式的响应
 int CFaProto::Act_Then_Rd_List()
 {
-		DWORD dwSetOMD, dwGetOAD;
+	DWORD dwSetOMD, dwGetOAD;
 	BYTE bDlyTime;
 	const TOmMap* pOmMap = NULL;
 	int iRet = -1, iRetParaLen;
@@ -3641,12 +3662,9 @@ int CFaProto::ProxyTimeoutDealActThenGetReqList(BYTE * pbTx, BYTE *pbData)
 	return iRet;
 }
 
-
-
-
 int CFaProto::ProxyTransCommandRequest()
 {
-		int iLen;
+	int iLen;
 	BYTE bSopBitArry[] = {ONESTOPBIT, TWOSTOPBITS};
 	BYTE *pTxApdu = m_TxAPdu.bBuf;
 	BYTE bTsa[TSA_LEN] = {0};
@@ -3695,7 +3713,16 @@ int CFaProto::ProxyTransCommandRequest()
 		iLen = DecodeLength(pApdu, &dwSendLen);
 		pApdu += iLen;
 		pTmpTxApdu = pTxApdu+bOffsetLen;
-		iRet = MtrDoFwd(CommPara, pApdu, dwSendLen, pTmpTxApdu, sizeof(m_TxAPdu.bBuf)-(pTmpTxApdu-m_TxAPdu.bBuf)-bOffsetLen, wFrmTimeOut, wByteTimeOut);
+		if (CommPara.wPort == PORT_CCT_PLC)
+		{
+			iRet = MtrDoFwd376(pApdu, dwSendLen, pTmpTxApdu, sizeof(m_TxAPdu.bBuf)-(pTmpTxApdu-m_TxAPdu.bBuf)-bOffsetLen, wFrmTimeOut, wByteTimeOut);
+			if (iRet<0)
+				MtrDoFwd(CommPara, pApdu, dwSendLen, pTmpTxApdu, sizeof(m_TxAPdu.bBuf)-(pTmpTxApdu-m_TxAPdu.bBuf)-bOffsetLen, wFrmTimeOut, wByteTimeOut);
+		}
+		else
+		{
+			iRet = MtrDoFwd(CommPara, pApdu, dwSendLen, pTmpTxApdu, sizeof(m_TxAPdu.bBuf)-(pTmpTxApdu-m_TxAPdu.bBuf)-bOffsetLen, wFrmTimeOut, wByteTimeOut);
+		}
 	}
 	else
 		iRet = 0;
@@ -3712,8 +3739,15 @@ int CFaProto::ProxyTransCommandRequest()
 	}
 	else
 	{
-		*pTxApdu++ = 0;
-		*pTxApdu++ = 0xff;
+	    *pTxApdu++ = DAR;
+	    if( bStreamCtr<3 && CommPara.wPort==PORT_CCT_PLC && iRet==0)
+        {            
+            *pTxApdu++ = DAR_SUCC;
+        }
+		else
+		{
+            *pTxApdu++ = DAR_OTHER;  
+		}
 	}
 
 	*pTxApdu++ = 0x00;	//FollowReport 上报信息
@@ -3725,7 +3759,7 @@ int CFaProto::ProxyTransCommandRequest()
 
 int CFaProto::ProxyResponse(BYTE bPoxyType)
 {
-		BYTE *pTxApdu = m_TxAPdu.bBuf;
+	BYTE *pTxApdu = m_TxAPdu.bBuf;
 	BYTE *pbOADNum = NULL;
 	BYTE bAddrL, bTsa[TSA_LEN];
 	BYTE bApdu[128];
@@ -4026,7 +4060,8 @@ int CFaProto::ProxyResponse(BYTE bPoxyType)
 			}
 			if (GetCurTime() - dwLastTime > wTimeOut)
 				goto ProxyResponse_ret;
-	  	break;
+
+			break;
 		}
 	}
 
@@ -5640,7 +5675,6 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 						BYTE bTaskCsdBuf[1024] = {0};
 						BYTE bMtrMask[PN_MASK_SIZE] = {0};
 						BYTE *pbMsd, *pTime, *pSechFrzOad;
-						WORD wTmpOff = 0;
 						
 						
 						
@@ -5654,7 +5688,9 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 						memcpy(bOAD, bTaskCsdBuf+7, 4);//取得主对象描述符
 						pRCSD = bTaskCsdBuf+12;//取得bRCSD个数位置
 						pRSD = pRCSD;
-						pRSD += ScanRCSD(pRCSD, false);
+						nRet = ScanRCSD(pRCSD, false);
+						if (nRet >= 0)
+							pRSD += nRet;
 						pRSD++;//把RSD的第一个格式字符去掉了
 
 						bMethod = *pRSD;
@@ -5871,7 +5907,7 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 						pApdu += 4;
 
 						iRCSDLen = ScanRCSD(pRCSD, false);	
-						if (iRCSDLen != 1)	//RCSDLen=1表示无RCSD
+						if (iRCSDLen>=0 && iRCSDLen!=1)	//RCSDLen=1表示无RCSD
 						{
 							memcpy(pApdu, pRCSD, iRCSDLen);	
 							pApdu += iRCSDLen;
@@ -5952,8 +5988,6 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 							WriteItemEx(BANK16, m_wCurTaskId, wID, (BYTE*)&dwCurSec);//记录本次的上报时间sec
 							goto NEXT_TASK;
 						}
-						
-						DTRACE(DB_FAPROTO, ("TaskRpt  nRet=%d\r\n", nRet));
 #ifdef REPORT_FORWARD
 						if (nRet <= 0)//tMtrInfo 取不到数据时进行处理
 						{
@@ -6010,8 +6044,8 @@ void CFaProto::TaskRpt(BYTE * pbNSend)
 #endif								
 						{
 							//浙江要求数据上报需判断冻结时间，时间不对直接回NULL
+							WORD wTmpOff=0;
 							iDayFrzState = DayFrzTimeMatch(pRecBuf, pRCSD);
-							DTRACE(DB_FAPROTO, ("TaskRpt DayFrzTimeMatch iDayFrzState=%d, bOAD=0x%08x  nRet=%d  wRetNum=%d\r\n", iDayFrzState, OoOadToDWord(bOAD), nRet,wRetNum));
 							if (iDayFrzState >= 1)	
 							{
 								*pApdu = wRetNum;
@@ -6234,15 +6268,20 @@ void CFaProto::EventRpt(BYTE * pbNSend)
 		pApdu = m_TxAPdu.bBuf;
 		pApdu0 = pApdu;
 		*pApdu++ = REPORT_NOTI;	//上报
-		*pApdu++ = GET_NORMAL_LIST;//事件给的是OAD，所以上报事件时这里应该是01
-		pTmp = pApdu;//先记录PIID的位置，组帧发送时再获取PIID
-		*pApdu++ = 0;//PIID;
-		*pApdu++ = 1;//SEQUENCE OF OAD 个数=1,暂不考虑分帧
-		//revcpy(pApdu, bBuf, 4);//注意，如果读事件接口返回的数据里带了这个OAD,则这里就不用再拷了
-		//OoDWordToOad(pEvnMsg->dwOAD, pApdu);
-		//pApdu += 4;
-		
-		//*pApdu++ = 0x01;	//Data
+		if (tEvnMsg.bStage==EVT_STAGE_ERCRPT && tEvnMsg.dwOAD==RP_NOTI_TRANSDATA)
+		{
+			*pApdu++ = RP_NOTI_TRANSDATA;//透明上报
+			pTmp = pApdu;//先记录PIID的位置，组帧发送时再获取PIID
+			*pApdu++ = 0;//PIID;
+		}
+		else
+		{
+			*pApdu++ = GET_NORMAL_LIST;//事件给的是OAD，所以上报事件时这里应该是01
+			pTmp = pApdu;//先记录PIID的位置，组帧发送时再获取PIID
+			*pApdu++ = 0;//PIID;
+			*pApdu++ = 1;//SEQUENCE OF OAD 个数=1,暂不考虑分帧
+		}
+
 		if (tEvnMsg.bStage == EVT_STAGE_TASK)
 		{
 			memcpy(pApdu, tEvnMsg.bRcsd, tEvnMsg.wRcsdLen);
@@ -6260,7 +6299,7 @@ void CFaProto::EventRpt(BYTE * pbNSend)
 				btStage = 1;
 			else if (tEvnMsg.bStage == 2)
 				btStage = 4;
-			if (tEvnMsg.bStage != EVT_STAGE_TASK)
+			if (tEvnMsg.bStage < EVT_STAGE_TASK)
 				UpdateEvtRptState(m_dwCnOAD, &tEvnMsg, btStage);
 			//让事件那边分析一个读回时回复的事件帧看，我还不知上报事件的具体格式
 			pApdu += nRet;

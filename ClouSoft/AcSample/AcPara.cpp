@@ -16,7 +16,7 @@
 #include "FaAPI.h"
 #include "Pulse.h"
 
-const static WORD g_wPulseCurEnergyID[3][MAX_PULSE_TYPE] = 
+const static WORD g_wPulseCurEnergyID[2][MAX_PULSE_TYPE] = 
 {
 	//入库的数据项ID
 	{
@@ -28,7 +28,7 @@ const static WORD g_wPulseCurEnergyID[3][MAX_PULSE_TYPE] =
 	{
 		EP_POS_ABC, EQ_POS_ABC,	//正有、正无
 		EP_NEG_ABC, EQ_NEG_ABC, //反有、反无
-	},
+	},	
 };
 
 /*static WORD g_wPulseCurDemandID[2][MAX_PULSE_TYPE] =
@@ -364,7 +364,7 @@ bool PulseLoadPara(TPulseCfg* pPulseCfg, TPulsePara* pPulsePara)
 	{
 		pPulsePara->EnergyPara.wInnerID[i] = g_wPulseCurEnergyID[1][bPulseType]; //内部计算的电能ID
 		pPulsePara->EnergyPara.wID[0][i] = g_wPulseCurEnergyID[0][bPulseType];  //本月	高精度电能
-		pPulsePara->EnergyPara.wPlusID[i] = g_wPulseCurEnergyID[2][bPulseType];  //本月	低精度电能
+		pPulsePara->EnergyPara.wPlusID[i] = 0;  //本月	低精度电能
 		pPulsePara->EnergyPara.wID[1][i] = 0;	 //上日
 		pPulsePara->EnergyPara.wID[2][i] = 0;	 //g_wPulseCurEnergyID[0][bPulseType] + 0x0400  //上月
 		pPulsePara->EnergyPara.wID[3][i] = 0;	//g_wPulseCurEnergyID[0][bPulseType] + 0x0800;  //上上月
@@ -473,9 +473,7 @@ bool PulseLoadPara(TPulseCfg* pPulseCfg, TPulsePara* pPulsePara)
 bool IsCombCurEnergyID(WORD wID)
 {
 	WORD i;
-	const WORD wCombEngID[] = {
-		0x900f,0x911f, 0x912f,
-	};
+	const WORD wCombEngID[] = {0x900f,0x911f, 0x912f,};
 				
 	for (i=0; i<sizeof(wCombEngID)/sizeof(WORD); i++)
 	{

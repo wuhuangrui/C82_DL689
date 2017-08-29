@@ -529,7 +529,7 @@ int UpdFile()
 		system(szTmp);
 		sprintf(szTmp, "rm -fr /mnt/data/clmain/*");
 		system(szTmp);		
-		sprintf(szTmp, "cp %s /mnt/data/clmain.tar.gz", USER_DATA_PATH"FileTrans.tmp");
+		sprintf(szTmp, "cp %s /mnt/data/clmain.tgz", USER_DATA_PATH"FileTrans.tmp");
 		if (system(szTmp) < 0)
 		{
 			DTRACE(DB_FAPROTO, ("cp FileTrans.tmp  Error\r\n"));
@@ -550,20 +550,10 @@ int UpdFile()
 #ifndef SYS_WIN		
 //升级文件改为升clmain和\或驱动文件，再加上update脚本一起压缩的包
 
-		//sprintf(szTmp, "tar zxvf /mnt/data/clmain.tgz -C /mnt/data/");//K32改用下边的新压缩方式
-		//sprintf(szTmp, "xz -d /mnt/data/clmain.tar.xz");
-		/*
+		sprintf(szTmp, "tar zxvf /mnt/data/clmain.tgz -C /mnt/data/");
 		if (system(szTmp) < 0)
 		{
-			DTRACE(DB_FAPROTO, ("xz -d /mnt/data/clmain.tar.xz  Error\r\n"));
-			return -1;			
-		}
-		*/
-		//C82 no xz tool. changed by whr 20170728
-		sprintf(szTmp, "tar zxvf /mnt/data/clmain.tar.gz -C /mnt/data/");
-		if (system(szTmp) < 0)
-		{
-			DTRACE(DB_FAPROTO, ("tar zxvf /mnt/data/clmain.tar.gz -C /mnt/data/  Error\r\n"));
+			DTRACE(DB_FAPROTO, ("tar zxvf /mnt/data/clmain.tgz -C /mnt/data/  Error\r\n"));
 			return -1;			
 		}
 		sprintf(szTmp, "source /mnt/data/clmain/update &");

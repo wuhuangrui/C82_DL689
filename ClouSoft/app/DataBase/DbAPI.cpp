@@ -133,10 +133,10 @@ BYTE GetPnPort(WORD wPn)
 		{
 			if (tMtrInfo.dwPortOAD == 0xF2010201)	//485-1
 				//return PORT_GB485;
-				return 1;
+				return LOGIC_PORT_MIN;		//1
 			else if (tMtrInfo.dwPortOAD == 0xF2010202)	//485-2
 				//return PORT_GB485;	
-				return 2;
+				return LOGIC_PORT_MIN+1;	//2
 			else if (tMtrInfo.dwPortOAD == 0xF2080201)	//AC
 				return PORT_AC;
 			else if ((tMtrInfo.dwPortOAD&0xF2090200) == 0xF2090200)	//PLC
@@ -815,7 +815,7 @@ void SaveSoftVerChg()
 //开机自动应用配置文件
 void ApllyCfgAuto(void)
 {
-	char command[64] = {0};;
+	char command[64] = {0};
 	BYTE bCfgBuf[256] = {0};
 	char  szPathNameEx[PATHNAME_LEN+1] = { 0 };
 	int iCfgLen = readfile(USER_CFG_PATH"cfgpermit.cfg", bCfgBuf, sizeof(bCfgBuf));
@@ -2184,7 +2184,6 @@ TSem g_semSchUdp = NewSemaphore(1);
 void SetSchUpdateMask(WORD wOI, WORD wSchId)
 {
 	BYTE bBuf[TASK_NUM_MASK];
-	wSchId;
 
 	WaitSemaphore(g_semSchUdp);
 	for (BYTE i=0; i<sizeof(g_tOiMap)/sizeof(g_tOiMap[0]); i++)
@@ -2209,6 +2208,7 @@ void ClearSchData()
 	BYTE bBuf[TASK_NUM_MASK];
 	char pszTabName[64];
 	bool fSchUdp = false;
+	bool fDelAllEvtFlg = true;
 
 	WaitSemaphore(g_semSchUdp);
 	DTRACE(DB_CRITICAL, ("ClearSchData(): clear sch data.\r\n"));
@@ -2232,10 +2232,25 @@ void ClearSchData()
 							if (g_tOiMap[index].pSchFieldCfg->bSchType == SCH_TYPE_EVENT)
 							{
 #ifndef SYS_WIN
-								memset(pszTabName, 0, sizeof(pszTabName));
-								sprintf(pszTabName, "rm -rf %s%s_%03d_*", USER_DATA_PATH, g_tOiMap[index].pSchFieldCfg->pszTableName, wSchNo);
-								system(pszTabName);
-								DTRACE(DB_TASK, ("DelSchData: %s.\n", pszTabName));
+								if (IsAllAByte(bBuf+1, 0xff, sizeof(bBuf)-2))	//这里表示清空所有事件方案
+								{
+									if (fDelAllEvtFlg)
+									{
+										fDelAllEvtFlg = false;
+										memset(pszTabName, 0, sizeof(pszTabName));
+										sprintf(pszTabName, "rm -rf %s%s_*", USER_DATA_PATH, g_tOiMap[index].pSchFieldCfg->pszTableName);
+										system(pszTabName);
+										DTRACE(DB_TASK, ("DelSchData all: %s.\n", pszTabName));
+									}
+								}
+								else	//这里表示清空单个事件方案
+								{
+									fDelAllEvtFlg = false;
+									memset(pszTabName, 0, sizeof(pszTabName));
+									sprintf(pszTabName, "rm -rf %s%s_%03d_*", USER_DATA_PATH, g_tOiMap[index].pSchFieldCfg->pszTableName, wSchNo);
+									system(pszTabName);
+									DTRACE(DB_TASK, ("DelSchData one: %s.\n", pszTabName));
+								}
 #endif
 								SchRefreshMtrRdCtrl((BYTE )wSchNo);
 							}

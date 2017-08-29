@@ -153,6 +153,10 @@ int CctProxy(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pApdu, WO
 
 int CctTransmit(BYTE *pbTsa, BYTE bTsaLen, BYTE *pbReqBuf, WORD wReqLen, WORD wTimeOut, BYTE *pbRespBuf);
 
+int CctTransmit376(BYTE *pbReqBuf, WORD wReqLen, WORD wTimeOut, BYTE *pbRespBuf, int iMaxResLen);
+
+int CctTransmitBroadCast(BYTE *pbTsa, BYTE bTsaLen, BYTE *pbReqBuf, WORD wReqLen, WORD wTimeOut, BYTE *pbRespBuf, BYTE bPro=0);
+
 int MaskToNum(BYTE *pbMask, WORD wLen);
 
 WORD GetPlcNodeAddr(TMtrInfo *pMtrInfo, WORD wMtrNum);
@@ -166,5 +170,13 @@ WORD RouterMtrAddrConvertPn(BYTE *pbTsa);
 void GetRooterTermAddr(BYTE *pbTermAddr, BYTE &bTermAddrLen);
 
 void PrintInfo(TRdItem *pRdItem, TMtrPara* pMtrPara);
+
+void InitTOobMtrInfo(TOobMtrInfo *pInfo);
+WORD GetAcMtrSn();
+
+void SetGprsOnlineState(bool fIsOnline);
+bool GetGprsOnlineState();
+void SetEthOnlineState(bool fIsOnline);
+bool GetEthOnlineState();
 
 #endif 

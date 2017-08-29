@@ -299,6 +299,18 @@ bool GetMeterInfo(BYTE *pbTsa, BYTE bTsaLen, TOobMtrInfo *pTMtrInfo)
 }
 
 
+// 初始化TOobMtrInfo结构体
+void InitTOobMtrInfo(TOobMtrInfo * pInfo)
+{
+	memset(pInfo, 0, sizeof(TOobMtrInfo));
+	pInfo->bAcqTsaLen = 6;
+	pInfo->bAddInfoCnt = 0;
+	pInfo->bAssetLen = 6;
+	pInfo->bCodeLen = 6;
+	pInfo->bTsaLen = 6;
+	
+}
+
 // 是否合法的表计档案信息
 int IsValidMtrInfo(BYTE *pMtrInfoBuf)
 {
@@ -747,6 +759,7 @@ WORD GetMeterLen(BYTE *pbTsa)
 
 	return 0;
 }
+
 //描述：通过地址获取测量点号（内部映射的）
 //参数：@pbTsa 表地址
 //		@bLen 地址长度
@@ -919,6 +932,10 @@ BYTE GetMeterPort(WORD wMtrSn, TPORT_PARAM &tTPORT_PARAM)
 		else if (0xf2090200 == (tMtrInfo.dwPortOAD&0xffffff00))	//0xf209 属性02
 		{
 			return PORT_CCT_PLC;
+		}
+		else if(0xf2080200 == (tMtrInfo.dwPortOAD&0xffffff00) )
+		{
+			return PORT_AC;
 		}
 	}
 
@@ -1213,7 +1230,6 @@ bool SetMeterCT(WORD wMtrSn, WORD wCT)
 //描述：data_time_s 转系统time
 DWORD DataTimeToSysTime(BYTE *pbBuf, TTime &tTime)
 {
-
 	BYTE *pbPtr = pbBuf;
 
 	memset((BYTE*)&tTime, 0, sizeof(tTime));
@@ -1436,7 +1452,6 @@ int GetTaskCurExeTime(TTaskCfg* pTaskCfg, DWORD* pdwCurSec, DWORD* pdwStartSec, 
 		}
 	}
 
-
 	return -1;
 }
 
@@ -1487,10 +1502,14 @@ void ClearTaskIdUpateTime(BYTE bTaskId)
 	WriteItemEx(BANK16, bTaskId, 0x6001, 0);
 }
 
-
 int CctProxy(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bTsaLen, BYTE* pApdu, WORD wApduLen, WORD wTimeOut, BYTE* pbData)
 {
 	return g_CStdReader->DirAskProxy(bType, bChoice, bTsa, bTsaLen, pApdu, wApduLen, wTimeOut, pbData);
+}
+
+int CctTransmit376(BYTE *pbReqBuf, WORD wReqLen, WORD wTimeOut, BYTE *pbRespBuf, int iMaxResLen)
+{
+	return g_CStdReader->DoFwdData(pbReqBuf,wReqLen,wTimeOut, pbRespBuf, iMaxResLen);
 }
 
 int CctTransmit(BYTE *pbTsa, BYTE bTsaLen, BYTE *pbReqBuf, WORD wReqLen, WORD wTimeOut, BYTE *pbRespBuf)
@@ -1506,6 +1525,11 @@ int CctTransmit(BYTE *pbTsa, BYTE bTsaLen, BYTE *pbReqBuf, WORD wReqLen, WORD wT
 	memcpy(&bTxBuf[4], pbReqBuf, wReqLen);
 	iTxLen = wReqLen + 4;
 	return g_CStdReader->DoFwdData(pbTsa, bTsaLen, bTxBuf, iTxLen, wTimeOut, pbRespBuf, true);
+}
+
+int CctTransmitBroadCast(BYTE *pbTsa, BYTE bTsaLen, BYTE *pbReqBuf, WORD wReqLen, WORD wTimeOut, BYTE *pbRespBuf,BYTE bPro)
+{
+	return g_CStdReader->Broadcast(pbTsa, bTsaLen, pbReqBuf, wReqLen, wTimeOut, pbRespBuf, bPro);
 }
 
 int MaskToNum(BYTE *pbMask, WORD wLen)
@@ -1527,7 +1551,6 @@ int MaskToNum(BYTE *pbMask, WORD wLen)
 
 	return wNum;
 }
-
 
 //描述：获取载波档案同步节点个数
 WORD GetPlcNodeAddr(TMtrInfo *pMtrInfo, WORD wMtrNum)
@@ -1720,3 +1743,44 @@ void PrintInfo(TRdItem *pRdItem, TMtrPara *pMtrPara)
 		;
 	}
 }
+
+//描述：获取表交采测量点号
+//返回：交采测量点序号
+WORD GetAcMtrSn()
+{
+	TOobMtrInfo tMtrInfo;
+    WORD wMtrSn;
+    for(wMtrSn=0;wMtrSn<POINT_NUM;wMtrSn++)
+    {
+    	if (GetMeterInfo(wMtrSn, &tMtrInfo))
+    	{
+    	    if(0xf2080200 == (tMtrInfo.dwPortOAD&0xffffff00) )
+    		{
+    			return PORT_AC;
+    		}
+    	}
+    }
+	return 0;
+}
+
+bool g_fIsGprsOnLine = false;  // GPRS在线状态
+void SetGprsOnlineState(bool fIsOnline)
+{
+    g_fIsGprsOnLine = fIsOnline;
+}
+bool GetGprsOnlineState()
+{
+    return g_fIsGprsOnLine;
+}
+
+bool g_fIsEthOnLine = false;  //以太网在线状态
+void SetEthOnlineState(bool fIsOnline)
+{
+    g_fIsEthOnLine = fIsOnline;
+}
+bool GetEthOnlineState()
+{
+    return g_fIsEthOnLine;
+}
+
+

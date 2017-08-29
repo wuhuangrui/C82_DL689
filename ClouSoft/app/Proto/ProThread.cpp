@@ -22,6 +22,8 @@
 #include "ProAPI.h"
 #include "DrvAPI.h"
 #include "sysfs.h"
+#include "CctAPI.h"
+
 
 //描述:用电管理终端协议GPRS服务线程
 TThreadRet StdProtoThread(void* pvArg)
@@ -65,6 +67,15 @@ TThreadRet StdProtoThread(void* pvArg)
 		iMonitorID = ReqThreadMonitorID("CommPro-thrd", 60*60);	//申请线程监控ID,更新间隔为一个小时
 
    	pIf->InitRun();
+
+    if(pIf->GetIfType() == IF_GPRS)
+    {
+        SetGprsOnlineState(false);
+    }
+    else if(pIf->GetIfType() == IF_SOCKET)
+    {
+        SetEthOnlineState(false);
+    }
 
 	BYTE bBuf[8];
 	WORD wState;
@@ -133,6 +144,14 @@ TThreadRet StdProtoThread(void* pvArg)
 			case IF_STATE_DORMAN:  //休眠
 				pIf->DoDorman();
 				g_fCliIdle = true; //客户端处于空闲状态
+				if(pIf->GetIfType() == IF_GPRS)
+                {
+                    SetGprsOnlineState(false);
+                }
+                else if(pIf->GetIfType() == IF_SOCKET)
+                {
+                    SetEthOnlineState(false);
+                }
 				break;
 			
 			case IF_STATE_RST:  //复位
@@ -146,6 +165,15 @@ TThreadRet StdProtoThread(void* pvArg)
 					fCliConnectFail = false;
 					Sleep(1000);  //等待1秒让GprsKeepThread线程GPRSid离线
 				}
+
+                if(pIf->GetIfType() == IF_GPRS)
+                {
+                    SetGprsOnlineState(false);
+                }
+                else if(pIf->GetIfType() == IF_SOCKET)
+                {
+                    SetEthOnlineState(false);
+                }
 
 				if (pIf->ResetIf() == IF_RST_OK)
 				{
@@ -172,6 +200,16 @@ TThreadRet StdProtoThread(void* pvArg)
 				}
 				break;
 			case IF_STATE_CONNECT: //连接
+
+                if(pIf->GetIfType() == IF_GPRS)
+                {
+                    SetGprsOnlineState(false);
+                }
+                else if(pIf->GetIfType() == IF_SOCKET)
+                {
+                    SetEthOnlineState(false);
+                }
+                
 				if (pIf->GetIfType()==IF_GPRS || pIf->GetIfType()==IF_SOCKET)
 				{
 					strcpy(szTmp, "连接");
@@ -207,6 +245,15 @@ TThreadRet StdProtoThread(void* pvArg)
 				break;
 				
 			case IF_STATE_LOGIN:  //登录
+    			if(pIf->GetIfType() == IF_GPRS)
+                {
+                    SetGprsOnlineState(false);
+                }
+                else if(pIf->GetIfType() == IF_SOCKET)
+                {
+                    SetEthOnlineState(false);
+                }                
+                
 				if (pProto->Login())
 					pIf->OnLoginOK();
 				else
@@ -214,6 +261,14 @@ TThreadRet StdProtoThread(void* pvArg)
 				break;
 				
 			case IF_STATE_TRANS:  //传输
+    			if(pIf->GetIfType() == IF_GPRS)
+                {
+                    SetGprsOnlineState(true);
+                }
+                else if(pIf->GetIfType() == IF_SOCKET)
+                {
+                    SetEthOnlineState(true);
+                }
 				pProto->RcvFrm(); //接收到的一帧,并已经对其进行处理
 				if (!fSocketSvrMode)
 					pIf->KeepAlive();

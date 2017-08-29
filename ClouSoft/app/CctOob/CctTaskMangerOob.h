@@ -113,19 +113,6 @@ typedef struct {
 }TCOM_PARAM;	//通信参数
 
 typedef struct {
-	BYTE bVendorCode[2];	//厂商代码
-	BYTE bChipCode[2];		//芯片代码
-	BYTE bVerDate[5];		//版本日期 YYMMDDhhmm
-	WORD wSfwVer;			//软件版本
-}TSWF_VER_INFO;	//版本信息
-
-typedef struct {
-	char pszPortDesc[32];			//端口描述符
-	TCOM_PARAM tTCOM_PARAM;			//通信参数
-	TSWF_VER_INFO tTSWF_VER_INFO;	//版本信息	
-}TCCT_MODE_INFO;					//本地模块信息
-
-typedef struct {
 	BYTE bPortDescLen;			//端口描述符的有效长度
 	char pszPortDesc[32];		//端口描述符
 	TCOM_PARAM tTCOM_PARAM;		//端口参数
@@ -266,6 +253,12 @@ bool GetCommonSchCfg(TTaskCfg* pTaskCfg, TCommAcqSchCfg* pTCommAcqSchCfg, BYTE *
 //	     @pTAcqSchCfg用来返回任务的配置
 //返回: 为真获取成功
 bool GetEventSchCfg(TTaskCfg* pTaskCfg, TEvtAcqSchCfg* pTEvtAcqSchCfg);
+
+//描述：取得事件采集方案参数
+//参数: @index事件采集方案号
+//	     @pTAcqSchCfg用来返回任务的配置
+//返回: 为真获取成功
+bool GetEventSchCfg(BYTE bIndex, TEvtAcqSchCfg* pTEvtAcqSchCfg);
 
 bool GetTaskCyleUnit(TMtrRdCtrl* pMtrRdCtrl);
 

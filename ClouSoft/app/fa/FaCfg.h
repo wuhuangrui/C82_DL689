@@ -12,6 +12,10 @@
 #define FACFG_H
 #include "syscfg.h"
 
+//地方版本选择
+//#define   VER_GWMJ					1	//国网盲检	
+//#define VER_698_JIBEI				1	//冀北
+//#define VER_698_SHANDONG			1	//山东
 
 #define FA_TYPE_D82			1
 #define FA_TYPE_C82			2

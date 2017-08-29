@@ -19,6 +19,7 @@
 #define    KEYDOWN          			4
 #define    KEYEXIT          			5
 #define    KEYOK            			6
+#define    KEYOKESC                     7
 
 #define	   LONGKEY			0x100
 

@@ -782,7 +782,7 @@ int Make698FrmSend(WORD wPort, DWORD dwOAD, DWORD dwBaudRate, BYTE* pbMtrAddr, B
 	tCommPara.bParity = EVENPARITY;
 	//0x40000200
 	WORD wAPDULen = GetRequestNormal(dwOAD, bCmdFrm+8+bAddrLen);
-	WORD wFrmLen = DL69845MakeFrm(0, pbMtrAddr, bCmdFrm, bCmdFrm+8+bAddrLen, wAPDULen);
+	WORD wFrmLen = DL69845MakeFrm(0, pbMtrAddr, bCmdFrm, bCmdFrm+8+bAddrLen, wAPDULen, false);
 	iLen = MtrDoFwd(tCommPara, bCmdFrm, wFrmLen, bBuf, sizeof(bBuf), 900, 10);
 	if (iLen <= 0)
 		return -13;

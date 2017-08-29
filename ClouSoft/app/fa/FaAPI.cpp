@@ -180,17 +180,7 @@ BYTE g_bRemoteDownIP[8];
 
 bool g_fFrzInit = false;	//冻结初始化是否完成
 
-void CheckDownSoft(void);
-
-//U盘是否插入
-//返回：true 已插入， false 未插入
-bool IsMountUsb(void);
-
-void SetMountUsb(BYTE bState);
-
-//设置USB处理界面是否进入状态 0：未进入，1：已进入
-void SetUsbProcessState(BYTE bState);
-
+void DoCheckUsb(void);
 
 
 //CL818C7第3路485口和debug口共用，0xa200大于0关调试，
@@ -602,6 +592,7 @@ void FaInitStep1()
 //	signal(SIGQUIT, sigCtrC);
 //	signal(SIGTERM, sigCtrC);	
 #endif
+	TCommPara tCommPara;
 	char bUserPath[128];
 	sprintf(bUserPath, USER_PATH);
 
@@ -631,13 +622,39 @@ void FaInitStep1()
 	GetCurTime(&g_tPowerOn);
 	//初始化测试口
 #ifdef SYS_LINUX
+#if 0//RS232修改为参数可配置
 	if (IsDownSoft())	//收到了下载命令,把测试口的波特率设置为115200,也用来下载
 		g_commTest.Open(COMM_TEST, CBR_115200, 8, ONESTOPBIT, NOPARITY);
 	else
 		g_commTest.Open(COMM_TEST, CBR_9600, 8, ONESTOPBIT, NOPARITY);
-
+#else
+	tCommPara.wPort = COMM_TEST;
+	OIRead_PortPara(0xF200, 0, &tCommPara, NULL);	
+	if (!g_commTest.Open(tCommPara))
+	{	
+		DTRACE(DB_CRITICAL, ("FaInitStep1: g_commTest open fail.\r\n"));
+	}
+	else
+	{
+		DTRACE(DB_CRITICAL, ("FaInitStep1: g_commTest open succ.\r\n"));
+	}
+#endif
+	
 	//初始化本地维护口
-	g_commLocal.Open(COMM_LOCAL, CBR_2400, 8, ONESTOPBIT, NOPARITY);
+#if 0//红外口修改为参数可配置
+	g_commLocal.Open(COMM_LOCAL, CBR_1200, 8, ONESTOPBIT, EVENPARITY);
+#else
+	tCommPara.wPort = COMM_LOCAL;
+	OIRead_PortPara(0xF202, 0, &tCommPara, NULL);	
+	if (!g_commLocal.Open(tCommPara))
+	{	
+		DTRACE(DB_CRITICAL, ("FaInitStep1: g_commLocal open fail.\r\n"));
+	}
+	else
+	{
+		DTRACE(DB_CRITICAL, ("FaInitStep1: g_commLocal open succ.\r\n"));
+	}
+#endif
 #else
 	g_commTest.Open(COMM_TEST, CBR_9600, 8, ONESTOPBIT, NOPARITY);
 #endif //SYS_LINUX
@@ -707,6 +724,26 @@ void FaInitDrivers()
 		DTRACE(DB_CRITICAL, ("FaIniDrivers: FM24CL Size = 2K.\r\n"));
 	else
 		DTRACE(DB_CRITICAL, ("FaIniDrivers: FM24CL Size = 8K.\r\n"));
+#endif
+}
+
+//描述:初始化液晶对比度
+void FaInitLcdAdjTemp()
+{
+#ifndef SYS_WIN	
+	BYTE bTmp[10];
+	int iTemp;
+
+	if (g_pLcd != NULL)
+	{
+		memset(bTmp, 0, sizeof(bTmp));
+		ReadItemEx(BN2, PN0, 0x1045, bTmp);
+		iTemp = BcdToInt(bTmp, 4); //温度实测1位小数 -200 发货去掉硬件基准所以不减了
+		if (iTemp <= -200)	//上电初始化
+			g_pLcd->AdjContrast(160);
+		else
+			g_pLcd->AdjContrast(150);	//140
+	}		
 #endif
 }
 
@@ -811,7 +848,7 @@ bool IsAcPowerOff(BYTE* pbIsValid)
 		if (!fPowerOff)
 		{
 			fPowerOff = true;
-			WriteItemEx(BN2, PN0, 0x210e, (BYTE* )&fPowerOff);
+			//WriteItemEx(BN2, PN0, 0x210e, (BYTE* )&fPowerOff);	//停电需要消斗
 		}
 	}
 	else if(wU[0]>=wMaxU || wU[1]>=wMaxU || wU[2]>=wMaxU)
@@ -821,6 +858,11 @@ bool IsAcPowerOff(BYTE* pbIsValid)
 			fPowerOff = false;
 			WriteItemEx(BN2, PN0, 0x210e, (BYTE* )&fPowerOff);
 		}
+	}
+	
+	if (fPowerOff)
+	{
+		DTRACE(DB_METER_EXC, ("IsAcPowerOff: wU[0]=%d, wU[1]=%d, wU[2]=%d!\r\n", wU[0], wU[1], wU[2]));
 	}
 
     return fPowerOff;
@@ -985,8 +1027,6 @@ void DoYX()
  
 	bChgFlg = g_bYxVal ^ bYxVal;
     g_bYxVal = bYxVal;
-
-
 
     if (bChgFlg != 0)
     {
@@ -1616,17 +1656,14 @@ TThreadRet LoadCtrlThread(void* pvPara)
 	Sleep(5000);	//在启动时负控延迟5秒启动.
 	g_LoadCtrl.Init();
 	SetCtrlThreadStart(true);
-	
-	static DWORD dwClick = 0;
 	while (1)
 	{
-		if (dwClick==0 || (GetClick()-dwClick>20) || GetInfo(INFO_CTRL))//收到信息或者间隔50秒以上执行一次
-		{
-			g_LoadCtrl.DoCtrl();
-			UpdThreadRunClick(iMonitorID);
-			dwClick = GetClick();
-		}
-		Sleep(500);
+		g_LoadCtrl.DoCtrl();
+
+		UpdThreadRunClick(iMonitorID);
+
+		Sleep(1000);
+		
 	}
 
 	ReleaseThreadMonitorID(iMonitorID);
@@ -1923,12 +1960,32 @@ void DelSchData()
 		{
 			if (tTaskCfg.bSchType == SCH_TYPE_EVENT)
 			{
-#ifndef SYS_WIN
-				memset(pszTabName, 0, sizeof(pszTabName));
-				sprintf(pszTabName, "rm -rf %s%s_%03d_*", USER_DATA_PATH, GetSchTableName(tTaskCfg.bSchType), tTaskCfg.bSchNo);
-				system(pszTabName);
-				DTRACE(DB_TASK, ("DelSchData: %s.\n", pszTabName));
-#endif
+				int iSchCfgLen;
+				int iArryOff = 1;
+				WORD wFmtLen, wNum, wCfgLen;
+				BYTE *pbSch, *pbFmt, *pbArryROAD;
+				BYTE bType;
+
+				if ((pbSch=GetSchCfg(&tTaskCfg, &iSchCfgLen)) == NULL)
+					continue;
+				if((pbFmt=GetSchFmt(tTaskCfg.bSchType, &wFmtLen)) == NULL)
+					continue;
+
+				pbArryROAD = OoGetField(pbSch, pbFmt, wFmtLen, iArryOff, &wCfgLen, &bType);
+				pbArryROAD += 4; //跳过采集类型
+				if (*pbArryROAD++ == DT_ARRAY)
+				{
+					wNum = *pbArryROAD++;
+					for (WORD i=0; i<wNum; i++)
+					{
+						memset(pszTabName, 0, sizeof(pszTabName));
+						sprintf(pszTabName, "%s_%03d_%02d.dat", GetSchTableName(tTaskCfg.bSchType), tTaskCfg.bSchNo, i);
+						iRet = TdbClearRec(pszTabName); 
+						DTRACE(DB_TASK, ("DelSchData: %s, iRet=%d.\n", pszTabName, iRet));
+						pbArryROAD++;
+						pbArryROAD += ScanROAD(pbArryROAD, false);
+					}
+				}
 			}
 			else
 			{
@@ -2110,16 +2167,17 @@ void FaInit(BYTE bMethod)
 	case EXEC_INSTANCE:
 		break;
 	case DATA_INIT:
+		SetInfo(INFO_RST_TERM_STAT); 
+		SetInfo(INFO_HARDWARE_INIT);
 		FaResetData_1();
 		MtrExcOnRxFaResetCmd();		//抄表事件数据清零
 		FrzTaskOnRxFaResetCmd();	//冻结数据初始化
-		SetInfo(INFO_RST_TERM_STAT); 
-		SetInfo(INFO_HARDWARE_INIT);
 		UpdateTermPowerOffTime();	//需要放在DealSpecTrigerEvt(MTR_MTRCLEAR)前面
 
 		WaitSemaphore(g_semTermEvt);
 		DealSpecTrigerEvt(MTR_MTRCLEAR);
 		DealSpecTrigerEvt(TERM_INIT);//需要放在DealSpecTrigerEvt(MTR_MTRCLEAR)后面
+		SetInfo(INFO_PULSEDATA_RESET);
 		SignalSemaphore(g_semTermEvt);
 		
 		//Sleep(10*1000);
@@ -2136,6 +2194,7 @@ void FaInit(BYTE bMethod)
 		WaitSemaphore(g_semTermEvt);		
 		DealSpecTrigerEvt(MTR_MTRCLEAR);
 		DealSpecTrigerEvt(TERM_INIT);
+		SetInfo(INFO_PULSEDATA_RESET);
 		SignalSemaphore(g_semTermEvt);
 		
 		Sleep(10*1000);
@@ -2246,6 +2305,68 @@ bool IsTermUptateEnd()
     }
 }
 
+/*
+温度<=-20度               对比度值为160
+温度>-20度                对比度值为150
+*/
+void DoAdjTemp()
+{
+	BYTE bBuf[8];
+	bool fAdjContrast = false;
+	static BYTE bContrast=0;
+	static int iCnt=0;	//去抖计数
+
+	if (iCnt==0 && bContrast==0)
+		DTRACE(DB_GLOBAL, ("DoAdjTemp : start at click=%ld.\n", GetClick()));	
+
+	ReadItemEx(BN2, PN0, 0x1045, bBuf);
+	int iTemp = BcdToInt(bBuf, 4); //温度实测1位小数 -200 发货去掉硬件基准所以不减了
+	if (iTemp <= -200)	//-20度为分界点  根据试验数据，<=-20度时，对比度设置160， >-20时，对比度设置为150 160225
+	{
+		iCnt++;
+		if (iCnt > 60)
+		{
+			iCnt = 60;
+
+			if(bContrast != 160)
+			{
+				DTRACE(DB_GLOBAL, ("DoAdjTemp : iTemp=%d, adj contrast to 160 at click=%ld.\n", iTemp, GetClick()));
+	#ifndef SYS_WIN
+				g_pLcd->AdjContrast(160);
+	#endif
+				bContrast = 160;
+				fAdjContrast = true;
+				Sleep(50);
+			}
+		}
+	}
+	else
+	{
+		iCnt--;
+		if (iCnt < -60)
+		{
+			iCnt = -60;
+
+			if(bContrast != 150)
+			{
+				DTRACE(DB_GLOBAL, ("DoAdjTemp : iTemp=%d, adj contrast to 150 at click=%ld.\n", iTemp, GetClick()));
+	#ifndef SYS_WIN
+				g_pLcd->AdjContrast(150);
+	#endif
+				bContrast = 150;
+				fAdjContrast = true;
+				Sleep(50);
+			}
+		}
+	}
+
+	if (fAdjContrast)
+	{		
+		WriteItemEx(BN10, PN0, 0xa1be, &bContrast);
+		//TrigerSaveBank(BN10, 0, -1);	//注释此行
+	}
+}
+
 void WriteCfgPathName(void)
 {
 	char szCfgBuf[50];
@@ -2255,41 +2376,6 @@ void WriteCfgPathName(void)
 	WriteFile(USER_CFG_PATH"cfgpermit.cfg", (BYTE*)szCfgBuf, strlen(szCfgBuf));
 	DTRACE(DB_FA, ("WriteCfgPathName: write cfgpermit.cfg!\r\n"));
 }
-
-
-
-//extern bool IsMountedOK(char *str);
-void DoCheckUsb(void)
-{
-	char str[64] = {0};
-	strcpy(str, "/mnt/usb");
-
-	
-	if (!IsInUsbProcess())
-	{
-		if (IsMountedOK(str))
-		{
-			SetMountUsb(1);
-			//DTRACE(0, ("USB IN\r\n"));
-		}
-		else
-		{
-			SetMountUsb(0);
-			//DTRACE(0, ("USB WAIT\r\n"));
-		}
-	}
-	else
-	{
-		if (!IsMountedOK(str))
-		{
-			SetUsbProcessState(0);
-			SetMountUsb(0);
-			//DTRACE(0, ("USB OUT\r\n"));
-		}
-	}
-	
-}
-
 
 
 
@@ -2303,6 +2389,16 @@ TThreadRet SlowSecondThread(void* pvPara)
 
 	while (1)
 	{
+		if (GetInfo(INFO_MTR_EXC_MEM))
+		{
+			RequestThreadsSem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_EXC_REALLOC start ###\r\n"));
+			SetThreadDelayFlg();
+			RefreshMtrExcMem();
+			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_EXC_REALLOC end ###\r\n"));
+			ReleaseThreadsSem();
+		}
+
 		if (GetInfo(INFO_UPD_MTR_CTRL))
 		{
 			RequestThreadsSem();
@@ -2321,6 +2417,7 @@ TThreadRet SlowSecondThread(void* pvPara)
 			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_UPDATE start ###\r\n"));
 			SetThreadDelayFlg();
 			InitMtrMask();
+			SetInfo(INFO_SYNC_MTR);
 			DTRACE(DB_CRITICAL, ("### SlowSecondThread(): INFO_MTR_UPDATE end ###\r\n"));
 			ReleaseThreadsSem();
 		}
@@ -2457,9 +2554,11 @@ TThreadRet SlowSecondThread(void* pvPara)
 		
 		DoFaSave();
 		DoFapCmd();
+		DoAdjTemp();
+		DoCheckUsb();
 		DoPowerManagement();
 		CheckSignStrength();
-		DoCheckUsb();
+
 		
 		UpdThreadRunClick(iMonitorID);
 		Sleep(1000);
@@ -2473,7 +2572,7 @@ TThreadRet SlowSecondThread(void* pvPara)
 //只针对“单片机类型”的控制模块 有效
 TThreadRet CtrlMoudleThread(void* pvPara)
 {
-	int iMonitorID = ReqThreadMonitorID("CtrlMoudleThread-thrd", 60*60*60);	//申请线程监控ID,更新间隔为60分钟
+	int iMonitorID = ReqThreadMonitorID("CtrlMoudleThread-thrd", 60*60);	//申请线程监控ID,更新间隔为60分钟
 
 	DTRACE(DB_CRITICAL, ("CtrlMoudleThread : started.......\n"));
 	BYTE bCnt = 0;
@@ -2573,8 +2672,8 @@ int GetInSnPortFun(WORD wInSn)
 	BYTE b;
 	int iPortFun = -1;
 
-	if (IsDownSoft())
-		return -1;
+	//if (IsDownSoft())
+	//	return -1;
 
 	if (wInSn == 1)	//485-1口
 		wID = 0xa131;
@@ -2623,8 +2722,8 @@ int SetInSnPortFun(WORD wInSn, BYTE bPortFun)
 {
 	WORD wID;
 
-	if (IsDownSoft())
-		return -1;
+	//if (IsDownSoft())
+	//	return -1;
 
 	if (wInSn == 1)	//485-1口
 		wID = 0xa131;
@@ -2958,6 +3057,7 @@ void InitAcData()
 
 extern TThreadRet DisplayThread(void* pvArg);
 
+bool g_fIsSemTimeOk = false;
 TThreadRet MainThread(void* pvPara)
 {
 	SysInitDebug();	//初始化不同系统下调试最低层的部分
@@ -2971,8 +3071,10 @@ TThreadRet MainThread(void* pvPara)
 	DTRACE(DB_CRITICAL, ("MainThread : started V1.58!\n"));
 
 	FaInitStep1();
+	g_fIsSemTimeOk = true; 
 	FaInitDrivers(); //这部分驱动相关的初始化,用到数据库,所以必须放到FaInitStep1()后
 	InitDrvPara();
+	FaInitLcdAdjTemp();
 	InitApp();
 
 	InitMtrMask();
@@ -3006,38 +3108,7 @@ TThreadRet MainThread(void* pvPara)
 #ifdef EN_ETHTOGPRS //允许以太网和GPRS相互切换,先检查下网络吧，因为下面的通信线程要用到结果
 	NewThread(CheckNetThread,  NULL, 8192, THREAD_PRIORITY_NORMAL);
 #endif
-
-	if (IsDownSoft())
-	{
-		NewFaUpdateThread();
-
-		NewThread(DriverThread, NULL, 8192, THREAD_PRIORITY_NORMAL);
-
-	#ifndef SYS_WIN
-		EnableTrace(false);
-		if (g_pLcd != NULL)
-		{
-			g_pLcd->Clear();			
-			if( g_bRemoteDownIP[0] == 0xff )
-				g_pLcd->Print("\r本地sftp下载", 0, 3,false,true);
-			else
-				g_pLcd->Print("\r远程sftp下载", 0, 3,false,true);
-			g_pLcd->Print("\r正在下载程序,请稍候...", 0, 4,false,true);
-			g_pLcd->Refresh();
-		}
-	#endif
-
-		DWORD dwUpdateTime = 0;
-		while(1)
-		{
-			UpdThreadRunClick(iMonitorID);
-
-			Sleep(1000);
-			dwUpdateTime++;
-			if(dwUpdateTime > 3*60*60) //最长下载3个小时
-				ResetCPU();
-		}	
-	}
+	
 #ifndef SYS_WIN
 
 #ifdef  EN_AC
@@ -3134,6 +3205,25 @@ bool IsFkTermn()
 		return false;
 }
 
+//U盘是否插入
+//返回：true 已插入， false 未插入
+bool IsMountUsb()
+{
+	BYTE bState = 0;
+
+	if (ReadItemEx(BN2, PN0, 0x503a, &bState) > 0)
+		return (bState!=0);
+	else
+		return false;
+}
+
+bool SetMountUsb(BYTE bState)
+{
+	if (WriteItemEx(BN2, PN0, 0x503a, &bState) > 0)
+		return true;
+	else
+		return false;
+}
 
 
 //显示是否处于U盘升级界面
@@ -3142,35 +3232,47 @@ bool IsInUsbProcess()
 {
 	BYTE bState = 0;
 
-	if (ReadItemEx(BN2, PN0, 0x2112, &bState) > 0)
+	if (ReadItemEx(BN2, PN0, 0x503b, &bState) > 0)
 		return (bState!=0);
 	else
 		return false;
-}
-
-//U盘是否插入
-//返回：true 已插入， false 未插入
-bool IsMountUsb()
-{
-	BYTE bState = 0;
-
-	if (ReadItemEx(BN2, PN0, 0x2111, &bState) > 0)
-		return (bState!=0);
-	else
-		return false;
-}
-
-void SetMountUsb(BYTE bState)
-{
-	WriteItemEx(BN2, PN0, 0x2111, &bState);
 }
 
 //设置USB处理界面是否进入状态 0：未进入，1：已进入
-void SetUsbProcessState(BYTE bState)
+bool SetUsbProcessState(BYTE bState)
 {
-	WriteItemEx(BN2, PN0, 0x2112, &bState);
+	if(WriteItemEx(BN2, PN0, 0x503b, &bState)>0)
+    {
+        return true;
+    }       
+    return false;
 }
 
+void DoCheckUsb(void)
+{
+	char str[64] = {0};
+	strcpy(str, "/mnt/usb");
+
+	if (!IsInUsbProcess())
+	{
+		if (IsMountedOK(str))
+		{
+		    SetMountUsb(1);
+		}
+		else
+		{
+			SetMountUsb(0);
+		}
+	}
+	else
+	{
+		if (!IsMountedOK(str))
+		{
+		    SetMountUsb(0);
+			SetUsbProcessState(0);
+		}
+	}
+}
 
 //描述：申请线程的信号量
 void RequestThreadsSem()

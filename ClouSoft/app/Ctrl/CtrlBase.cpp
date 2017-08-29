@@ -141,11 +141,11 @@ int GetIdxOfAll1InPst(BYTE bFlgs, int iIdx)
 		return -1;
 	for (i=0; i<iIdx; i++)
 	{
-		if ((bFlgs&0x01) != 0)
+		if ((bFlgs&0x80) != 0)
 			i1++;
-		bFlgs >>= 1;
+		bFlgs <<= 1;
 	}
-	if ((bFlgs&0x01) != 0)
+	if ((bFlgs&0x80) != 0)
 		return (i1+1);
 	else
 		return -1;
@@ -358,6 +358,8 @@ void CGrpCtrl::DoCmdScan(void)
 					//***记录到系统库日志中.
 					//***发出声光信号;
 				}
+				if (m_iGrp != -1)
+					SetSysCtrlTurnsStatus(m_iGrp, 0);
 				RstCtrl();					//复位内存中本类控制的所有相关状态.
 				SetValidStatus(false);		//恢复控制退出状态.
 				SaveNewCmd();				//保存最新命令.
@@ -395,6 +397,7 @@ void CGrpCtrl::DoCmdScan(void)
 			}
 			else if (NewCmdAct() == 2)	//当前总加组解除命令
 			{
+				SetSysCtrlTurnsStatus(m_iGrp, 0);
 				RstSysCtrlStatus(i);	//复位系统库当前总加组本类控制状态(可能包括轮次状态,投入标志等等).
 				ClrSysCmd(i);			//清除系统库当前总加组本类控制命令.
 				RstCtrl();				//复位内存中本类控制的所有相关状态.
@@ -408,6 +411,12 @@ void CGrpCtrl::DoCmdScan(void)
 			}
 		}
 	}
+}
+
+BYTE CGrpCtrl::GetTurnsStatus(void)						//获得轮次状态.
+{
+	SetSysCtrlTurnsStatus(m_iGrp, m_bTurnsStatus);
+	return m_bTurnsStatus;
 }
 
 //描述: 获取系统库指定总加组指定控制类轮次配置状况.
@@ -465,17 +474,19 @@ BYTE CGrpCtrl::GetSysCtrlFlgs(int iGrp, int iSel)
 	if (iSel<0 || 1<iSel)
 		return 0x00;
 
-	BYTE bBuf[1+1+6*8];
+	TGrpCtrlSetSta tGrpCtrlSetSta;
+	memset(&tGrpCtrlSetSta, 0, sizeof(tGrpCtrlSetSta));
 
-	if (ReadItemEx(BN0, PN0, 0x104f, bBuf) <=0)	//读"终端控制设置状态"ID
+	if (!GetGrpCtrlSetSta(iGrp, &tGrpCtrlSetSta))
 	{
-		DTRACE(DB_LOADCTRL, ("CGrpCtrl::GetSysCtrlFlgs: There is something wrong when call ReadItemEx() !\n"));
-		return 0x00;
+		DTRACE(DB_LOADCTRL, ("CGrpCtrl::GetSysCtrlFlgs: There is something wrong when call GetGrpCtrlSetSta() !\n"));
+		return false;
 	}
+
 	if (iSel == 0)
-		return (bBuf[1+1+6*(iGrp-GRP_START_PN)+2] & 0x0f);	//目前只有0,1,3,4位被使用.
+		return (tGrpCtrlSetSta.bPwrCtrlSta & 0x0f);	//目前只有0,1,3,4位被使用.
 	else
-		return (bBuf[1+1+6*(iGrp-GRP_START_PN)+3] & 0x03);	//目前只有0,1位被使用.
+		return (tGrpCtrlSetSta.bEngCtrlSta & 0x03);	//目前只有0,1位被使用.
 }
 
 //描述: 改变系统库指定总加组指定控制类的指定标志位状态,包括F5(终端控制设置状态)和F6(终端当前控制状态)
@@ -492,6 +503,7 @@ bool CGrpCtrl::ChgSysCtrlFlgs(int iGrp, BYTE bFlgs, bool fStatus, int iCtrlType)
 		return false;
 
 	int i = iGrp - GRP_START_PN;
+	BYTE bFlgsbak = bFlgs;
 	/*BYTE bSetStatusBuf[1+1+6*8];
 	BYTE bCurStatusBuf[1+1+1+8*8];*/
 	TGrpCtrlSetSta tGrpCtrlSetSta;
@@ -674,8 +686,47 @@ bool CGrpCtrl::ChgSysCtrlFlgs(int iGrp, BYTE bFlgs, bool fStatus, int iCtrlType)
 		return false;
 	}
 
-	/*WriteItemEx(BN0, PN0, 0x104f, bSetStatusBuf);	//写"终端控制设置状态".
-	WriteItemEx(BN0, PN0, 0x105f, bCurStatusBuf);	//写"终端当前控制状态".*/
+	WORD wInID = 0;
+	BYTE bBuf[10];
+	memset(bBuf, 0, sizeof(bBuf));
+	if (iCtrlType == PWR_CTL)
+	{
+		switch(bFlgsbak)
+		{
+		case 1:	//时段控
+			wInID = 0x8230;
+			break;
+		case 2:	//厂休控
+			wInID = 0x8240;
+			break;
+		case 4:	//营业报停控
+			wInID = 0x8250;
+			break;
+		case 8:	//下浮控
+			wInID = 0x8260;
+			break;
+		}
+	}
+	else
+	{
+		switch(bFlgsbak)
+		{
+		case 1:	//月电控
+			wInID = 0x8280;
+			break;
+		case 2:	//购电控
+			wInID = 0x8270;
+			break;
+		}
+	}
+	BYTE *pbtr = bBuf;
+	*pbtr++ = DT_STRUCT;
+	*pbtr++ = 2;					//结构成员个数
+	*pbtr++ = DT_OI;				//总加组对象
+	pbtr += OoWordToOi(0x2300+iGrp, pbtr);
+	*pbtr++ = DT_ENUM;						
+	*pbtr++ = fStatus;
+	WriteItemEx(BN0, iGrp, wInID, bBuf);
 
 	return true;
 }
@@ -851,46 +902,46 @@ void CGrpCtrl::MakeDisp(BYTE bTurnsStatus)
 //返回: 成功返回 true, 否则返回 false.
 bool CEngCtrl::GetSysEngStatus(int iSel)
 {
-	BYTE bSetStatusBuf[1+1+6*8];
-	BYTE bCurStatusBuf[1+1+1+8*8];
+	//BYTE bSetStatusBuf[1+1+6*8];
+	//BYTE bCurStatusBuf[1+1+1+8*8];
 
-	if (ReadItemEx(BN0, PN0, 0x104f, bSetStatusBuf) <=0)	//读"终端控制设置状态".
-	{
-		DTRACE(DB_LOADCTRL, ("CEngCtrl::GetSysEngStatus: There is something wrong when call ReadItemEx() !\n"));
-		return false;
-	}
-	if (ReadItemEx(BN0, PN0, 0x105f, bCurStatusBuf) <=0)	//读"终端当前控制状态".
-	{
-		DTRACE(DB_LOADCTRL, ("CEngCtrl::GetSysEngStatus: There is something wrong when call ReadItemEx() !\n"));
-		return false;
-	}
+	//if (ReadItemEx(BN0, PN0, 0x104f, bSetStatusBuf) <=0)	//读"终端控制设置状态".
+	//{
+	//	DTRACE(DB_LOADCTRL, ("CEngCtrl::GetSysEngStatus: There is something wrong when call ReadItemEx() !\n"));
+	//	return false;
+	//}
+	//if (ReadItemEx(BN0, PN0, 0x105f, bCurStatusBuf) <=0)	//读"终端当前控制状态".
+	//{
+	//	DTRACE(DB_LOADCTRL, ("CEngCtrl::GetSysEngStatus: There is something wrong when call ReadItemEx() !\n"));
+	//	return false;
+	//}
 
-	BYTE bMask;
+	//BYTE bMask;
 
-	switch (iSel)
-	{
-	case 0:	//月电控
-		bMask = 0x01;
-		break;
-	case 1:	//购电控
-		bMask = 0x02;
-		break;
-	default:
-		return false;
-	}
+	//switch (iSel)
+	//{
+	//case 0:	//月电控
+	//	bMask = 0x01;
+	//	break;
+	//case 1:	//购电控
+	//	bMask = 0x02;
+	//	break;
+	//default:
+	//	return false;
+	//}
 
-	BYTE bGrpFlgs = bSetStatusBuf[1];
+	//BYTE bGrpFlgs = bSetStatusBuf[1];
 
-	for (int i=0; i<8; i++,bGrpFlgs>>=1)
-	{
-		if ((bGrpFlgs&0x01)!=0 && (bSetStatusBuf[2+6*i+3]&bMask)!=0)
-		{
-			m_bTurnsStatus = bCurStatusBuf[3+8*i+4];
-			if ((bCurStatusBuf[3+8*i+7]&bMask) != 0)
-				m_fAlrStauts = true;
-			break;
-		}
-	}
+	//for (int i=0; i<8; i++,bGrpFlgs>>=1)
+	//{
+	//	if ((bGrpFlgs&0x01)!=0 && (bSetStatusBuf[2+6*i+3]&bMask)!=0)
+	//	{
+	//		m_bTurnsStatus = bCurStatusBuf[3+8*i+4];
+	//		if ((bCurStatusBuf[3+8*i+7]&bMask) != 0)
+	//			m_fAlrStauts = true;
+	//		break;
+	//	}
+	//}
 
 	return true;
 }
@@ -903,15 +954,16 @@ BYTE CEngCtrl::GetSysEngAlrFlgs(int iGrp)
 	if (iGrp<GRP_START_PN || (GRP_START_PN+GRP_NUM)<=iGrp)
 		return 0x00;
 
-	BYTE bBuf[1+1+1+8*8];
+	TGrpCtrlSetSta tGrpCtrlSetSta;
+	memset(&tGrpCtrlSetSta, 0, sizeof(tGrpCtrlSetSta));
 
-	if (ReadItemEx(BN0, PN0, 0x105f, bBuf) <=0)	//读"终端当前控制状态"ID
+	if (!GetGrpCtrlSetSta(iGrp, &tGrpCtrlSetSta))
 	{
-		DTRACE(DB_LOADCTRL, ("CEngCtrl::GetSysEngAlrFlgs: There is something wrong when call ReadItemEx() !\n"));
-		return 0x00;
+		DTRACE(DB_LOADCTRL, ("CEngCtrl::GetSysEngAlrFlgs: There is something wrong when call GetGrpCtrlSetSta() !\n"));
+		return false;
 	}
 
-	return (bBuf[1+1+1+8*(iGrp-GRP_START_PN)+7] & 0x03);	//目前只有0,1位被使用.
+	return (tGrpCtrlSetSta.bEngCtrlSta & 0x03);	//目前只有0,1位被使用.
 }
 
 //描述: 改变系统库指定总加组电能量控制类的指定报警状态标志.
@@ -947,21 +999,31 @@ bool CEngCtrl::ChgSysEngAlrFlgs(int iGrp, BYTE bFlgs, bool fStatus)
 		DTRACE(DB_LOADCTRL, ("CEngCtrl::ChgSysEngAlrFlgs: There is something wrong when call SetGrpCurCtrlSta() !\n"));
 		return false;
 	}
-	return true;
 
-	/*//!!!如果在别的线程中会写该ID,可能需要进行信号量保护.
-	if (ReadItemEx(BN0, PN0, 0x105f, bBuf)<=0)	//读"终端当前控制状态".
+	WORD wInID = 0;
+	BYTE bBuf[10];
+	memset(bBuf, 0, sizeof(bBuf));
+
+	switch(bFlgs)
 	{
-		DTRACE(DB_LOADCTRL, ("CEngCtrl::ChgSysEngAlrFlgs: There is something wrong when call ReadItemEx() !\n"));
-		return false;
+	case 1:	//月电控
+		wInID = 0x8282;
+		break;
+	case 2:	//购电控
+		wInID = 0x8272;
+		break;
 	}
-	if (fStatus)
-		bBuf[1+1+1+8*i+7] |= bFlgs;
-	else
-		bBuf[1+1+1+8*i+7] &= ~bFlgs;
 
-	WriteItemEx(BN0, PN0, 0x105f, bBuf);	//写"终端当前控制状态".
-	return true;*/
+	BYTE *pbtr = bBuf;
+	*pbtr++ = DT_STRUCT;
+	*pbtr++ = 2;					//结构成员个数
+	*pbtr++ = DT_OI;				//总加组对象
+	pbtr += OoWordToOi(0x2300+iGrp, pbtr);
+	*pbtr++ = DT_ENUM;
+	*pbtr++ = fStatus;
+	WriteItemEx(BN0, iGrp, wInID, bBuf);
+
+	return true;
 }
 
 //描述: 设定系统库指定总加组指定控制类的轮次状态.
@@ -976,17 +1038,49 @@ bool CEngCtrl::SetSysEngTurnsStatus(int iGrp, BYTE bTurnsStatus, int iSel)
 	if (iSel<0 || 1<iSel)
 		return false;
 
-	BYTE bBuf[1+1+1+8*8];	//最多8组数据.
+	TGrpCurCtrlSta tGrpCurCtrlSta;
+	memset(&tGrpCurCtrlSta, 0, sizeof(TGrpCurCtrlSta));
 
-	//!!!如果在别的线程中会写该ID,可能需要进行信号量保护
-	if (ReadItemEx(BN0, PN0, 0x105f, bBuf) <=0)	//读"终端当前控制状态".
+	if(!GetGrpCurCtrlSta(iGrp, &tGrpCurCtrlSta))
 	{
-		DTRACE(DB_LOADCTRL, ("CEngCtrl::ChgSysEngTurnsStatus: There is something wrong when call ReadItemEx() !\n"));
+		DTRACE(DB_LOADCTRL, ("CEngCtrl::SetSysEngTurnsStatus: There is something wrong when call GetGrpCurCtrlSta() !\n"));
 		return false;
 	}
-	bBuf[3+(8*(iGrp-GRP_START_PN))+4+iSel] = bTurnsStatus & CTL_TURN_MASK;
 
-	WriteItemEx(BN0, PN0, 0x105f, bBuf);	//写"终端当前控制状态".
+	if (iSel == 1)
+		tGrpCurCtrlSta.bBuyCtrlOutPutSta = bTurnsStatus & CTL_TURN_MASK;
+	else
+		tGrpCurCtrlSta.bMonthCtrlOutPutSta = bTurnsStatus & CTL_TURN_MASK;
+
+	if (!SetGrpCurCtrlSta(iGrp, &tGrpCurCtrlSta))
+	{
+		DTRACE(DB_LOADCTRL, ("CEngCtrl::SetSysEngTurnsStatus: There is something wrong when call SetGrpCurCtrlSta() !\n"));
+		return false;
+	}
+
+	WORD wInID = 0;
+	BYTE bBuf[10];
+	memset(bBuf, 0, sizeof(bBuf));
+
+	switch(iSel)
+	{
+	case 0:	//月电控
+		wInID = 0x8281;
+		break;
+	case 1:	//购电控
+		wInID = 0x8271;
+		break;
+	}
+
+	BYTE *pbtr = bBuf;
+	*pbtr++ = DT_STRUCT;
+	*pbtr++ = 2;					//结构成员个数
+	*pbtr++ = DT_OI;				//总加组对象
+	pbtr += OoWordToOi(0x2300+iGrp, pbtr);
+	*pbtr++ = DT_BIT_STR;
+	*pbtr++ = 8;
+	*pbtr++ = bTurnsStatus;
+	WriteItemEx(BN0, iGrp, wInID, bBuf);
 
 	return true;
 }
@@ -1004,20 +1098,35 @@ bool CEngCtrl::ChgSysEngTurnsStatus(int iGrp, BYTE bTurns, bool fStatus, int iSe
 	if (iSel<0 || 1<iSel)
 		return false;
 
-	BYTE bBuf[1+1+1+8*8];	//最多8组数据.
+	TGrpCurCtrlSta tGrpCurCtrlSta;
+	memset(&tGrpCurCtrlSta, 0, sizeof(TGrpCurCtrlSta));
 
-	//!!!如果在别的线程中会写该ID,可能需要进行信号量保护
-	if (ReadItemEx(BN0, PN0, 0x105f, bBuf) <=0)	//读"终端当前控制状态".
+	if (!GetGrpCurCtrlSta(iGrp, &tGrpCurCtrlSta))//读"终端当前控制状态"
 	{
-		DTRACE(DB_LOADCTRL, ("CEngCtrl::ChgSysEngTurnsStatus: There is something wrong when call ReadItemEx() !\n"));
+		DTRACE(DB_LOADCTRL, ("CEngCtrl::ChgSysEngTurnsStatus: There is something wrong when call GetGrpCurCtrlSta() !\n"));
 		return false;
 	}
-	if (fStatus)
-		bBuf[3+(8*(iGrp-GRP_START_PN))+4+iSel] |= (bTurns & CTL_TURN_MASK);
-	else
-		bBuf[3+(8*(iGrp-GRP_START_PN))+4+iSel] &= ~(bTurns & CTL_TURN_MASK);
 
-	WriteItemEx(BN0, PN0, 0x105f, bBuf);	//写"终端当前控制状态".
+	if (iSel == 1)
+	{
+		if (fStatus)
+			tGrpCurCtrlSta.bBuyCtrlOutPutSta |= (bTurns & CTL_TURN_MASK);
+		else
+			tGrpCurCtrlSta.bBuyCtrlOutPutSta &= ~(bTurns & CTL_TURN_MASK);
+	}
+	else
+	{
+		if (fStatus)
+			tGrpCurCtrlSta.bMonthCtrlOutPutSta |= (bTurns & CTL_TURN_MASK);
+		else
+			tGrpCurCtrlSta.bMonthCtrlOutPutSta &= ~(bTurns & CTL_TURN_MASK);
+	}
+
+	if (!SetGrpCurCtrlSta(iGrp, &tGrpCurCtrlSta))//写"终端当前控制状态".
+	{
+		DTRACE(DB_LOADCTRL, ("CEngCtrl::ChgSysEngTurnsStatus: There is something wrong when call SetGrpCurCtrlSta() !\n"));
+		return false;
+	}
 
 	return true;
 }
@@ -1030,7 +1139,7 @@ DWORD CEngCtrl::GetEngTurnInv(int iTurn)
 	if (iTurn<TURN_START_PN || iTurn>TURN_START_PN+TURN_NUM)
 		return ((DWORD)-1);
 
-	BYTE bBuf[10] = {0};
+	BYTE bBuf[20] = {0};
 	BYTE *ptr = bBuf+2;
 	BYTE *pbFmt = NULL;
 	WORD wFmtLen = 0;

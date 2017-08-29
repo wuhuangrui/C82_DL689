@@ -46,22 +46,18 @@ void InitMIO();
 void InitGPIO();
 inline void GpioSetBit(WORD wPos)
 {
-	wPos;
 }
 
 inline void GpioClrBit(WORD wPos)
 {
-	wPos;
 }
 
 inline void GpioToggleBit(WORD wPos)
 {
-	wPos;
 }
 
 inline bool GpioGetBit(WORD wPos)
 {
-	wPos;
 }
 
 bool ESRouterPowerOn();

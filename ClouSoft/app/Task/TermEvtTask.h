@@ -180,6 +180,7 @@
 #define EVT_STAGE_HP				1								//发生
 #define EVT_STAGE_END				2								//结束
 #define EVT_STAGE_TASK				3								//全事件采集上报
+#define EVT_STAGE_ERCRPT			4								//事件主动上报
 
 typedef struct {
 	BYTE bRela;						//关联对象属性表
@@ -369,12 +370,14 @@ typedef struct {
 
 	BYTE bSchNo;					//方案号
 	WORD wIdex;						//RCSD索引
-	BYTE bRcsd[128];				//RCSD
+	BYTE bRcsd[1024];				//RCSD
 	WORD wRcsdLen;					//RCSD长度
 } TEvtMsg;							//事件上报消息
 
 extern TAdjTermTime g_AdjTermTime;
 extern TEpOver g_EpOver;
+extern TYKCtrl g_YKCtrl;
+extern TPurchParaChg g_PurchParaChg;
 
 void SetTermEvtOadDefCfg(struct TEvtCtrl* pEvtCtrl);
 

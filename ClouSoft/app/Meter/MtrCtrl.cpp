@@ -212,45 +212,97 @@ int DirAskMtrData(BYTE bType, BYTE bChoice, BYTE* bTsa, BYTE bAddrLen, BYTE* pAp
 	return iRet;
 }
 
+int MtrDoFwd376(BYTE* pTx, WORD wTxLen, BYTE* pbData, WORD wBufSize, WORD wFrmTimeOut, WORD wByteTimeOut)
+{
+	return CctTransmit376(pTx, wTxLen, wFrmTimeOut, pbData, wBufSize);
+}
+
 int MtrDoFwd(TCommPara CommPara, BYTE* pTx, WORD wTxLen, BYTE* pbData, WORD wBufSize, WORD wFrmTimeOut, WORD wByteTimeOut)
 {
 	BYTE bThrId = 0;
 	DWORD dwLen;
 	WORD i;
-	BYTE bTsa[TSA_LEN];
-	BYTE bTsaLen;
+	BYTE bTsa[TSA_LEN] = {0};
+	BYTE bTsaLen = 0;    //  不支持的就目的地址就按0处理， 不然会段错误
 
 	if (CommPara.wPort == PORT_CCT_PLC)
 	{
-		BYTE bMtrPro = 3;
+		BYTE bMtrPro = 0;
+        bool fIsBroadCastFrame = false;
 
 		//先判断是否是645协议
-		for (i=0; i<wTxLen; i++)
+		for (i=0; i<wTxLen-11; i++)  //最短645帧12个字节
 		{
 			if (pTx[i]==0x68 && pTx[i+7]==0x68)
 			{
-				bMtrPro = 2;
+				bMtrPro = PROTOCOLNO_DLT645_V07;
 				break;
 			}
 		}
 
+        if(bMtrPro == 0)
+        {
+            WORD wRFrmLen= 0;
+            BYTE bFrmEnd = 0;
+            WORD wCrc=0, wCrcFrm = 0;            
+            for(i=0;i<wTxLen-22;i++)  //  /最短698.45帧23个字节
+            {
+                if(pTx[i]==0x68)
+                {
+                    wRFrmLen = (WORD )pTx[i+1] + ((WORD )(pTx[i+2]&0x3f)<<8);   
+                    if(wRFrmLen+2> wTxLen-i)
+                    {
+                       continue;
+                    }
+                    bFrmEnd = pTx[i+wRFrmLen+1];
+                    if(bFrmEnd==0x16)
+                    {
+                        wCrcFrm = ((WORD)pTx[i+wRFrmLen]<<8) | pTx[i+wRFrmLen-1];
+                        wCrc = CheckCrc16(&pTx[i+1], wRFrmLen-2);
+                        if(wCrcFrm == wCrc)
+                        {
+                            bMtrPro = PROTOCOLNO_DLT69845;
+                            break;
+                        }
+                    }
+                }
+            }              
+        }
+
+        //68 1A 00 43 C0 AA 10 DF E7 07 01 28 40 00 7F 00 1C 07 E1 05 11 0E 37 14 00 5C D8 16
+
 		//提取表地址
-		if (bMtrPro == 3)	//698.45
-		{
-			bTsaLen = pTx[4]+1;
-			revcpy(bTsa, &pTx[5], bTsaLen);
+		if (bMtrPro == PROTOCOLNO_DLT69845)	//698.45
+		{		
+			bTsaLen = (pTx[i+4]&0x0F)+1;
+			revcpy(bTsa, &pTx[i+5], bTsaLen);
+            if(((pTx[i+4]&0xC0)==0xC0) && IsAllAByte(bTsa,0xAA,bTsaLen))
+            {
+                fIsBroadCastFrame = true;
+            }
 		}
-		else if (bMtrPro == 2)
+		else if (bMtrPro == PROTOCOLNO_DLT645_V07)
 		{
 			bTsaLen = 6;
 			revcpy(bTsa, &pTx[i+1], bTsaLen);
+            if(IsAllAByte(bTsa,0x99,bTsaLen))
+            {
+                fIsBroadCastFrame = true;
+            }
 		}
 		else
 		{
 			DTRACE(DB_FAPROTO, ("MtrDoFwd() Meter pro unspport!!!\n"));
 		}
 
-		return CctTransmit(bTsa, bTsaLen, pTx, wTxLen, wFrmTimeOut, pbData);
+        if(fIsBroadCastFrame)
+        {
+            return CctTransmitBroadCast(bTsa, bTsaLen, pTx, wTxLen, wFrmTimeOut, pbData, bMtrPro);
+        }
+        else
+        {
+		    return CctTransmit(bTsa, bTsaLen, pTx, wTxLen, wFrmTimeOut, pbData);
+        }
 	}
 	else 
 	{
@@ -596,7 +648,7 @@ TThreadRet MtrRdThread(void* pvPara)
 
 	char pszThrName[32] = {0};
 	sprintf(pszThrName, "MtrRdThread-thrd-%d", bThrId);
-	int iMonitorID = ReqThreadMonitorID(pszThrName, 4*60*60);	//申请线程监控ID
+	int iMonitorID = ReqThreadMonitorID(pszThrName, 60*60);	//申请线程监控ID
 	//InitThreadMaskId(iMonitorID);
 
 	DTRACE(DB_METER, ("MtrRdThread: bThrId=%d start with bPort=%d\r\n", bThrId, bPort));

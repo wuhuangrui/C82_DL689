@@ -244,6 +244,7 @@ int GetTaskNum()
 //描述: 取得指定索引处的任务配置单元
 //参数： @bIndex 任务ID的索引
 //	    @pTaskCfg用来返回任务的配置，如果
+//		@bIsRdTab是否从任务配置表中获取任务配置单元
 //返回:如果读到正确任务配置则返回true，否则返回false
 bool GetTaskCfg(BYTE bIndex, TTaskCfg *pTaskCfg, bool bIsRdTab)
 {
@@ -434,6 +435,91 @@ bool GetCommonSchCfg(TTaskCfg* pTaskCfg, TCommAcqSchCfg* pTCommAcqSchCfg, BYTE *
 	pbPtr++;	//enum
 	//pbPtr++;	//long-unsigned
 	pTCommAcqSchCfg->bStgTimeScale = *pbPtr++;
+
+	return true;
+}
+
+//描述：取得事件采集方案参数
+//参数: @index事件采集方案号
+//	     @pTAcqSchCfg用来返回任务的配置
+//返回: 为真获取成功
+bool GetEventSchCfg(BYTE bIndex, TEvtAcqSchCfg* pTEvtAcqSchCfg)
+{
+	int iSchCfgLen = 0;
+	int iDbRet = 0;
+
+	if (pTEvtAcqSchCfg != NULL)
+	{
+		BYTE bBuf[256];
+		BYTE *pbPtr = bBuf;
+
+		//pbPtr = GetSchCfg(pTaskCfg, &iSchCfgLen);
+		iDbRet=GetSchFromTaskDb(bIndex, g_TSchFieldCfg[1].bSchType, bBuf);
+		if (iDbRet<0)
+			return false;
+
+		//pbPtr++;	//array
+		//pbPtr++;	//array个数
+		pbPtr++;	//structure
+		pbPtr++;	//+structure number
+		pbPtr++;	//unsigned
+		pTEvtAcqSchCfg->bSchNo = *pbPtr;	
+		pbPtr++;
+		
+		pbPtr++;	//array
+		pbPtr++;
+		
+		pbPtr++;   //采集类型
+		pbPtr++; 
+
+		pbPtr++; //array
+		pTEvtAcqSchCfg->bROADNum = *pbPtr;	
+		pbPtr++;	//+array 成员个数
+		if (pTEvtAcqSchCfg->bROADNum > sizeof(pTEvtAcqSchCfg->tTROAD)/sizeof(TROAD))
+		{
+			DTRACE(DB_TASK, ("ERROR---GetEventSchCfg():  bSchNo=%d, Max support ROAD num=%d, current ROAD num=%d.\n", \
+				 pTEvtAcqSchCfg->bSchNo, sizeof(pTEvtAcqSchCfg->tTROAD)/sizeof(TROAD), pTEvtAcqSchCfg->bROADNum));
+			return false;
+		}
+		for (BYTE i = 0; i < pTEvtAcqSchCfg->bROADNum; i++)
+		{
+			pbPtr++;	//ROAD类型
+			pTEvtAcqSchCfg->tTROAD[i].dwOAD = OoOadToDWord((BYTE*)pbPtr);	
+			pbPtr += 4;
+			pTEvtAcqSchCfg->tTROAD[i].bOADNum = *pbPtr;	
+			pbPtr++;
+			if (pTEvtAcqSchCfg->tTROAD[i].bOADNum > sizeof(pTEvtAcqSchCfg->tTROAD[i].dwOADArry)/sizeof(DWORD))
+			{
+				DTRACE(DB_TASK, ("ERROR---GetEventSchCfg():  bSchNo=%d, i=%d, Max support OAD num=%d, current OAD num=%d.\n", \
+					 pTEvtAcqSchCfg->bSchNo, sizeof(pTEvtAcqSchCfg->tTROAD[i].dwOADArry)/sizeof(DWORD), pTEvtAcqSchCfg->tTROAD[i].bOADNum));
+				return false;
+			}
+			for (BYTE j = 0; j < pTEvtAcqSchCfg->tTROAD[i].bOADNum; j++)
+			{
+				pTEvtAcqSchCfg->tTROAD[i].dwOADArry[j] = OoOadToDWord((BYTE*)pbPtr);	
+				pbPtr += 4;
+			}
+		}
+		//提取MS集合
+		BYTE bMS = *pbPtr;	//MS
+		if (bMS != 92)	//MS数据类型
+			return false;
+		pTEvtAcqSchCfg->bMsChoice = *(pbPtr + 1);
+		int iRet = ParserMsParam((BYTE*)pbPtr, pTEvtAcqSchCfg->bMtrMask, sizeof(pTEvtAcqSchCfg->bMtrMask));
+		if (iRet < 0)
+			return false;
+		pbPtr += iRet;
+
+		//上报标识
+		pbPtr++;	//bool
+		pTEvtAcqSchCfg->fRptFlg = *pbPtr;	
+		pbPtr++;
+
+		//存储深度
+		pbPtr++;	//long-unsigned
+		pTEvtAcqSchCfg->wStgCnt = OoLongUnsignedToWord((BYTE*)pbPtr);	
+		pbPtr++;
+	}
 
 	return true;
 }
@@ -943,9 +1029,10 @@ int ParserMsParam(BYTE *pbBuf, BYTE *pbMtrMask, WORD wMtrMaskLen)
 				}
 			}
 		}
-		break;   //liyan
-		default:
-		break;
+        break;   //liyan
+
+    default:
+        break;
 	}
 
 	return pbPtr - pbBuf;
@@ -1028,8 +1115,6 @@ bool MtrMaskCompare(BYTE *pbSrcMask, WORD wSrcSize, BYTE *pbDstMask, WORD wDstSi
 
 	return true;
 }
-
-
 
 //描述：把源数据解析成一个个字段的偏移和长度，方便访问
 //参数：@ pParser	 字段解析器
@@ -1396,8 +1481,6 @@ int FieldCmp(BYTE bCmpType, BYTE* pbCmpField, BYTE bSrcType, BYTE* pbSrcField)
 	return -1;
 }
 
-
-
 //描述：从ROAD数据中选择性读取
 //参数：@ pbSelROAD 选择性ROAD，一般对应到协议RCSD的CSD里的ROAD
 //	   @ pbSrcROAD源ROAD，一般对应到配置里面的一个ROAD字段
@@ -1476,7 +1559,6 @@ int ReadFromROAD_1(BYTE* pbSelROAD, BYTE* pbSrcROAD, BYTE* pbSelData, BYTE* pbSr
 
 	return -1;
 }
-
 
 //描述：从ROAD数据中选择性读取
 //参数：@ pbSelROAD 选择性ROAD，一般对应到协议RCSD的CSD里的ROAD
@@ -1634,7 +1716,6 @@ int CreateTable(char* pszTableName, TFieldParser* pFixFields, TFieldParser* pDat
 
 	return -1;
 }
-
 
 //描述: 创建到一笔记录到任务库的一个表
 //参数：@pszTableName 表名
@@ -2024,8 +2105,6 @@ bool IsSpecOobAttrDescOAD(BYTE* pbOAD)
 	return fRet;
 }
 
-
-
 static int selector2_60000200(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, BYTE* pbBuf, WORD wBufSize, WORD* pwRetNum)
 {
 	DWORD dwOAD;
@@ -2036,10 +2115,6 @@ static int selector2_60000200(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, BYTE* pbBu
 	int iRet=0, iTotalLen=0, iStartValue=0, iEndValue=0, iUnitValue=0, iDataLen=0, iTmpValue=0;
 	BYTE *pbStart = pbBuf;
 
-	
-	
-
-
 	dwOAD = OoOadToDWord(pbOAD);
 	dwSubOAD = OoOadToDWord(pbRSD);
 	pbRSD += 4;
@@ -2047,7 +2122,6 @@ static int selector2_60000200(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, BYTE* pbBu
 	const ToaMap* pOI = GetOIMap(dwOAD & 0xFFFFFF00);
 	bSubIdx = dwSubOAD & 0xff;
        
-
 	*pwRetNum = 0;
 
 	if (pOI == NULL)
@@ -2130,10 +2204,9 @@ error_1:
 	
 }
 
-
 int SpecReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int* piStart, BYTE* pbBuf, WORD wBufSize, WORD* pwRetNum)
 {
-		int iRet;
+	int iRet;
 	DWORD dwOAD, dwSubOAD;
 	WORD  wDataLen;
 	BYTE bBuf[1024];
@@ -2408,6 +2481,27 @@ int SpecReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int* piStart, BYTE* p
 				}
 			}
 			break;
+		case 0x60120200:	//任务采集方案集
+			for (WORD i=0; i<SCH_NO_NUM; i++)
+			{
+				memset(bBuf, 0, sizeof(bBuf));
+				if ((iRet = GetTaskConfigFromTaskDb(i, bBuf)) > 0)
+				{
+					if (wCopyLen + iRet > wBufSize)
+					{
+						DTRACE(DB_FAPROTO, ("SpecReadRecord: Buffer overflow, dwOAD=%04x, iRet=%d, wBufSize=%d.\n", dwOAD, iRet, wBufSize));
+						goto SpecReadRecord_ret;
+					}
+					else
+					{
+						wCopyLen += iRet;
+						memcpy(pbBuf, bBuf, iRet);
+						pbBuf += iRet;
+						*pwRetNum += 1;
+					}
+				}
+			}
+			break;
 		case 0x60140200:	//普通采集方案集
 		case 0x60160200:	//事件采集方案集
 		case 0x60180200:	//透明采集方案集
@@ -2431,7 +2525,7 @@ int SpecReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int* piStart, BYTE* p
 					{
 						if (wCopyLen + iRet > wBufSize)
 						{
-							DTRACE(DB_FAPROTO, ("SpecReadRecord: Buffer overflow, iRet=%d, wBufSize=%d.\n", iRet, wBufSize));
+							DTRACE(DB_FAPROTO, ("SpecReadRecord: Buffer overflow, dwOAD=%04x, iRet=%d, wBufSize=%d.\n", dwOAD, iRet, wBufSize));
 							goto SpecReadRecord_ret;
 						}
 						else
@@ -2483,9 +2577,9 @@ int ReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int *piTabIdx, int* piSta
 	BYTE bTmpBuf[FRZRELA_ID_LEN];	//EVT_ATTRTAB_LEN
 	TFieldParser tFixFields, tDataFields;
 	int iRet, iRecLen;
-	int iRetNum;
+	int iRetNum, iRcsdLen;
 	WORD wSucRetNum, wScanNum = 0;
-	WORD wSchNum, i, wRcsdIdx, wRcsdNum, wRcsdLen;
+	WORD wSchNum, i, wRcsdIdx, wRcsdNum;
 	char pszTableName[64];
 	BYTE bTmpRcsd[128];
 	BYTE *pbBuf0 = pbBuf;
@@ -2507,7 +2601,7 @@ int ReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int *piTabIdx, int* piSta
 		{
 			return iRetNum;
 		}
-		
+
 		if (iRetNum <= 0)	//搜表失败
 			return -4;
 
@@ -2561,6 +2655,7 @@ NEXT_ONE_TABLE:	//为了解决普通采集方案里跨表MS问题
 					}
 				}
 			}
+
 			*pwRetNum = wSucRetNum;
 			iRecLen = pbBuf - pbBuf0;
 		}
@@ -2572,8 +2667,8 @@ NEXT_ONE_TABLE:	//为了解决普通采集方案里跨表MS问题
 			wSucRetNum = 0;
 			wScanNum = 0;
 			wRcsdIdx = 0;
-			wRcsdLen = ScanRCSD(pbRCSD, false);
-			while (wScanNum++ < wRcsdNum)
+			iRcsdLen = ScanRCSD(pbRCSD, false);
+			while (wScanNum++<wRcsdNum && iRcsdLen>=0)
 			{
 				memset(bTmpRcsd, 0, sizeof(bTmpRcsd));
 				bTmpRcsd[0] = 1;	//处理协议层RCSD中的一个CSD
@@ -2603,7 +2698,7 @@ NEXT_ONE_TABLE:	//为了解决普通采集方案里跨表MS问题
 				//for (WORD k=0; k<iRetNum; k++)	//根据返回的个数，在wRcsdIdx基础上计算偏移
 				wRcsdIdx += ScanCSD(pbRCSD+1+wRcsdIdx, false);
 
-				if (wRcsdIdx >= wRcsdLen)	
+				if (wRcsdIdx >= iRcsdLen)	
 				{
 					*piStart = -1;
 					break;
@@ -2891,6 +2986,7 @@ int OoCopyDataROADLinkOAD(BYTE *pbDst, WORD *pwRetDstLen, BYTE *pbSrc, WORD *pwR
 				memcpy(pbDst, pbSrc, iLen);
 				pbDst += iLen;
 				pbSrc += iLen;
+				
 			}
 		}
 	}
@@ -3078,7 +3174,6 @@ int OoCopyOneOadData(BYTE *pbSrc, BYTE *pFmt, WORD wFmtLen, BYTE *pbDst, WORD *p
 	pbDst = pbDst0;
 	return iRet;
 }
-
 
 int OoFormatSrcData(BYTE *pbSrc, WORD wSrcLen, BYTE *pFmt, WORD wFmtLen, BYTE *pbDst)
 {
@@ -3910,11 +4005,12 @@ int SearchTable(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, WORD wRcsdIdx, int *piTa
 //返回匹配的RCSD个数
 int TableMatch(BYTE* pbRCSD, WORD wRcsdIdx, BYTE* pbFixCfg, BYTE* pbFixFmt, WORD wFixFmtLen, BYTE* pbDataCfg, BYTE* pbDataFmt, WORD wDataFmtLen)
 {
-	WORD wMchNum, wRcsdLen;
+	int iRcsdLen;
+	WORD wMchNum;
 	
 	wMchNum = 0;
-	wRcsdLen = ScanRCSD(pbRCSD, false);
-	while (wRcsdIdx < wRcsdLen)
+	iRcsdLen = ScanRCSD(pbRCSD, false);
+	while (iRcsdLen>=0 && wRcsdIdx<iRcsdLen)
 	{
 		if (!RcsdMatch(pbRCSD, wRcsdIdx, pbFixCfg, pbFixFmt, wFixFmtLen)) //固定字段未匹配，到数据字段中匹配
 		{
@@ -4501,7 +4597,7 @@ bool MsMatch(BYTE* pbMS, BYTE* pbFieldData)
 
 bool TiMatch(BYTE* pbStartTime, BYTE* pbEndTime, BYTE* pbTI, BYTE* pbFieldData)
 {
-		TTime tStartTime, tEndTime, tFieldTime;
+	TTime tStartTime, tEndTime, tFieldTime;
 	DWORD dwStartSec=0, dwEndSec=0, dwFieldSec;
 	DWORD  dwIntervSec;
 	WORD wIntervV;
@@ -4651,11 +4747,6 @@ int MsToMtrNum(BYTE *pbMs)
 	return 0;
 }
 
-struct addr_info_s{
-	DWORD dwFrzOAD;  //填充OAD数据项
-	BYTE *pbDataPosition;  //填充数据项再缓冲区的位置
-	BYTE  bIdx;   //在Rcsd中的位置
-};
 
 
 
@@ -4670,7 +4761,7 @@ int FillInValueData(BYTE *pSrc, BYTE *pRcsd)
 	bool fExistFrzOad = false;
 	BYTE *pbDataEnd = NULL, *pbDataStart=NULL;   //pSrc数据区
 
-	struct addr_info_s sAddrInfo;
+
 	
 	pbDataStart = pbDataEnd = pSrc;
 
@@ -4800,7 +4891,6 @@ int DayFrzTimeMatch(BYTE *pSrc, BYTE *pRcsd)
 	else
 		return -1;
 }
-
 
 //描述：搜索698.45与645对应的ID规则
 //参数：@pbCSD 面向对象698.45抄读数据项，
@@ -4936,7 +5026,6 @@ ERR_RET:
 	DTRACE(DB_CRITICAL, ("SearchAcqRule645ID() error.....\n"));
 	return false;
 }
-
 
 //描述：获取采集规则表名
 //参数：@pbCSD 采集规则

@@ -240,18 +240,54 @@ bool CAllPwrCtrl::SetSysPwrAlrFlgs(int iGrp, BYTE bFlgsStatus)
 		return false;
 	}
 
-	/*BYTE bBuf[1+1+1+8*8];	//最多8组数据.
+	WORD wInID = 0;
+	BYTE bBuf[10];
+	memset(bBuf, 0, sizeof(bBuf));
 
-	//!!!如果在别的线程中会写该ID,可能需要进行信号量保护
-	if (ReadItemEx(BN0, PN0, 0x105f, bBuf) <=0)	//读"终端当前控制状态".
+	switch(bFlgsStatus)
 	{
-		DTRACE(DB_LOADCTRL, ("CAllPwrCtrl::SetSysPwrAlrFlgs: There is something wrong when call ReadItemEx() !\n"));
-		return false;
+	case 1:	//时段控
+		wInID = 0x8232;
+		break;
+	case 2:	//厂休控
+		wInID = 0x8242;
+		break;
+	case 4:	//营业报停控
+		wInID = 0x8252;
+		break;
+	case 8:	//下浮控
+		wInID = 0x8262;
+		break;
 	}
 
-	bBuf[3+(8*(iGrp-GRP_START_PN))+6] = bFlgsStatus & 0x0f;
+	BYTE *pbtr = bBuf;
+	*pbtr++ = DT_STRUCT;
+	*pbtr++ = 2;					//结构成员个数
+	*pbtr++ = DT_OI;				//总加组对象
+	pbtr += OoWordToOi(0x2300+iGrp, pbtr);
+	*pbtr++ = DT_ENUM;
+	if (bFlgsStatus != 0)
+		*pbtr++ = 1;
+	else
+		*pbtr++ = 0;
 
-	WriteItemEx(BN0, PN0, 0x105f, bBuf);	//写"终端当前控制状态".*/
+	if (wInID != 0)
+	{
+		bBuf[6] = 0;
+		for (BYTE i=0; i<4; i++)
+		{
+			WriteItemEx(BN0, iGrp, 0x8232+(i<<4), bBuf); //先清除一下再写
+		}
+		bBuf[6] = 1;
+		WriteItemEx(BN0, iGrp, wInID, bBuf);
+	}
+	else
+	{
+		for (BYTE i=0; i<4; i++)
+		{
+			WriteItemEx(BN0, iGrp, 0x8232+(i<<4), bBuf);
+		}
+	}
 
 	return true;
 }
@@ -290,22 +326,21 @@ bool CAllPwrCtrl::ChgSysPwrAlrFlgs(int iGrp, BYTE bFlgs, bool fStatus)
 		return false;
 	}
 
+	WORD wInID = 0;
+	BYTE bBuf[10];
+	memset(bBuf, 0, sizeof(bBuf));
+	BYTE *pbtr = bBuf;
+	*pbtr++ = DT_STRUCT;
+	*pbtr++ = 2;					//结构成员个数
+	*pbtr++ = DT_OI;				//总加组对象
+	pbtr += OoWordToOi(0x2300+iGrp, pbtr);
+	*pbtr++ = DT_ENUM;
+	*pbtr++ = fStatus;
 
-	/*BYTE bBuf[1+1+1+8*8];	//最多8组数据.
-
-	//!!!如果在别的线程中会写该ID,可能需要进行信号量保护
-	if (ReadItemEx(BN0, PN0, 0x105f, bBuf) <=0)	//读"终端当前控制状态".
+	for (BYTE i=0; i<4; i++)
 	{
-		DTRACE(DB_LOADCTRL, ("CAllPwrCtrl::ChgSysPwrAlrFlgs: There is something wrong when call ReadItemEx() !\n"));
-		return false;
+		WriteItemEx(BN0, iGrp, 0x8232+(i<<4), bBuf);
 	}
-
-	if (fStatus)
-		bBuf[3+(8*(iGrp-GRP_START_PN))+6] |= (bFlgs & 0x0f);
-	else
-		bBuf[3+(8*(iGrp-GRP_START_PN))+6] &= ~(bFlgs & 0x0f);
-
-	WriteItemEx(BN0, PN0, 0x105f, bBuf);	//写"终端当前控制状态".*/
 
 	return true;
 }
@@ -319,18 +354,22 @@ bool CAllPwrCtrl::SetSysTurnsStatus(int iGrp, BYTE bTurnsStatus)
 	if (iGrp<GRP_START_PN || (GRP_START_PN+GRP_NUM)<=iGrp)
 		return false;
 
-	BYTE bBuf[1+1+1+8*8];	//最多8组数据.
+	TGrpCurCtrlSta tGrpCurCtrlSta;
+	memset(&tGrpCurCtrlSta, 0, sizeof(TGrpCurCtrlSta));
 
-	//!!!如果在别的线程中会写该ID,可能需要进行信号量保护
-	if (ReadItemEx(BN0, PN0, 0x105f, bBuf) <=0)	//读"终端当前控制状态".
+	if(!GetGrpCurCtrlSta(iGrp, &tGrpCurCtrlSta))
 	{
-		DTRACE(DB_LOADCTRL, ("CAllPwrCtrl::SetSysTurnsStatus: There is something wrong when call ReadItemEx() !\n"));
+		DTRACE(DB_LOADCTRL, ("CAllPwrCtrl::SetSysTurnsStatus: There is something wrong when call GetGrpCurCtrlSta() !\n"));
 		return false;
 	}
 
-	bBuf[3+(8*(iGrp-GRP_START_PN))+3] = bTurnsStatus & CTL_TURN_MASK;
+	tGrpCurCtrlSta.bAllPwrCtrlOutPutSta = bTurnsStatus & CTL_TURN_MASK;
 
-	WriteItemEx(BN0, PN0, 0x105f, bBuf);	//写"终端当前控制状态".
+	if (!SetGrpCurCtrlSta(iGrp, &tGrpCurCtrlSta))
+	{
+		DTRACE(DB_LOADCTRL, ("CAllPwrCtrl::SetSysTurnsStatus: There is something wrong when call SetGrpCurCtrlSta() !\n"));
+		return false;
+	}
 
 	return true;
 }
@@ -370,22 +409,22 @@ bool CAllPwrCtrl::ChgSysTurnsStatus(int iGrp, BYTE bTurns, bool fStatus)
 		return false;
 	}
 
+	WORD wInID = 0;
+	BYTE bBuf[10];
+	memset(bBuf, 0, sizeof(bBuf));
+	BYTE *pbtr = bBuf;
+	*pbtr++ = DT_STRUCT;
+	*pbtr++ = 2;					//结构成员个数
+	*pbtr++ = DT_OI;				//总加组对象
+	pbtr += OoWordToOi(0x2300+iGrp, pbtr);
+	*pbtr++ = DT_BIT_STR;
+	*pbtr++ = 8;
+	*pbtr++ = tGrpCurCtrlSta.bAllPwrCtrlOutPutSta;
 
-	/*BYTE bBuf[1+1+1+8*8];	//最多8组数据.
-
-	//!!!如果在别的线程中会写该ID,可能需要进行信号量保护
-	if (ReadItemEx(BN0, PN0, 0x105f, bBuf) <=0)	//读"终端当前控制状态".
+	for (BYTE i=0; i<4; i++)
 	{
-		DTRACE(DB_LOADCTRL, ("CAllPwrCtrl::ChgSysTurnsStatus: There is something wrong when call ReadItemEx() !\n"));
-		return false;
+		WriteItemEx(BN0, iGrp, 0x8231+(i<<4), bBuf);
 	}
-
-	if (fStatus)
-		bBuf[3+(8*(iGrp-GRP_START_PN))+3] |= (bTurns & CTL_TURN_MASK);
-	else
-		bBuf[3+(8*(iGrp-GRP_START_PN))+3] &= ~(bTurns & CTL_TURN_MASK);
-
-	WriteItemEx(BN0, PN0, 0x105f, bBuf);	//写"终端当前控制状态".*/
 
 	return true;
 }
@@ -813,7 +852,7 @@ bool CLoadCtrl::DoCtrl(void)
 	//更新系统库F6中跳闸输出状态
 	//NOTE:1.那些已经失效的总加组的状态由控制本身来清除,这里只管当前有效的总加组
 	// 	   2.遥控的状态不受遥控合闸影响,自己入库,不在这里入库,
-	/*int iGrp;
+	int iGrp;
 	iGrp = m_AllPwrCtrl.GetGrp();
 	if (iGrp != -1)
 		m_AllPwrCtrl.SetSysTurnsStatus(iGrp, bOpenTurns[0]);
@@ -824,7 +863,7 @@ bool CLoadCtrl::DoCtrl(void)
 
 	iGrp = m_BuyCtrl.GetGrp();
 	if (iGrp != -1)
-		m_BuyCtrl.SetSysTurnsStatus(iGrp, bOpenTurns[2]);*/
+		m_BuyCtrl.SetSysTurnsStatus(iGrp, bOpenTurns[2]);
 
 
 	//计算蜂鸣器报警状态.

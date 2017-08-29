@@ -270,6 +270,28 @@ bool CMonthCtrl::ClrSysCmd(int iGrp)
 	return true;
 }
 
+//描述: 设置系统库本类控制轮次输出状态.
+//参数:@iGrp	当前控制的总加组.
+//		@bTurnsStatus	轮次状态
+//返回: 如果设置成功返回 true,否则返回 false.
+bool CMonthCtrl::SetSysCtrlTurnsStatus(int iGrp, BYTE bTurnsStatus)
+{
+	BYTE bBuf[10];
+	memset(bBuf, 0, sizeof(bBuf));
+
+	BYTE *pbtr = bBuf;
+	*pbtr++ = DT_STRUCT;
+	*pbtr++ = 2;					//结构成员个数
+	*pbtr++ = DT_OI;				//总加组对象
+	pbtr += OoWordToOi(0x2300+iGrp, pbtr);
+	*pbtr++ = DT_BIT_STR;
+	*pbtr++ = 8;
+	*pbtr++ = bTurnsStatus;
+	WriteItemEx(BN0, iGrp, 0x8281, bBuf);
+
+	return true;
+}
+
 //描述: 获取指定总加组本月用电限额.
 //参数:@iGrp	要获取的总加组.
 //返回: 成功则返回本月电能量限额,否则返回int64类型最大的整数.

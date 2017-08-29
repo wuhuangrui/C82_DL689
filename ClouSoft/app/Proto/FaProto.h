@@ -250,6 +250,7 @@ typedef struct{//																黑龙江主站		程序下载1K分段		其它
 //////////////////////////////////Report-Notification的请求类型定义///////////////////////////////////////////
 #define RP_NOTI_LIST				1	
 #define RP_NOTI_REC_LIST			2
+#define RP_NOTI_TRANSDATA			3
 
 //////////////////////////////////PROXY-Request的请求类型定义/////////////////////////////////////////////////
 #define PROXY_GET_LIST			1

@@ -43,6 +43,8 @@
 #include "CctAPI.h"
 #include "ProHook.h"
 #include "MtrCtrl.h"
+#include "CctAPI.h"
+
 
 #define MAX_VALID_LINE_PER_SCREEN  8
 
@@ -127,7 +129,7 @@ CQueue g_MsgQueue;
 extern CKey  g_Key;	
 #endif
 
-#define DEBUG_DISP
+//#define DEBUG_DISP
 #undef DEBUG_DISP
 #define SECT_PULSE_PARA		SECT2
 #ifdef EN_CTRL
@@ -172,26 +174,27 @@ int ReadClass1Data(WORD wMtrSn, DWORD dwOAD, BYTE *pbBuf)
 		0x00, 0x00, 0x00, 0x00 //—— OAD，
 	};  //记录列选择描述符                               
 	BYTE *ptr = NULL;
-	WORD wPn = 0;
-	BYTE bTsa[17] = {0};
+	//WORD wPn = 0;
+	//BYTE bTsa[17] = {0};
 	BYTE bTsaLen = 0;
 	BYTE bOAD[4] = {0x60, 0x12, 0x03, 0x00};  //任务配置表 记录单元
 	int nRet;
-	BYTE bBuf[512] = {0};
+	BYTE bBuf[2048] = {0};
 	WORD wBufSize = sizeof(bBuf);
 
-	wPn = MtrSnToPn(wMtrSn);
-	bTsaLen = GetMeterTsa(wPn, bTsa);
+	//wPn = MtrSnToPn(wMtrSn);
+	//bTsaLen = GetMeterTsa(wPn, bTsa);
 	OoDWordToOad(dwOAD, bRCSD+2);
+   // 68 21 00 43 03 01 00 00 00 00 72 63 05 03 09 60 12 03 00 0A 01 04 01 00 01 01 00 00 50 02 00 00 09 22 16
 
 	ptr = bRSD;
 	*ptr++ = 10;       //—— RSD，选择方法10
 	*ptr++ = 1;        //—— 上一条记录
-	*ptr++ = 3;        //—— 电能表集合MS  一组用户地址 [3]
-	*ptr++ = 1;        //电表地址个数=1
-	*ptr++ = bTsaLen;
-	memcpy(ptr, bTsa, bTsaLen);   //电表地址
-	ptr += bTsaLen;
+	*ptr++ = 4;        //—— 电能表集合MS  一组配置序号[4]
+	*ptr++ = 1;        // 序号个数
+	*ptr++ = (wMtrSn>>8);
+	*ptr++ = wMtrSn&0xff; 
+	//*ptr++ = bTsaLen-1;
 
 	nRet = ReadRecord(bOAD, bRSD, bRCSD, &iTabIdx, &iStart, bBuf, wBufSize, &wRetNum);
 
@@ -379,14 +382,14 @@ void quickUpdate()
 
 }
 
-int CopyData()
+void CopyData()
 {
-	int  iCnt = 0, iRet = 0;
+	int  iCnt = 0;
 	char str[64];
+    char cFileString[64] = {0};
 	char command[64];
 	char szList[STORE_MAX_COUNT][STORE_FILE_LEN];		
 	char menuitem[6][32];
-	char title[10] = "USB升级";
 
 	int i = 0;
 	struct ListBoxExItem items[] = {
@@ -399,15 +402,37 @@ int CopyData()
 		{NULL, MENU_TWOLEVEL_HAVE_NO, Dummy, (void*)7},
 	};
 
-	CListBoxEx listbox;	
-	listbox.Show(0, title, items, KEY_ESC | (KEY_RIGHT << 8) | (KEY_LEFT << 16) | (KEY_OK<<24), 60000);
+
+    	//显示服务器地址，终端属于服务器
+    BYTE bBuf[20]={0};
+    if (OoReadAttr(0x4001, 0x02, bBuf, NULL, NULL) < 0)
+    {
+        MessageBox("读取终端编号出错!", KEY_ESC, 3000);
+        return ;
+    }
+
+    BYTE *p = (BYTE*)cFileString;
+	for(int i=0; i<bBuf[1]; i++)
+	{
+		ByteToASCII(bBuf[2+i], &p);
+	}
+		
+	CListBoxEx listbox;
+	listbox.Show(0, "拷贝到U盘", items, KEY_ESC | (KEY_OK<<24), 60000);
+
 	if(listbox.key == KEY_OK)
 	{
+	    memset(command, 0, sizeof(command));
+        sprintf(command, "rm -rf /mnt/usb/%s", cFileString);
+        system(command);
+		sprintf(command, "mkdir -p /mnt/usb/%s", cFileString);
+		system(command);
+        
 		if(listbox.item == 0)
 		{//终端程序升级
 			MessageBox("正在拷贝参数", KEY_ESC, 500);
-			memset(command, 0, 64);
-			sprintf(command, "cp -rf %s /mnt/usb/", USER_PARA_PATH);
+			memset(command, 0, sizeof(command));
+			sprintf(command, "cp -rf %s /mnt/usb/%s/", USER_PARA_PATH, cFileString);
 			system(command);
 			Sleep(10*1000);
 			system("umount /mnt/usb");//
@@ -416,8 +441,8 @@ int CopyData()
 		else if(listbox.item == 1)
 		{
 			MessageBox("正在拷贝数据", KEY_ESC, 500);
-			memset(command, 0, 64);
-			sprintf(command, "cp -rf %s /mnt/usb/", USER_DATA_PATH);
+			memset(command, 0, sizeof(command));
+			sprintf(command, "cp -rf %s /mnt/usb/%s", USER_DATA_PATH, cFileString);
 			system(command);
 			Sleep(10*1000);
 			system("umount /mnt/usb");//
@@ -426,8 +451,8 @@ int CopyData()
 		else if(listbox.item == 2)
 		{//快速升级
 			MessageBox("正在拷贝配置", KEY_ESC, 500);
-			memset(command, 0, 64);
-			sprintf(command, "cp -rf %s /mnt/usb/", USER_CFG_PATH);
+			memset(command, 0, sizeof(command));
+			sprintf(command, "cp -rf %s /mnt/usb/%s", USER_CFG_PATH, cFileString);
 			system(command);
 			Sleep(10*1000);
 			system("umount /mnt/usb");//
@@ -436,9 +461,11 @@ int CopyData()
 		else if(listbox.item == 3)
 		{//拷贝日志
 			MessageBox("正在拷贝日志", KEY_ESC, 500);
-			memset(command, 0, 64);
-			sprintf(command, "cp -rf %slog /mnt/usb/", USER_PATH);
+			memset(command, 0, sizeof(command));
+			sprintf(command, "cp -rf %slog /mnt/usb/%s", USER_PATH, cFileString);
 			system(command);
+            sprintf(command, "cp -rf %sdata/Debug.inf  /mnt/usb/%s", USER_PATH,cFileString);
+            system(command);
 			Sleep(10*1000);
 			system("umount /mnt/usb");//
 			MessageBox("导出数据成功", KEY_ESC, 1500);			
@@ -446,8 +473,8 @@ int CopyData()
 		else if(listbox.item == 4)
 		{//拷贝全部
 			MessageBox("正在拷贝全部", KEY_ESC, 500);
-			memset(command, 0, 64);
-			sprintf(command, "cp -rf %s /mnt/usb/", USER_PATH);
+			memset(command, 0, sizeof(command));
+			sprintf(command, "cp -rf %s /mnt/usb/%s", USER_PATH,cFileString);
 			system(command);
 			Sleep(10*1000);
 			system("umount /mnt/usb");//
@@ -457,12 +484,7 @@ int CopyData()
 		{//退出
 
 		}
-		iRet = 0;
 	}
-	else
-		iRet = -1;
-
-	return iRet;
 }
 
 //add by qiaojun.chen
@@ -470,11 +492,14 @@ void TermiUpdate(BYTE);
 bool InputPwd(void);
 int UsbUpdate2(void *arg)
 {
-	//ClearScreenRec(0, 16, 160, 144);
-	//	if(!InputPwd2())
-	//	return -1;
-	if(!InputPwd())
-		return -1;
+
+	int iArg = (int)arg;
+
+	if (iArg == 0)
+	{
+		if(!InputPwd())
+			return -1;
+	}
 	char menuitem[6][32];
 	char title[] = "USB升级与数据拷贝";
 
@@ -502,6 +527,7 @@ int UsbUpdate2(void *arg)
 		
 		if(!IsInUsbProcess())
 		{
+			MessageBox("挂载U盘失败,按任意键退出!", KEY_ESC,2000);
 			return 100;
 		}
 
@@ -535,6 +561,22 @@ int UsbUpdate2(void *arg)
 	}
 
 	return -1;
+}
+
+int UsbAutoProcess(void)
+{
+    int iRet = -1;
+#ifdef SYS_LINUX
+	if (IsMountUsb() && (!IsInUsbProcess()))	
+	{
+		SetUsbProcessState(1);
+		BlightOn(true);
+		iRet = UsbUpdate2(0);
+		LcdRefresh();
+	}
+    return iRet;
+#endif
+    return 0;
 }
 
 int PowEnergCtrlState(void *arg)
@@ -1230,308 +1272,258 @@ bool InputPwd()
 
 int CurrntPower(void *arg)
 {
-		BYTE i = 0;
-		struct ListBoxExItem tmpM[] = {
-#ifdef FK_TERM
-			{ "总加组功率", 0xFF, Dummy, (void *) 1 }, //
-#endif
-			{ "测量点功率及功率因素", 0xFF, Dummy, (void *) 2 }, //
-			{  NULL, 0xFF, Dummy, (void *) 3 }, //
-		};
-		CListBoxEx listbox;
+    BYTE i = 0;
 
-flag:	while(1)
-		{
-			listbox.Show(0,"当前功率",tmpM, KEY_ESC | KEY_OK<<8, 60000);
-			if (listbox.key == KEY_OK)
-			{
-				break;
-			}
-			else if (listbox.key == KEY_ESC || listbox.key == KEY_NULL)
-			{
-				return -1;
-			}
-		}
-		char menuitem[8][32];
-#ifdef FK_TERM
-		char *title[] = {"总加组功率","测量点功率及功率因素"};
-#else
-		char *title[] = {"测量点功率及功率因素"};
-#endif
-		DWORD dwPowerID[] = {0x20040200, 0x20050200, 0x20060200, 0x200A0200};  //有功功率,无功功率,视在功率,功率因素
-		memset(menuitem, 0, sizeof(menuitem));
+    char menuitem[8][32];
 
-		struct ListBoxExItem tmpS[] = { 
-			{ menuitem[0], 0xFE, Dummy, (void *) 1 }, //
-			{ menuitem[1], 0xFE, Dummy, (void *) 2 }, //
-			{ menuitem[2], 0xFE, Dummy, (void *) 3 }, //
-			{ menuitem[3], 0xFE, Dummy, (void *) 4 }, //
-			{ menuitem[4], 0xFE, Dummy, (void *) 5 }, //
-			{ menuitem[5], 0xFE, Dummy, (void *) 6 }, //
-			{ menuitem[6], 0xFE, Dummy, (void *) 7 }, //
-			{ menuitem[7], 0xFE, Dummy, (void *) 8 }, //
-			{ NULL, 0xFF, NULL, NULL }, //
-		};
+    DWORD dwPowerID[] = {
+        0x20040200, 
+        0x20050200, 
+        0x20060200, 
+        0x200A0200,
+    };  //有功功率,无功功率,视在功率,功率因数
 
-		BYTE bTmpBuff[110] = {0};
+    memset(menuitem, 0, sizeof(menuitem));
 
-		BYTE *cp = NULL;
-		int MenuPage = 0;
-		int iGroupNo = 0;
-		BYTE *pbFmt = NULL;
-		WORD wFmtLen = 0;
-		//BYTE bTsa[17] = {0};
-		CListBoxEx listboxSub;
-#ifdef FK_TERM		
-		if (listbox.item == 0)
-		{
-			char cInput[5] = {0};
-			if(EditSpecBox(2,"请输入总加组号(1-8):",cInput, 60000, 1,DATA_DEC8)>= 0)
-			{
-				memset(bTmpBuff, 0, sizeof(bTmpBuff));
-				sscanf(cInput,"%d",&iGroupNo);
+    struct ListBoxExItem tmpS[] = { 
+        { menuitem[0], 0xFE, Dummy, (void *) 1 }, //
+        { menuitem[1], 0xFE, Dummy, (void *) 2 }, //
+        { menuitem[2], 0xFE, Dummy, (void *) 3 }, //
+	    { menuitem[3], 0xFE, Dummy, (void *) 4 }, //
+        { menuitem[4], 0xFE, Dummy, (void *) 5 }, //
+        { menuitem[5], 0xFE, Dummy, (void *) 6 }, //
+        { menuitem[6], 0xFE, Dummy, (void *) 7 }, //
+        { menuitem[7], 0xFE, Dummy, (void *) 8 }, //
+        { NULL, 0xFF, NULL, NULL }, //
+    };
 
-				if(iGroupNo < 9 && iGroupNo > 0/* && IsGrpValid(iGroupNo)*/)
-				{
+    BYTE bTmpBuff[110] = {0};
 
-					while(1)
-					{
-						i = 0;
-						
-						OoReadAttr(0x2300+iGroupNo, 0x03, bTmpBuff, &pbFmt, &wFmtLen);
-						cp = bTmpBuff + 1;
+    BYTE *cp = NULL;
+    int iMenuPage = 0;
+    int iMtrSn = 0;
+    int iRet=-1;
+    BYTE *pbFmt = NULL;
+    WORD wFmtLen = 0;
+    CListBoxEx listboxSub;
 
-						sprintf(menuitem[i++], "总加组%d有功功率:",iGroupNo);
-						sprintf(menuitem[i++], "  %.1fW", (float)OoLong64ToInt64(cp)*1e-1);
+    char *title[] = {"有功功率", "无功功率", "视在功率", "功率因数"};
 
-						OoReadAttr(0x2300+iGroupNo, 0x04, bTmpBuff+10, &pbFmt, &wFmtLen);
+    char cInput[5] = {0};
+    if(EditSpecBox(2,"请输入测量点号:",cInput,60000,4,DATA_DEC)>= 0)
+    {
+        sscanf(cInput,"%04d",&iMtrSn);
+        if(iMtrSn < POINT_NUM && iMtrSn >= 1)
+        {
+            TOobMtrInfo tTMtrInfo;
+            memset(&tTMtrInfo, 0, sizeof(TOobMtrInfo));
+            WORD wPn = MtrSnToPn(iMtrSn);
+            if (!GetMeterInfo(wPn, &tTMtrInfo))
+            {
+                MessageBox("该电表未配置!", KEY_ESC, 3000);
+                return -1;
+	        }
+        }
+        else
+	    {
+            MessageBox("输入表序号错误",KEY_ESC,10000);
+	        return -1;
+	    }
 
-						sprintf(menuitem[i++], "总加组%d无功功率:",iGroupNo);
-						cp += 10;
-						sprintf(menuitem[i++],"  %.1fvar", (float)OoLong64ToInt64(cp)*1e-1);
-						tmpS[i+2].text = NULL;
+        while(1)
+        {
+            i = 0;
+            memset(menuitem, 0, sizeof(menuitem));
+	        memset(bTmpBuff, 0, sizeof(bTmpBuff));
+            iRet = ReadClass1Data(iMtrSn, dwPowerID[iMenuPage], bTmpBuff);
+            WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&iMtrSn);
+            
+            if (iMenuPage == 0)
+            {
+                cp = bTmpBuff+2+1;
+	            sprintf(menuitem[i++], "测量点%d:",iMtrSn);
+                
+                if(iRet>0)
+                {
+                    sprintf(menuitem[i++], "总：%.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
+                    cp += 5;
+                    sprintf(menuitem[i++], "A相: %.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
 
-						listboxSub.Show(0, title[listbox.item], tmpS, KEY_ESC, 60000, false );
+                    if (bTmpBuff[1] != 2) //三相表
+                    {
+    		            cp += 5;
+    		            sprintf(menuitem[i++], "B相: %.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
 
-						if (KEY_ESC == listboxSub.key || KEY_NULL == listboxSub.key)
-						{
-							goto flag;
-						}
-					}	
-				}
-				else
-				{
-					MessageBox("输入总加组错误",KEY_ESC,10000);
-					goto flag;
-				}
-			}
-			else
-			{
-				goto flag;
-			}
-			
-		}
-		else if (listbox.item == 1)
-#else
-		if (listbox.item == 0)
-#endif
-		{
-			char cInput[5] = {0};
-			if(EditSpecBox(2,"请输入测量点号:",cInput,60000,2,DATA_DEC)>= 0)
-			{	
-				/*WORD wPn = 0;
-				TMtrRdCtrl *ptMtrRdCtrl = NULL;*/
-				sscanf(cInput,"%d",&iGroupNo);
+    		            cp += 5;
+    		            sprintf(menuitem[i++], "C相: %.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
+    		        }
+                    else{
+                        sprintf(menuitem[i++], "B相: xxxxx.xW");
+    		            sprintf(menuitem[i++], "C相: xxxxx.xW");
+                    }
+                }
+                else
+                {
+                    sprintf(menuitem[i++], "总: xxxxx.xW");
+                    sprintf(menuitem[i++], "A相: xxxxx.xW");
+                    sprintf(menuitem[i++], "B相: xxxxx.xW");
+                    sprintf(menuitem[i++], "C相: xxxxx.xW");
+                }
+	        }
+            else if (iMenuPage == 1)
+            {
+                cp = bTmpBuff+2+1;
+                sprintf(menuitem[i++], "测量点%d:", iMtrSn);
+                if(iRet>0)
+                {
+                    sprintf(menuitem[i++], "总：%.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
+                    cp += 5;
+                    sprintf(menuitem[i++], "A相: %.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
+                    if (bTmpBuff[1] != 2) //三相表
+                    {
+                        cp += 5;
+                        sprintf(menuitem[i++], "B相: %.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
+                        cp += 5;
+                        sprintf(menuitem[i++], "C相: %.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
+                    }
+                    else
+                    {
+                        sprintf(menuitem[i++], "B相: xxxxx.xvar");
+                        sprintf(menuitem[i++], "C相: xxxxx.xvar");
+                    }
+                }
+                else
+                {
+                    sprintf(menuitem[i++], "总: xxxxx.xvar");
+                    sprintf(menuitem[i++], "A相: xxxxx.xvar");
+                    sprintf(menuitem[i++], "B相: xxxxx.xvar");
+                    sprintf(menuitem[i++], "C相: xxxxx.xvar");
+                }
+            }
+            else if (iMenuPage == 2)
+            {
+                cp = bTmpBuff+2+1;
+                sprintf(menuitem[i++], "测量点%d:", iMtrSn);
+                if(iRet>0)
+                {
+                    sprintf(menuitem[i++], "总：%.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
+                    cp += 5;
+                    sprintf(menuitem[i++], "A相: %.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
+                    if (bTmpBuff[1] != 2) //三相表
+                    {
+                        cp += 5;
+                        sprintf(menuitem[i++], "B相: %.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
+                        cp += 5;
+                        sprintf(menuitem[i++], "C相: %.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
+                    }
+                    else
+                    {
+                        sprintf(menuitem[i++], "B相: xxxxx.xVA");
+                        sprintf(menuitem[i++], "C相: xxxxx.xVA");
+                    }
+                }
+                else
+                {
+                    sprintf(menuitem[i++], "总: xxxxx.xVA");
+                    sprintf(menuitem[i++], "A相: xxxxx.xVA");
+                    sprintf(menuitem[i++], "B相: xxxxx.xVA");
+                    sprintf(menuitem[i++], "C相: xxxxx.xVA");
+                }
+            }
+            else if (iMenuPage == 3)
+            {
+                cp = bTmpBuff+2+1;
+                sprintf(menuitem[i++], "测量点%d:", iMtrSn);
+                if(iRet>0)
+                {
+                    sprintf(menuitem[i++], "总：%.3f", (float)OoLongToInt16(cp)*1e-3);
+                    cp += 3;
+                    sprintf(menuitem[i++], "A相：%.3f", (float)OoLongToInt16(cp)*1e-3);
+                    if (bTmpBuff[1] != 2)
+                    {
+                        cp += 3;
+                        sprintf(menuitem[i++], "B相：%.3f", (float)OoLongToInt16(cp)*1e-3);
+                        cp += 3;
+                        sprintf(menuitem[i++], "C相：%.3f", (float)OoLongToInt16(cp)*1e-3);
+                    }
+                    else
+                    {
+                        sprintf(menuitem[i++], "B相: x.xxx");
+                        sprintf(menuitem[i++], "C相: x.xxx");
+                    }
+                }
+                else
+                {
+                    sprintf(menuitem[i++], "总: x.xxx");
+                    sprintf(menuitem[i++], "A相: x.xxx");
+                    sprintf(menuitem[i++], "B相: x.xxx");
+                    sprintf(menuitem[i++], "C相: x.xxx");
+                }               
+            }
+            tmpS[i].text = NULL;  
 
-				if(iGroupNo < POINT_NUM && iGroupNo >= 1 /*&& IsPnValid(iGroupNo)*/)
-				{
-					TOobMtrInfo tTMtrInfo;
-					memset(&tTMtrInfo, 0, sizeof(TOobMtrInfo));
-					WORD wPn = MtrSnToPn(iGroupNo);
-					if (!GetMeterInfo(wPn, &tTMtrInfo))
-					{
-						MessageBox("该电表未配置!", KEY_ESC, 3000);
-						goto flag;
-					}
-				}
-				else
-				{
-					MessageBox("输入表序号错误",KEY_ESC,10000);
-					goto flag;
-				}
+            listboxSub.Show(0, title[iMenuPage], tmpS, KEY_ESC | KEY_UP<< 8 | KEY_DOWN<<16, 60000, false );
+            if (KEY_ESC == listboxSub.key || KEY_NULL == listboxSub.key)
+            {
+                break;
+            }
+            if (KEY_UP == listboxSub.key )
+            {
+                iMenuPage--;
+                if (iMenuPage < 0)
+                {
+                    iMenuPage = 3;
+                }
+            }
+            else if (KEY_DOWN == listboxSub.key)
+            {
+                iMenuPage++;
+                if (iMenuPage > 3)
+                {
+                    iMenuPage = 0;
+                }
+            }
+        }	
+    }
 
-				while(1)
-				{
-					i = 0;
-					memset(menuitem, 0, sizeof(menuitem));
-					memset(bTmpBuff, 0, sizeof(bTmpBuff));
-
-					/*if (ptMtrRdCtrl != NULL)
-					{
-						GetMtrItemMem(&ptMtrRdCtrl->mtrTmpData, 0x20040200, bTmpBuff);//有功功率
-						GetMtrItemMem(&ptMtrRdCtrl->mtrTmpData, 0x20050200, bTmpBuff+30);//无功功率
-						GetMtrItemMem(&ptMtrRdCtrl->mtrTmpData, 0x20060200, bTmpBuff+60);//视在功率
-						GetMtrItemMem(&ptMtrRdCtrl->mtrTmpData, 0x200A0200, bTmpBuff+90);//功率因素
-					}*/
-
-					ReadClass1Data(iGroupNo, dwPowerID[MenuPage], bTmpBuff);
-
-					if (MenuPage == 0)
-					{
-						cp = bTmpBuff+2+1;
-						sprintf(menuitem[i++], "测量点%d:",iGroupNo);
-						sprintf(menuitem[i++], "总有功功率：%.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
-
-						cp += 5;
-						sprintf(menuitem[i++], "A相: %.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
-
-						if (bTmpBuff[1] != 2) //三相表
-						{
-							cp += 5;
-							sprintf(menuitem[i++], "B相: %.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
-
-							cp += 5;
-							sprintf(menuitem[i++], "C相: %.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
-						}
-						
-						//tmpS[i].text = NULL;
-					}
-					else if (MenuPage == 1)
-					{
-						//cp = bTmpBuff+30;
-						cp = bTmpBuff+2+1;
-						sprintf(menuitem[i++], "测量点%d:", iGroupNo);
-
-						//cp += 3;
-						sprintf(menuitem[i++], "总无功功率：%.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
-
-						cp += 5;
-						sprintf(menuitem[i++], "A相: %.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
-
-						if (bTmpBuff[1] != 2) //三相表
-						{
-							cp += 5;
-							sprintf(menuitem[i++], "B相: %.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
-
-							cp += 5;
-							sprintf(menuitem[i++], "C相: %.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
-						}
-						
-						//tmpS[i].text = NULL;
-					}
-					else if (MenuPage == 2)
-					{
-						//cp = bTmpBuff+60;
-						cp = bTmpBuff+2+1;
-						sprintf(menuitem[i++], "测量点%d:", iGroupNo);
-
-						//cp += 5;
-						sprintf(menuitem[i++], "视在功率: %.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
-
-						cp += 5;
-						sprintf(menuitem[i++], "A相: %.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
-
-						if (bTmpBuff[1] != 2)
-						{
-							cp += 5;
-							sprintf(menuitem[i++], "B相: %.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
-
-							cp += 5;
-							sprintf(menuitem[i++], "C相: %.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
-						}
-					}
-					else if (MenuPage == 3)
-					{
-						//cp = bTmpBuff+90;
-						cp = bTmpBuff+2+1;
-						sprintf(menuitem[i++], "测量点%d:", iGroupNo);
-
-						//cp += 3;
-						sprintf(menuitem[i++], "功率因素：%.3f", (float)OoLongToInt16(cp)*1e-3);
-
-						cp += 3;
-						sprintf(menuitem[i++], "A相：%.3f", (float)OoLongToInt16(cp)*1e-3);
-
-						if (bTmpBuff[1] != 2)
-						{
-							cp += 3;
-							sprintf(menuitem[i++], "B相：%.3f", (float)OoLongToInt16(cp)*1e-3);
-
-							cp += 3;
-							sprintf(menuitem[i++], "C相：%.3f", (float)OoLongToInt16(cp)*1e-3);
-						}
-						//tmpS[i].text = NULL;
-					}
-					listboxSub.Show(0, title[listbox.item], tmpS, KEY_ESC | KEY_UP<< 8 | KEY_DOWN<<16, 60000, false );
-
-					if (KEY_ESC == listboxSub.key || KEY_NULL == listboxSub.key)
-					{
-						goto flag;
-					}
-					if (KEY_UP == listboxSub.key )
-					{
-						MenuPage--;
-						if (MenuPage < 0)
-						{
-							MenuPage = 3;
-						}
-					}
-					else if (KEY_DOWN == listboxSub.key)
-					{
-						MenuPage++;
-						if (MenuPage > 3)
-						{
-							MenuPage = 0;
-						}
-					}
-				}	
-			}
-			else
-			{
-				goto flag;
-			}
-		}									
-
-		return -1;
+    iMtrSn = 0;
+    WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&iMtrSn);
+    return -1;
 }
 
 int CurrntEnage(void *arg)
 {
 	BYTE i = 0;
-	struct ListBoxExItem tmpM[] = {
-#ifdef FK_TERM
-		{ "总加组电量", 0xFF, Dummy, (void *) 1 }, //
-#endif
-		{ "电表电量", 0xFF, Dummy, (void *) 2 }, //
-		{  NULL, 0xFF, Dummy, (void *) 3 }, //
-	};
+
 	CListBoxEx listbox;
 
-flag:	while(1)
-		{
-			listbox.Show(0,"当前电能量",tmpM, KEY_ESC | KEY_OK<<8, 60000);
-			if (listbox.key == KEY_OK)
-			{
-				break;
-			}
-			else if (listbox.key == KEY_ESC || listbox.key == KEY_NULL)
-			{
-				return -1;
-			}
-		}
-		char menuitem[9][32];
-		/*char *title[14] = {"总加组功率","测量点功率","当日总加组有功电能量","当日总加组无功电能量","当月总加组有功电能量","当月总加组无功电能量",
-		"当日正向有功电能量","当日反向有功电能量","当日正向无功电能量", "当日反向无功电能量", "当月正向有功电能量","当月反向有功电能量","当月正向无功电能量","当月反向无功电能量"};
-*/
-		char *title[] = {"总加日有功电能量","总加日无功电能量","总加月有功电能量","总加月无功电能量",
-			"正向有功电能示值","反向有功电能示值","正向无功电能示值", "反向无功电能示值", "一象限无功电能示值","二象限无功电能示值","三象限无功电能示值","四象限无功电能示值"};
-		const DWORD bDeltaAddGrpIDAttr[] = {0x07, 0x08, 0x09, 0x0a};//总加组接口类属性7~10
-		const DWORD dwGrpOI[] = {0x2301, 0x2302, 0x2303, 0x2304, 0x2305, 0x2306, 0x2307, 0x2308};//总加组1~8
-		const DWORD dwDeltaPnID[] = { 0x00100200, 0x00200200, 0x00300200, 0x00400200, 0x00500200, 0x00600200, 0x00700200, 0x00800200};//正向有功电能示值~四象限无功电能示值
+    char menuitem[9][32];
 
-		memset(menuitem, 0, sizeof(menuitem));
+    char *title[] = {
+            "正向有功电能示值",  // 0            
+            "正向无功电能示值",  // 1
+            "反向有功电能示值",  // 2
+            "反向无功电能示值",  // 3
+            "一象限无功电能示值",  // 4
+            "二象限无功电能示值",  // 5
+            "三象限无功电能示值",  // 6
+            "四象限无功电能示值",  // 7
+        };  // 7
+        
+    const DWORD dwDeltaPnID[] = { 
+            0x00100200,   // 0 正有            
+            0x00300200,   // 1 正无
+            0x00200200,   // 2 反有
+            0x00400200,   // 3 反无
+            0x00500200,   // 4 一象限
+            0x00600200,   // 5 二象限
+            0x00700200,   // 6 三象限
+            0x00800200,   // 7 四象限
+        };//正向有功电能示值~四象限无功电能示值
 
-		struct ListBoxExItem tmpS[] = { 
+    memset(menuitem, 0, sizeof(menuitem));
+
+    struct ListBoxExItem tmpS[] = { 
 			{ menuitem[0], 0xFE, Dummy, (void *) 1 }, //
 			{ menuitem[1], 0xFE, Dummy, (void *) 2 }, //
 			{ menuitem[2], 0xFE, Dummy, (void *) 3 }, //
@@ -1540,250 +1532,172 @@ flag:	while(1)
 			{ menuitem[5], 0xFE, Dummy, (void *) 6 }, //
 			{ menuitem[6], 0xFE, Dummy, (void *) 7 }, //
 			{ menuitem[7], 0xFE, Dummy, (void *) 8 }, //
-			{ menuitem[8], 0xFE, Dummy, (void *) 8 }, //
+			{ menuitem[8], 0xFE, Dummy, (void *) 9 }, //
 			{ NULL, 0xFF, NULL, NULL }, //
-		};
-#ifdef DEBUG_DISP
-		BYTE bTestBuf[80] = {DT_ARRAY, 5, 
-										DT_LONG64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF,
-										DT_LONG64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF,
-										DT_LONG64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF,
-										DT_LONG64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF,
-										DT_LONG64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF};
-		BYTE bTmpBuff[80] = {DT_ARRAY, 5, 
-										DT_DB_LONG_U, 0x00, 0x00, 0xFF, 0xFF,
-										DT_DB_LONG_U, 0x00, 0x00, 0xFF, 0xFF,
-										DT_DB_LONG_U, 0x00, 0x00, 0xFF, 0xFF,
-										DT_DB_LONG_U, 0x00, 0x00, 0xFF, 0xFF,
-										DT_DB_LONG_U, 0x00, 0x00, 0xFF, 0xFF};
-#else
-		BYTE bTmpBuff[80] = {0};
-#endif
-		BYTE *cp = NULL;
-		char str[30] = {0};
-		int MenuPage = 0;
-		int iGroupNo = 0;
-		BYTE bFmt[5] = {0};
-		BYTE *pbFmt = bFmt;
-		WORD wFmtLen = 0;
+    };
 
-		CListBoxEx listboxSub;
-		while(1)
-		{
-#ifdef FK_TERM
-			if (listbox.item == 0)
-			{
-				char cInput[5] = {0};
-				MenuPage = 0;
-				if(EditSpecBox(2,"请输入总加组号(1-8):",cInput, 60000, 1,DATA_DEC8)>= 0)
-				{
-					memset(str, 0, sizeof(str));
-					sscanf(cInput,"%d",&iGroupNo);
+    BYTE bTmpBuff[80] = {0};
+
+    BYTE *cp = NULL;
+    char str[30] = {0};
+    int iMenuPage = 0;
+    int iMtrSn = 0;
+    int iRet = -1;
+    BYTE bFmt[5] = {0};
+    BYTE *pbFmt = bFmt;
+    WORD wFmtLen = 0;
+
+    CListBoxEx listboxSub;    
+    char cInput[5] = {0};
+    BYTE bTsa[17] = {0};
+    
+    if(EditSpecBox(2,"请输入表序号:",cInput,60000,4,DATA_DEC)>= 0)
+    {
+        sscanf(cInput,"%04d",&iMtrSn);
+        if (iMtrSn<POINT_NUM && iMtrSn>=1 /*&& IsPnValid(iGroupNo)*/)
+        {
+            TOobMtrInfo tTMtrInfo;
+            memset(&tTMtrInfo, 0, sizeof(TOobMtrInfo));
+            WORD wPn = MtrSnToPn(iMtrSn);
+            if (!GetMeterInfo(wPn, &tTMtrInfo))
+            {
+                MessageBox("该电表未配置!", KEY_ESC, 3000);
+                return -1;
+            }
+        }
+        else
+        {
+	        MessageBox("输入表序号错误",KEY_ESC,10000);
+            return -1;
+        }
+    }
+    else
+    {
+        return -1;
+    }
+    
+    while(1)
+    {
+        i = 0;
+        memset(bTmpBuff, 0, sizeof(bTmpBuff));
+        iRet = ReadClass1Data(iMtrSn, dwDeltaPnID[iMenuPage], bTmpBuff);
 					
-					while(1)
-					{
-						i = 0;
-						if(iGroupNo<9 && iGroupNo>0 /*&& IsGrpValid(iGroupNo)*/)
-						{
-#ifdef DEBUG_DISP
-							cp = bTestBuf + 2 + 1;
-#else
-							memset(bTmpBuff, 0, sizeof(bTmpBuff));
-							OoReadAttr(dwGrpOI[iGroupNo-1], bDeltaAddGrpIDAttr[MenuPage], bTmpBuff, &pbFmt, &wFmtLen);
-							cp = bTmpBuff+2+1;
-#endif	
-							//memcpy(str, cp, 8);
-	
-							sprintf(menuitem[i++], "总加组%d:",iGroupNo);
-							switch(MenuPage)
-							{
-							case 0:
-							case 2:
-								sprintf(menuitem[i++],"总电量: %.4fkwh", (float)OoLong64ToInt64(cp)*1.0e-4);
-								cp += 9;
-								//memcpy(str, cp, 8);
-								sprintf(menuitem[i++], "尖: %.4fkwh", (float)OoLong64ToInt64(cp)*1.0e-4);
-								cp += 9;
-								//memcpy(str, cp, 8);
-								sprintf(menuitem[i++], "峰: %.4fkwh", (float)OoLong64ToInt64(cp)*1.0e-4);
-								cp += 9;
-								//memcpy(str, cp, 8);
-								sprintf(menuitem[i++], "平: %.4fkwh", (float)OoLong64ToInt64(cp)*1.0e-4);
-								cp += 9;
-								//memcpy(str, cp, 8);
-								sprintf(menuitem[i++], "谷: %.4fkwh", (float)OoLong64ToInt64(cp)*1.0e-4);
-								break;
-							case 1:
-							case 3:
-								sprintf(menuitem[i++], "总电量: %.4fkvarh", (float)OoLong64ToInt64(cp)*1.0e-4);
-								cp += 9;
-								//memcpy(str, cp, 8);
-								sprintf(menuitem[i++], "尖: %.4fkvarh", (float)OoLong64ToInt64(cp)*1.0e-4);
-								cp += 9;
-								//memcpy(str, cp, 8);
-								sprintf(menuitem[i++], "峰: %.4fkvarh", (float)OoLong64ToInt64(cp)*1.0e-4);
-								cp += 9;
-								//memcpy(str, cp, 8);
-								sprintf(menuitem[i++], "平: %.4fkvarh", (float)OoLong64ToInt64(cp)*1.0e-4);
-								cp += 9;
-								//memcpy(str, cp, 8);
-								sprintf(menuitem[i++], "谷: %.4fkvarh", (float)OoLong64ToInt64(cp)*1.0e-4);
-								break;
-							}
-							
-							tmpS[i].text = NULL;
-						}
-						else
-						{
-							MessageBox("输入总加组错误",KEY_ESC,10000);
-							goto flag;
-						}
-						listboxSub.Show(0, title[MenuPage], tmpS, KEY_ESC | KEY_UP<<8 | KEY_DOWN<<16, 60000, false );
+        cp = bTmpBuff+2+1;
+        sprintf(menuitem[i++], "测量点%d:",iMtrSn);
+        WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&iMtrSn);
 
-						if (KEY_ESC == listboxSub.key || KEY_NULL == listboxSub.key)
-						{
-							goto flag;
-						}
-						if (KEY_UP == listboxSub.key )
-						{
-							MenuPage--;
-							if (MenuPage < 0)
-							{
-								MenuPage = 3;
-							}
-						}
-						else if (KEY_DOWN == listboxSub.key)
-						{
-							MenuPage++;
-							if (MenuPage > 3)
-							{
-								MenuPage = 0;
-							}
-						}
-					}
-				}
-				else
-				{
-					goto flag;
-				}
-			}
-			else if (listbox.item == 1)
-#else
-			if (listbox.item == 0)
-#endif
-			{
-				char cInput[5] = {0};
-				BYTE bTsa[17] = {0};
-				/*TMtrRdCtrl *ptMtrRdCtrl = NULL;*/
-				//WORD wPn = 0;
-				MenuPage = 4;
-				if(EditSpecBox(2,"请输入表序号:",cInput,60000,2,DATA_DEC)>= 0)
-				{
-					sscanf(cInput,"%d",&iGroupNo);
-					if (iGroupNo<POINT_NUM && iGroupNo>=1 /*&& IsPnValid(iGroupNo)*/)
-					{
-						TOobMtrInfo tTMtrInfo;
-						memset(&tTMtrInfo, 0, sizeof(TOobMtrInfo));
-						WORD wPn = MtrSnToPn(iGroupNo);
-						if (!GetMeterInfo(wPn, &tTMtrInfo))
-						{
-							MessageBox("该电表未配置!", KEY_ESC, 3000);
-							goto flag;
-						}
-					}
-					else
-					{
-						MessageBox("输入表序号错误",KEY_ESC,10000);
-						goto flag;
-					}
-				}
-				else
-				{
-					goto flag;
-				}
-				while(1)
-				{
-					i = 0;
-#ifndef DEBUG_DISP
-					memset(bTmpBuff, 0, sizeof(bTmpBuff));
-					ReadClass1Data(iGroupNo, dwDeltaPnID[MenuPage-4], bTmpBuff);
-					/*if (ptMtrRdCtrl != NULL)
-					{
-						GetMtrItemMem(&ptMtrRdCtrl->mtrTmpData, dwDeltaPnID[MenuPage-4], bTmpBuff);
-						DTRACE(DB_FA, ("############# bValid=%d, bTaskId=%d, fRecSaved=%d, bCSDItemNum=%d, bSucFlg[0]=%d", ptMtrRdCtrl->taskSucFlg[0].bValid, ptMtrRdCtrl->taskSucFlg[0].bTaskId, ptMtrRdCtrl->taskSucFlg[0].fRecSaved, ptMtrRdCtrl->taskSucFlg[0].bCSDItemNum, ptMtrRdCtrl->taskSucFlg[0].bSucFlg[0]));
-						DTRACE(DB_FA, ("############# dwOAD = %08x\n", dwDeltaPnID[MenuPage-4]));
-						TraceBuf(DB_FA, "############# bBuf-->", ptMtrRdCtrl->mtrTmpData.bBuf, 100);
-					}*/
-#endif							
-					cp = bTmpBuff+2+1;
-					//memcpy(str, cp, 4);
-					sprintf(menuitem[i++], "测量点%d:",iGroupNo);
-					switch(MenuPage)
-					{
-					case 4:
-					case 5:
-						sprintf(menuitem[i++],"总电量: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-						cp += 5;
-						sprintf(menuitem[i++],"尖: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-						cp += 5;
-						sprintf(menuitem[i++],"峰: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-						cp += 5;
-						sprintf(menuitem[i++],"平: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-						cp += 5;
-						sprintf(menuitem[i++],"谷: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-						break;
-					case 6:
-					case 7:
-					case 8:
-					case 9:
-					case 10:
-					case 11:
-						sprintf(menuitem[i++],"总电量: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-						cp += 5;
-						sprintf(menuitem[i++],"尖: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-						cp += 5;
-						sprintf(menuitem[i++],"峰: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-						cp += 5;
-						sprintf(menuitem[i++],"平: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-						cp += 5;
-						sprintf(menuitem[i++],"谷: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-						break;
-					}
+        if(iRet<=0) 
+        {
+            if(iMenuPage==0 || iMenuPage==2)
+            {
+                sprintf(menuitem[i++],"总: xxxxxx.xxkWh");
+                sprintf(menuitem[i++],"尖: xxxxxx.xxkWh");
+                sprintf(menuitem[i++],"峰: xxxxxx.xxkWh");
+                sprintf(menuitem[i++],"平: xxxxxx.xxkWh");
+                sprintf(menuitem[i++],"谷: xxxxxx.xxkWh");
+            }
+            else
+            {
+                sprintf(menuitem[i++],"总: xxxxxx.xxkvarh");
+                sprintf(menuitem[i++],"尖: xxxxxx.xxkvarh");
+                sprintf(menuitem[i++],"峰: xxxxxx.xxkvarh");
+                sprintf(menuitem[i++],"平: xxxxxx.xxkvarh");
+                sprintf(menuitem[i++],"谷: xxxxxx.xxkvarh");
+            }
+        }
+        
+        switch(iMenuPage)
+        {
+            case 0:   // 正有
+	        case 2:   // 反有
+                if(iRet>0)
 
-					tmpS[i].text = NULL;
-						
-					listboxSub.Show(0, title[MenuPage], tmpS, KEY_ESC | KEY_UP<< 8 | KEY_DOWN << 16, 60000, false );
+                {
+                    sprintf(menuitem[i++],"总: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    			    cp += 5;
+    		        sprintf(menuitem[i++],"尖: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    	            cp += 5;
+    		        sprintf(menuitem[i++],"峰: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    			    cp += 5;
+    			    sprintf(menuitem[i++],"平: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    			    cp += 5;
+    			    sprintf(menuitem[i++],"谷: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+                }
+                break;
+	        case 1:   // 正无            
+	        case 3:   // 反无     
+	            if(iRet>0)
 
-					if (KEY_ESC == listboxSub.key || KEY_NULL == listboxSub.key)
-					{
-						goto flag;
-					}
-					if (KEY_UP == listboxSub.key )
-					{
-						MenuPage--;
-						if (MenuPage < 4)
-						{
-							MenuPage = 11;
-						}
-					}
-					else if (KEY_DOWN == listboxSub.key)
-					{
-						MenuPage++;
-						if (MenuPage > 11)
-						{
-							MenuPage = 4;
-						}
-					}
-				}
-			}
-		}
-		return -1;
+                {
+                    sprintf(menuitem[i++],"总: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    			    cp += 5;
+    		        sprintf(menuitem[i++],"尖: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    	            cp += 5;
+    		        sprintf(menuitem[i++],"峰: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    			    cp += 5;
+    			    sprintf(menuitem[i++],"平: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    			    cp += 5;
+    			    sprintf(menuitem[i++],"谷: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+                }
+                break;
+            case 4:   // 一象限
+            case 5:   // 二象限
+            case 6:   // 三象限
+            case 7:   // 四象限
+                if(iRet>0)
+                {
+                    sprintf(menuitem[i++],"总: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    			    cp += 5;
+    		        sprintf(menuitem[i++],"尖: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    	            cp += 5;
+    		        sprintf(menuitem[i++],"峰: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    			    cp += 5;
+    			    sprintf(menuitem[i++],"平: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    			    cp += 5;
+    			    sprintf(menuitem[i++],"谷: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+                }
+                break;
+            default:
+                break;
+        }
+
+        tmpS[i].text = NULL;						
+        listboxSub.Show(0, title[iMenuPage], tmpS, KEY_ESC | KEY_UP<< 8 | KEY_DOWN << 16, 60000, false );
+        
+        if (KEY_ESC == listboxSub.key || KEY_NULL == listboxSub.key)
+	    {
+            break;
+        }
+
+        if (KEY_UP == listboxSub.key )
+		{
+            iMenuPage--;
+	        if (iMenuPage < 0)
+	        {
+                iMenuPage = 7;
+            }
+        }
+        else if (KEY_DOWN == listboxSub.key)
+        {
+            iMenuPage++;
+            if (iMenuPage > 7)
+            {
+		        iMenuPage = 0;
+	        }
+        }
+    }	
+
+    iMtrSn = 0;
+    WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&iMtrSn);
+		
+    return -1;
+    
 }
 
 int CurrntDemand(void *arg)
 {
 	int i;
-	char menuitem[4][32];
+	char menuitem[8][32];
 	memset(menuitem, 0, sizeof(menuitem));
 	CListBoxEx listbox;
 
@@ -1792,34 +1706,36 @@ int CurrntDemand(void *arg)
 		{ menuitem[1], 0xFE, Dummy, (void *) 2 }, //
 		{ menuitem[2], 0xFE, Dummy, (void *) 3 }, //
 		{ menuitem[3], 0xFE, Dummy, (void *) 4 }, //
+		{ menuitem[4], 0xFE, Dummy, (void *) 5 }, //
+		{ menuitem[5], 0xFE, Dummy, (void *) 6 }, //
+		{ menuitem[6], 0xFE, Dummy, (void *) 7 }, //
+		{ menuitem[7], 0xFE, Dummy, (void *) 8 }, //
 		{ NULL, 0xFF, NULL, NULL }, //
 	};
 
-	BYTE bTmpBuff[20] = {0};
+	BYTE bTmpBuff[256] = {0};
 
-	int iGroupNo = 0;
-	//BYTE bTsa[17] = {0};
+	int iMtrSn = 0;
+    int iRet = -1;
 	BYTE *cp = NULL;
+    TTime tTime;
 
 	char cInput[5] = {0};
-	if(EditSpecBox(2,"请输入表序号:",cInput, 60000, 2, DATA_DEC)>= 0)
+	if(EditSpecBox(2,"请输入表序号:",cInput, 60000, 4, DATA_DEC)>= 0)
 	{
 		WORD wPn = 0;
 		TMtrRdCtrl *ptMtrRdCtrl = NULL;
-		sscanf(cInput,"%d",&iGroupNo);
-		if(iGroupNo<POINT_NUM && iGroupNo>=1 /*&& IsPnValid(iGroupNo)*/)
+		sscanf(cInput,"%04d",&iMtrSn);
+		if(iMtrSn<POINT_NUM && iMtrSn>=1)
 		{
 			TOobMtrInfo tTMtrInfo;
 			memset(&tTMtrInfo, 0, sizeof(TOobMtrInfo));
-			WORD wPn = MtrSnToPn(iGroupNo);
+			WORD wPn = MtrSnToPn(iMtrSn);
 			if (!GetMeterInfo(wPn, &tTMtrInfo))
 			{
 				MessageBox("该电表未配置!", KEY_ESC, 3000);
 				return -1;
 			}
-			/*wPn = MtrSnToPn(iGroupNo);
-			GetMeterTsa(wPn, bTsa);
-			ptMtrRdCtrl = GetMtrRdCtrl(wPn, bTsa);*/
 		}
 		else
 		{
@@ -1830,45 +1746,68 @@ int CurrntDemand(void *arg)
 		while(1)
 		{
 			i = 0;
-			memset(bTmpBuff, 0, sizeof(bTmpBuff));
-		
-			/*if (ptMtrRdCtrl != NULL)
-			{
-				GetMtrItemMem(&ptMtrRdCtrl->mtrTmpData, 0x20170200, bTmpBuff);
-				GetMtrItemMem(&ptMtrRdCtrl->mtrTmpData, 0x20180200, bTmpBuff+5);
-				GetMtrItemMem(&ptMtrRdCtrl->mtrTmpData, 0x20190200, bTmpBuff+10);
-			}*/
-			ReadClass1Data(iGroupNo, 0x20170200, bTmpBuff);
-			ReadClass1Data(iGroupNo, 0x20180200, bTmpBuff+5);
-			//ReadClass1Data(iGroupNo, 0x20190200, bTmpBuff+10);
-
-			sprintf(menuitem[i++], "测量点%d:",iGroupNo);
-			cp = bTmpBuff + 1;
-			sprintf(menuitem[i++],"有功需量: %.4fkW", (float)OoDoubleLongToInt(cp)*1e-4);
-			cp += 5;
-			sprintf(menuitem[i++],"无功需量: %.4fkvar", (float)OoDoubleLongToInt(cp)*1e-4);
-			//cp += 5;
-			//sprintf(menuitem[i++],"视在需量: %.4fkVA", (float)OoDoubleLongToInt(cp)*1e-4);
+			memset(bTmpBuff, 0, sizeof(bTmpBuff));		
+			
+			sprintf(menuitem[i++], "测量点%d:",iMtrSn);
+            WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&iMtrSn);
+            iRet = ReadClass1Data(iMtrSn, 0x10100200, bTmpBuff);  // 正有
+            cp = bTmpBuff + 2 + 1+1+1;
+            if(iRet>0)
+            {
+                sprintf(menuitem[i++],"正有需量: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
+                cp += 5;
+                OoDateTimeSToTime(cp, &tTime);
+                sprintf(menuitem[i++],"发生时间:");
+                sprintf(menuitem[i++],"  %04d-%02d-%02d %02d:%02d:%02d", 
+                tTime.nYear,tTime.nMonth,tTime.nDay,tTime.nHour,tTime.nMinute,tTime.nSecond);
+            }
+            else{
+                sprintf(menuitem[i++],"正有需量: xx.xxxxkW");
+                sprintf(menuitem[i++],"发生时间:"); 
+                sprintf(menuitem[i++],"  xxxx-xx-xx xx:xx:xx");
+            }
+            
+            iRet = ReadClass1Data(iMtrSn, 0x10200200, bTmpBuff);  // 反有            
+            cp = bTmpBuff + 2 + 1+1+1;
+            if(iRet>0)
+            {
+                sprintf(menuitem[i++],"反有需量: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
+                cp += 5;
+                OoDateTimeSToTime(cp, &tTime);
+                sprintf(menuitem[i++],"发生时间:");
+                sprintf(menuitem[i++],"  %04d-%02d-%02d %02d:%02d:%02d", 
+                tTime.nYear,tTime.nMonth,tTime.nDay,tTime.nHour,tTime.nMinute,tTime.nSecond);
+            }
+            else{
+                sprintf(menuitem[i++],"反有需量: xx.xxxxkW");
+                sprintf(menuitem[i++],"发生时间:"); 
+                sprintf(menuitem[i++],"  xxxx-xx-xx xx:xx:xx");
+            }
 
 			tmpS[i].text = NULL;
+
+            iMtrSn = 0;
+            WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&iMtrSn);
 			
 			listbox.Show(0, "当前需量", tmpS, KEY_ESC | KEY_UP<< 8 | KEY_DOWN << 16, 60000, false );
 
 			if (KEY_ESC == listbox.key || KEY_NULL == listbox.key)
 			{
-				return -1;
+				break;
 			}
 		}
 	}
-	
+
+    iMtrSn = 0;
+    WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&iMtrSn);	
 	return -1;
 
 }
 
 int VoltAndCurrnt(void *arg)
 {
-	int i;
-	char menuitem[5][32];
+	int i = 0,  j=0;
+	char menuitem[8][32];
 	memset(menuitem, 0, sizeof(menuitem));
 	CListBoxEx listbox;
 
@@ -1877,38 +1816,35 @@ int VoltAndCurrnt(void *arg)
 		{ menuitem[1], 0xFE, Dummy, (void *) 2 }, //
 		{ menuitem[2], 0xFE, Dummy, (void *) 3 }, //
 		{ menuitem[3], 0xFE, Dummy, (void *) 4 }, //
-		{ menuitem[4], 0xFE, Dummy, (void *) 4 }, //
-		{ NULL, 0xFF, NULL, NULL }, //
+		{ menuitem[4], 0xFE, Dummy, (void *) 5 }, //
+		{ menuitem[5], 0xFE, Dummy, (void *) 6 }, //
+		{ menuitem[6], 0xFE, Dummy, (void *) 7 }, //
+		{ NULL, 0xFE, NULL, NULL }, //
 	};
-	BYTE bTmpBuff[20] = {0};
-	int iGroupNo = 0;
-	//BYTE bTsa[17] = {0};
+    
+	int iMtrSn = 0;
 	BYTE *cp = NULL;
-	int MenuPage = 0;
+	int iMenuPage = 0;
+    int iRet = -1;
 	char *title[] = {"电压", "电流"};
 	BYTE bBuf[30] = {0};
 	char cInput[5] = {0};
 	DWORD dwPnID[] = {0x20000200, 0x20010200}; //电压，电流
 
-	if(EditSpecBox(2,"请输入表序号:",cInput, 60000, 2, DATA_DEC)>= 0)
+	if(EditSpecBox(2,"请输入表序号:",cInput, 60000, 4, DATA_DEC)>= 0)
 	{
-		//WORD wPn = 0;
-		//TMtrRdCtrl *ptMtrRdCtrl = NULL;
-		sscanf(cInput,"%d",&iGroupNo);
+		sscanf(cInput,"%04d",&iMtrSn);
 
-		if(iGroupNo<POINT_NUM && iGroupNo>=1 /*&& IsPnValid(iGroupNo)*/)
+		if(iMtrSn<POINT_NUM && iMtrSn>=1)
 		{
 			TOobMtrInfo tTMtrInfo;
 			memset(&tTMtrInfo, 0, sizeof(TOobMtrInfo));
-			WORD wPn = MtrSnToPn(iGroupNo);
+			WORD wPn = MtrSnToPn(iMtrSn);
 			if (!GetMeterInfo(wPn, &tTMtrInfo))
 			{
 				MessageBox("该电表未配置!", KEY_ESC, 3000);
 				return -1;
 			}
-			/*wPn = MtrSnToPn(iGroupNo);
-			GetMeterTsa(wPn, bTsa);
-			ptMtrRdCtrl = GetMtrRdCtrl(wPn, bTsa);*/
 		}
 		else
 		{
@@ -1919,83 +1855,107 @@ int VoltAndCurrnt(void *arg)
 		while(1)
 		{
 			i = 0;
-			memset(menuitem, 0, sizeof(menuitem));
-				
-			/*if (ptMtrRdCtrl != NULL)
-			{
-				GetMtrItemMem(&ptMtrRdCtrl->mtrTmpData, 0x20000200, bVolt);
-				GetMtrItemMem(&ptMtrRdCtrl->mtrTmpData, 0x20010200, bCurrnt);
-			}*/
-			ReadClass1Data(iGroupNo, dwPnID[MenuPage], bBuf);
+            
+			iRet = ReadClass1Data(iMtrSn, dwPnID[iMenuPage], bBuf);
+            
+            sprintf(menuitem[i++], "测量点%d:", iMtrSn);
+            WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&iMtrSn);            
 
-			if (MenuPage == 0)
-			{
-				sprintf(menuitem[i++], "测量点%d:", iGroupNo);
-
-				if (bBuf[1] == 1) //单相
-				{
-					cp = bBuf+3;
-					sprintf(menuitem[i++],"单相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);
-				}
-				else //三相
-				{
-					cp = bBuf+3;
-					sprintf(menuitem[i++],"A相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);
-					cp += 3;
-					sprintf(menuitem[i++],"B相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);
-					cp += 3;
-					sprintf(menuitem[i++],"C相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);
-				}	
+			if (iMenuPage == 0)
+			{				
+                if(iRet>0)
+                {
+    				if (bBuf[1] == 1) //单相
+    				{
+    					cp = bBuf+3;                    
+    	                sprintf(menuitem[i++],"A相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);
+                        sprintf(menuitem[i++],"B相: xxx.xV");
+    			        sprintf(menuitem[i++],"C相: xxx.xV");                        
+    				}
+    				else //三相
+    				{
+    					cp = bBuf+3;
+    					sprintf(menuitem[i++],"A相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);
+    					cp += 3;
+    					sprintf(menuitem[i++],"B相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);
+    					cp += 3;
+    					sprintf(menuitem[i++],"C相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);
+    				}	
+                }
+                else
+                {
+                    sprintf(menuitem[i++],"A相: xxx.xV");
+    		        sprintf(menuitem[i++],"B相: xxx.xV");
+    			    sprintf(menuitem[i++],"C相: xxx.xV");
+                }
 			}
 			else
 			{
-				sprintf(menuitem[i++], "测量点%d:", iGroupNo);
-
-				if (bBuf[1] == 2) //单相,N线
-				{
-					cp = bBuf+3;
-					sprintf(menuitem[i++],"单相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
-					cp += 5;
-					sprintf(menuitem[i++],"N线: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
-				}
-				else //三相,N线
-				{
-					cp = bBuf+3;
-					sprintf(menuitem[i++],"A相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
-					cp += 5;
-					sprintf(menuitem[i++],"B相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
-					cp += 5;
-					sprintf(menuitem[i++],"C相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
-					cp += 5;
-					sprintf(menuitem[i++],"N线: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
-				}
-				
-				tmpS[i].text = NULL;
+                if(iRet>0)
+                {
+    				if (bBuf[1] == 2) //单相,N线
+    				{
+    					cp = bBuf+3;
+    					sprintf(menuitem[i++],"A相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
+                        sprintf(menuitem[i++],"B相: xxx.xxxA");
+    				    sprintf(menuitem[i++],"C相: xxx.xxxA");
+    					cp += 5;
+    					sprintf(menuitem[i++],"N线: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
+    				}
+    				else //三相,N线
+    				{
+    					cp = bBuf+3;
+    					sprintf(menuitem[i++],"A相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
+    					cp += 5;
+    					sprintf(menuitem[i++],"B相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
+    					cp += 5;
+    					sprintf(menuitem[i++],"C相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
+    					cp += 5;
+    					sprintf(menuitem[i++],"N线: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
+    				}				
+                }
+                else
+                {
+                    sprintf(menuitem[i++],"A相: xxx.xxxA");
+    				sprintf(menuitem[i++],"B相: xxx.xxxA");
+    				sprintf(menuitem[i++],"C相: xxx.xxxA");
+    				sprintf(menuitem[i++],"N线: xxx.xxxA");
+                }
 			}
-			listbox.Show(0, title[MenuPage], tmpS, KEY_ESC | KEY_UP<< 8 | KEY_DOWN<<16, 60000, false );
+
+            for(j=0;j<i;j++)
+            {
+                tmpS[j].text = menuitem[j];
+            }
+            tmpS[j].text = NULL;
+            
+			listbox.Show(0, title[iMenuPage], tmpS, KEY_ESC | KEY_UP<< 8 | KEY_DOWN<<16, 60000, false );
 
 			if (KEY_ESC == listbox.key || KEY_NULL == listbox.key)
 			{
-				return -1;
+				break;
 			}
 			if (KEY_UP == listbox.key )
 			{
-				MenuPage--;
-				if (MenuPage < 0)
+				iMenuPage--;
+				if (iMenuPage < 0)
 				{
-					MenuPage = 1;
+					iMenuPage = 1;
 				}
 			}
 			else if (KEY_DOWN == listbox.key)
 			{
-				MenuPage++;
-				if (MenuPage > 1)
+				iMenuPage++;
+				if (iMenuPage > 1)
 				{
-					MenuPage = 0;
+					iMenuPage = 0;
 				}
 			}
 		}
 	}
+
+    iMtrSn = 0;
+    WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&iMtrSn);
 
 	return -1;
 }
@@ -2602,7 +2562,7 @@ int PowerFailerInfo(void *arg)
 
 	return -1;
 }*/
-
+/*
 int CurrntAc(void *arg)
 {
 	CListBoxEx listBox;
@@ -2821,7 +2781,6 @@ int CurrntAc(void *arg)
 
 	return -1;
 }
-
 int CurrntEnergAc(void *arg)
 {
 	CListBoxEx listBox;
@@ -3010,6 +2969,7 @@ int AcSampleInfo(void *arg)
 
 	return -1;
 }
+*/
 
 int PulseMeteringInfo(void *arg)
 {
@@ -3358,33 +3318,352 @@ int ShowCurve(void *arg)
 }
 
 
+int AcSampleData(void *arg)
+{    
+	CListBoxEx listBox;
+
+    char *title[] = {
+        "正向有功电能示值",  // 0            
+        "正向无功电能示值",  // 1
+        "反向有功电能示值",  // 2
+        "反向无功电能示值",  // 3
+        "一象限无功电能示值",  // 4
+        "二象限无功电能示值",  // 5
+        "三象限无功电能示值",  // 6
+        "四象限无功电能示值",  // 7
+        "三相电压",  // 8
+        "三相电流",  // 9
+        "有功功率",  // 10
+        "无功功率",  // 11
+        "视在功率",  // 12
+        "功率因数",  // 13
+        "正向有功需量",  // 14
+        "反向有功需量",  // 15
+    };  
+            
+    const DWORD dwDeltaPnID[] = { 
+        0x00100200,   // 0 正有            
+        0x00300200,   // 1 正无
+        0x00200200,   // 2 反有
+        0x00400200,   // 3 反无
+        0x00500200,   // 4 一象限
+        0x00600200,   // 5 二象限
+        0x00700200,   // 6 三象限
+        0x00800200,   // 7 四象限
+        0x20000200,   // 8 电压
+        0x20010200,   // 9 电流
+        0x20040200,   // 10 有功功率
+        0x20050200,  // 11 无功功率
+        0x20060200,  // 12 视在功率
+        0x200A0200,  // 13 功率因数
+        0x10100200,  // 14 正向有功需量
+        0x10200200,  // 15 反向有功需量
+    };
+    char menuitem[10][128];
+	int iPageNum = 0;
+    int i = 0, j=0;
+    int iRet = -1;
+    int iStep = -1;
+    BYTE bBuf[256];
+    BYTE *cp = bBuf;    
+    TApduInfo tApduInfo;
+    TTime tTime;
+    WORD wMtrSn = 0;
+   // F2080201
+    wMtrSn = GetAcMtrSn();
+    WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&wMtrSn);
+    struct ListBoxExItem tmpS[] = { 
+		{ menuitem[i++], 0xFE, Dummy, (void *) 1 }, //
+		{ menuitem[i++], 0xFE, Dummy, (void *) 2 }, //
+		{ menuitem[i++], 0xFE, Dummy, (void *) 3 }, //
+		{ menuitem[i++], 0xFE, Dummy, (void *) 4 }, //
+		{ menuitem[i++], 0xFE, Dummy, (void *) 5 }, //
+		{ menuitem[i++], 0xFE, Dummy, (void *) 6 }, //
+		{ menuitem[i++], 0xFE, Dummy, (void *) 7 }, //
+		{ menuitem[i++], 0xFE, Dummy, (void *) 8 }, //
+		{ menuitem[i++], 0xFE, Dummy, (void *) 9 }, //
+		{ menuitem[i++], 0xFE, Dummy, (void *) 10 }, //
+		{ NULL, 0xFE, NULL, NULL }, //
+	};
+        
+    while(1)
+    {			
+        memset(bBuf, 0, sizeof(bBuf));
+        tApduInfo.wOI = dwDeltaPnID[iPageNum]>>16;
+        tApduInfo.bAttr = (dwDeltaPnID[iPageNum]>>8)&0xff;
+        tApduInfo.bIndex = dwDeltaPnID[iPageNum]&0xff;
+        iRet = OoProReadAttr(tApduInfo.wOI, tApduInfo.bAttr, tApduInfo.bIndex, bBuf, sizeof(bBuf), &iStep);
+        cp = bBuf + 2 + 1;
+        i = 0;        
+		switch (iPageNum)
+		{
+		    case 0:  // 正有
+            case 2:  // 反有
+                if(iRet>0)
+                {
+                    sprintf(menuitem[i++], "总: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+        			cp += 5;
+        			sprintf(menuitem[i++], "尖: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+        			cp += 5;
+        			sprintf(menuitem[i++], "峰: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+        			cp += 5;
+        			sprintf(menuitem[i++], "平: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+        			cp += 5;
+        			sprintf(menuitem[i++], "谷: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);                    
+                }
+			    break;
+    		case 1:
+            case 3:
+                if(iRet>0)
+                {
+                    sprintf(menuitem[i++],"总: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    			    cp += 5;
+    		        sprintf(menuitem[i++],"尖: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    	            cp += 5;
+    		        sprintf(menuitem[i++],"峰: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    			    cp += 5;
+    			    sprintf(menuitem[i++],"平: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    			    cp += 5;
+    			    sprintf(menuitem[i++],"谷: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+                }
+    			break;
+            case 4:   // 一象限
+            case 5:   // 二象限
+            case 6:   // 三象限
+            case 7:   // 四象限
+                if(iRet>0)
+                {
+                    sprintf(menuitem[i++],"总: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    			    cp += 5;
+    		        sprintf(menuitem[i++],"尖: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    	            cp += 5;
+    		        sprintf(menuitem[i++],"峰: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    			    cp += 5;
+    			    sprintf(menuitem[i++],"平: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    			    cp += 5;
+    			    sprintf(menuitem[i++],"谷: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+                }
+                break;
+            case 8:   // 电压
+                if(iRet>0)
+                {
+                    sprintf(menuitem[i++],"A相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);
+    	            cp += 3;
+    	            sprintf(menuitem[i++],"B相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);
+                    cp += 3;
+                    sprintf(menuitem[i++],"C相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);    					
+                }
+                else
+                {
+                    sprintf(menuitem[i++],"A相: xxx.xV");
+    		        sprintf(menuitem[i++],"B相: xxx.xV");
+    			    sprintf(menuitem[i++],"C相: xxx.xV");
+                }
+                break;
+            case 9:   // 电流
+                if(iRet>0)
+                {
+    		        sprintf(menuitem[i++],"A相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
+    		        cp += 5;
+    		        sprintf(menuitem[i++],"B相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
+    			    cp += 5;
+    		        sprintf(menuitem[i++],"C相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
+    			    cp += 5;
+    		        sprintf(menuitem[i++],"N线: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);    								
+                }
+                else
+                {
+                    sprintf(menuitem[i++],"A相: xxx.xxxA");
+    				sprintf(menuitem[i++],"B相: xxx.xxxA");
+    				sprintf(menuitem[i++],"C相: xxx.xxxA");
+    				sprintf(menuitem[i++],"N线: xxx.xxxA");
+                }
+                break;
+            case 10:   // 有功功率
+                if(iRet>0)
+                {
+                    sprintf(menuitem[i++], "总：%.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
+                    cp += 5;
+                    sprintf(menuitem[i++], "A相: %.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
+   		            cp += 5;
+                    sprintf(menuitem[i++], "B相: %.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
+                    cp += 5;
+                    sprintf(menuitem[i++], "C相: %.1fW", (float)OoDoubleLongToInt(cp)*1e-1);    
+                    cp += 5;
+                }
+                else
+                {
+                    sprintf(menuitem[i++], "总: xxxxx.xW");
+                    sprintf(menuitem[i++], "A相: xxxxx.xW");
+                    sprintf(menuitem[i++], "B相: xxxxx.xW");
+                    sprintf(menuitem[i++], "C相: xxxxx.xW");
+                }
+                break;
+            case 11:   // 无功功率     
+                if(iRet>0)
+                {
+                    sprintf(menuitem[i++], "总：%.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
+                    cp += 5;
+                    sprintf(menuitem[i++], "A相: %.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
+                    cp += 5;
+                    sprintf(menuitem[i++], "B相: %.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
+                    cp += 5;
+                    sprintf(menuitem[i++], "C相: %.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);  
+                    cp += 5;
+                }
+                else
+                {
+                    sprintf(menuitem[i++], "总: xxxxx.xvar");
+                    sprintf(menuitem[i++], "A相: xxxxx.xvar");
+                    sprintf(menuitem[i++], "B相: xxxxx.xvar");
+                    sprintf(menuitem[i++], "C相: xxxxx.xvar");
+                }
+                break;
+            case 12:   //  视在功率
+                if(iRet>0)
+                {
+                    sprintf(menuitem[i++], "总：%.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
+                    cp += 5;
+                    sprintf(menuitem[i++], "A相: %.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
+                    cp += 5;
+                    sprintf(menuitem[i++], "B相: %.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
+                    cp += 5;
+                    sprintf(menuitem[i++], "C相: %.1fVA", (float)OoDoubleLongToInt(cp)*1e-1); 
+                    cp += 5;
+                }
+                else
+                {
+                    sprintf(menuitem[i++], "总: xxxxx.xVA");
+                    sprintf(menuitem[i++], "A相: xxxxx.xVA");
+                    sprintf(menuitem[i++], "B相: xxxxx.xVA");
+                    sprintf(menuitem[i++], "C相: xxxxx.xVA");
+                }
+                break;
+            case 13:   // 功率因数
+                if(iRet>0)
+                {
+                    sprintf(menuitem[i++], "总：%.3f", (float)OoLongToInt16(cp)*1e-3);
+                    cp += 3;
+                    sprintf(menuitem[i++], "A相：%.3f", (float)OoLongToInt16(cp)*1e-3);
+                    cp += 3;
+                    sprintf(menuitem[i++], "B相：%.3f", (float)OoLongToInt16(cp)*1e-3);
+                    cp += 3;
+                    sprintf(menuitem[i++], "C相：%.3f", (float)OoLongToInt16(cp)*1e-3); 
+                    cp += 3;
+                }
+                else
+                {
+                    sprintf(menuitem[i++], "总: x.xxx");
+                    sprintf(menuitem[i++], "A相: x.xxx");
+                    sprintf(menuitem[i++], "B相: x.xxx");
+                    sprintf(menuitem[i++], "C相: x.xxx");
+                }               
+                break;
+            case 14:   // 正向有功需量
+                if(iRet>0)
+                {
+                    cp = bBuf + 2 + 1+1+1;
+    			    sprintf(menuitem[i++],"正有需量: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
+                    cp += 5;
+                    OoDateTimeSToTime(cp, &tTime);
+                    sprintf(menuitem[i++],"发生时间:"); 
+                    sprintf(menuitem[i++],"  %04d-%02d-%02d %02d:%02d:%02d", 
+                        tTime.nYear,tTime.nMonth,tTime.nDay,tTime.nHour,tTime.nMinute,tTime.nSecond);
+                }
+                else{
+                    sprintf(menuitem[i++],"正有需量: xx.xxxxkW");
+                    sprintf(menuitem[i++],"发生时间:");
+                    sprintf(menuitem[i++],"  xxxx-xx-xx xx:xx:xx");
+                }
+                break;
+            case 15:   // 反向有功需量
+                if(iRet>0)
+                {
+                    cp = bBuf + 2 + 1+1+1;
+    			    sprintf(menuitem[i++],"反有需量: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
+                    cp += 5;
+                    OoDateTimeSToTime(cp, &tTime);
+                    sprintf(menuitem[i++],"发生时间:");
+                    sprintf(menuitem[i++],"  %04d-%02d-%02d %02d:%02d:%02d", 
+                        tTime.nYear,tTime.nMonth,tTime.nDay,tTime.nHour,tTime.nMinute,tTime.nSecond);
+                }
+                else{
+                    sprintf(menuitem[i++],"反有需量: xx.xxxxkW");
+                    sprintf(menuitem[i++],"发生时间:"); 
+                    sprintf(menuitem[i++],"  xxxx-xx-xx xx:xx:xx");
+                }
+                break;
+    		default:
+    			break;
+		}
+
+        if(iRet<=0) 
+        {
+            if(iPageNum==0 || iPageNum==2)
+            {
+                sprintf(menuitem[i++],"总: xxxxxx.xxkWh");
+                sprintf(menuitem[i++],"尖: xxxxxx.xxkWh");
+                sprintf(menuitem[i++],"峰: xxxxxx.xxkWh");
+                sprintf(menuitem[i++],"平: xxxxxx.xxkWh");
+                sprintf(menuitem[i++],"谷: xxxxxx.xxkWh");
+            }
+            else if(iPageNum==1 || (iPageNum>=3&& iPageNum<=7))
+            {
+                sprintf(menuitem[i++],"总: xxxxxx.xxkvarh");
+                sprintf(menuitem[i++],"尖: xxxxxx.xxkvarh");
+                sprintf(menuitem[i++],"峰: xxxxxx.xxkvarh");
+                sprintf(menuitem[i++],"平: xxxxxx.xxkvarh");
+                sprintf(menuitem[i++],"谷: xxxxxx.xxkvarh");
+            }
+        }
+
+        for(j=0;j<i;j++)
+        {
+            tmpS[j].text = menuitem[j];
+        }
+        tmpS[j].text = NULL;        
+        
+		listBox.Show(0, title[iPageNum], tmpS, KEY_ESC | KEY_DOWN<<8 | KEY_UP<<16, 60000, false);
+		if (listBox.key == KEY_ESC || listBox.key == KEY_NULL)
+		{
+			break;
+		}
+		if (listBox.key == KEY_UP)
+		{
+			iPageNum--;
+			if (iPageNum < 0)
+			{
+				iPageNum = 15;
+			}
+		}
+		else if (listBox.key == KEY_DOWN)
+		{
+			iPageNum++;
+			if (iPageNum > 15)
+			{
+				iPageNum = 0;
+			}
+		}
+	}
+
+    wMtrSn = 0;
+    WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&wMtrSn);
+    return -1;
+
+}
+
+
+
 int QueryRealUIP(void *arg)
 {
 	CListBoxEx listbox;
-	//char menuitem[10][32]; 
-
-	int i = 0;
-	/*struct ListBoxExItem tmp[] = { 
-		//{ "当前功率", 0xFF, CurrntPower, (void *) 1 }, //
-		{ "当前电量", 0xFF, CurrntEnage, (void *) 2 }, //
-		//{ "负荷曲线", 0xFF, ShowCurve, (void *) 3 }, //
-		//{ "开关状态", 0xFF, RemoteSignal, (void *) 4 }, //
-		//{ "功控记录", 0xFF, PowerCtrlInfo, (void *) 0 }, //
-		//{ "电控记录", 0xFF, EnergCtrlInfo, (void *) 1 }, //
-		//{ "遥控记录", 0xFF, RemoteCtrlInfo, (void *) 2 }, //
-		//{ "失电记录", 0xFF, PowerFailerInfo, (void *) 8 }, //
-		//{ "交流采样信息", 0xFF, AcSampleInfo , (void *) 8 }, //
-		{ NULL, 0xFF, NULL, NULL }, //
-	};
-*/
 
 	struct ListBoxExItem tmp[] = { 
-		{ "当前电能量", 0xFF, CurrntEnage, (void *) 1 }, 
-		{ "当前功率及功率因素", 0xFF, CurrntPower, (void *) 2 }, 
-		{ "当前需量", 0xFF, CurrntDemand, (void *) 3 },
-		{ "电压电流", 0xFF, VoltAndCurrnt, (void *) 4 },
-		{ "交流采样信息", 0xFF, AcSampleInfo, (void *) 5 },
-		{ "脉冲计量信息", 0xFF, PulseMeteringInfo, (void *) 6 },
+		{ "当前电能示值", 0xFF, CurrntEnage, (void *) 1 }, 
+        { "电压电流", 0xFF, VoltAndCurrnt, (void *) 2 },
+		{ "当前功率及功率因数", 0xFF, CurrntPower, (void *) 3 }, 
+		{ "当前需量", 0xFF, CurrntDemand, (void *) 4 },
+        { "交流采样数据",0xff, AcSampleData, (void*)5 },      
 		{ NULL, 0xFF, NULL, NULL }, //
 	};
 
@@ -3399,12 +3678,67 @@ int QueryRealUIP(void *arg)
 	return -1;
 }
 
+int ReadDateofDay(WORD wMtrSn, DWORD dwOAD, BYTE *pbQryTm,BYTE *pbBuf)
+{
+    /*60 12 03 00 07 07 E1 06 13 00 00 00 07 E1 06 13 17 3B 00 03 00 01 04 01 00 01 02 01 50 04 02 00 01 00 10 02 00 00 60 41 02 00*/
+    /*60 12 03 00 02 01 50 04 02 00 01 00 10 02 00 00 60 41 02 00 01 01 01 01 01 05 06 00 A9 8A C7 06 01 53 15 8E 06 01 FC A0 55 06 02 A6 2B 1C 06 03 4F B5 E3 1C 07 E1 06 13 0E 2E 01 00*/
+    int iStart = -1;
+	int iTabIdx = 0;
+	WORD wRetNum = 0;
+    int iRet = -1;
+    BYTE bBuf[2048];
+
+    BYTE bOAD[4] = {0x60, 0x12, 0x03, 0x00};  //任务配置表 记录单元		   
+    BYTE bRSD[30] = {0};                                      //记录选择描述符
+    BYTE bRCSD[30] = {0x02, //02 —— RCSD，SEQUENCE OF CSD个数=2            
+            0x01, // —— ROAD					 
+            0x50, 0x04, 0x02, 0x00, //—— 日冻结
+            0x01, //—— 关联对象属性描述符  SEQUENCE OF个数=4
+            0x00, 0x10, 0x02, 0x00, //—— 正向有功总及费率
+            0x00, //OAD
+            0x60, 0x41, 0x02, 0x00, //—— OAD1，采集成功时标
+        };  //记录列选择描述符   
+
+    BYTE *Ptr = NULL;        
+        
+    // 记录选择描述符RSD配置
+    Ptr = bRSD;
+    *Ptr = 7;       //—— RSD，选择方法7
+    Ptr++;          //—— 采集存储时间
+    memcpy(Ptr, pbQryTm, 7);  // 存储起始时间
+    Ptr += 7; 
+    memcpy(Ptr, pbQryTm, 4); // 存储结束时间
+    Ptr += 4;
+    *Ptr++ = 23;
+    *Ptr++ = 59;
+    *Ptr++ = 00;
+    *Ptr++ = 0x03;  // 间隔, 天
+    OoWordToLongUnsigned(1, Ptr);
+    Ptr+=2;    
+    *Ptr = 4;       //—— 电能表集合MS 一组配置序号    [4]     SEQUENCE OF long-unsigned
+    Ptr++;          
+    *Ptr = 1;        //电表配置序号个数=1
+    Ptr++;
+    OoWordToLongUnsigned(wMtrSn, Ptr);
+    Ptr += 2;   //电表序号
+
+    OoDWordToDoubleLongUnsigned(dwOAD, bRCSD+7);
+        
+    iRet = ReadRecord(bOAD, bRSD, bRCSD, &iTabIdx, &iStart, bBuf, sizeof(bBuf), &wRetNum);
+    if (iRet > 0)
+    {
+		memcpy(pbBuf, bBuf, iRet);
+    }
+    return iRet;	
+}
+
+
 int QueryDataOfDay(void *arg)
 {
 	int iStart = -1;
 	int iTabIdx = 0;
 	WORD wRetNum = 0;
-	TTime tTime;
+	TTime tTime, tTimeRd;
 	DWORD dwCurSec;
 
 	char menuitem[7][32];
@@ -3423,7 +3757,7 @@ int QueryDataOfDay(void *arg)
 	CListBoxEx listbox;
 	char cInput[12] = {0};
 	BYTE i = 0, j = 0;
-	//char szInput[33];
+	int iRet = -1;
 	int iPageNum = 0;
 	int iMtrNo = 0;
 	BYTE bTime[7] = {0};
@@ -3432,72 +3766,22 @@ int QueryDataOfDay(void *arg)
 	BYTE bMaxDemand1[80] = {0};
 	BYTE bMaxDemand2[80] = {0};
 	BYTE *cp = NULL;
+    
+	BYTE bTmpBuf[512] = {0};
+    DWORD dwOAD[8] = {
+        0x00100200,  // 正向有功
+        0x00200200,  // 反向有功
+        0x00300200,  // 正向无功
+        0x00400200,  // 反向无功
+        0x00500200,  // 一象限
+        0x00600200,  // 二象限
+        0x00700200,  // 三象限
+        0x00800200,  // 四象限
+        };
 
-	int nRet;
-#ifdef DEBUG_DISP
-	BYTE bTmpBuf[] = {DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x10, 0x1E, 0x00, //日冻结时标
-					  DT_ARRAY, 5, DT_DB_LONG_U, 0x00, 0x05, 0x7E, 0x40, 
-					               DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,
-							       DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,        //正向有功总及费率
-					  DT_ARRAY, 5, DT_DB_LONG_U, 0x00, 0x05, 0x7E, 0x40, 
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,        //反向有功总及费率
-					  DT_ARRAY, 5, DT_STRUCT, 2, 
-												DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-											    DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-											    DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-												DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-												DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-												DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,     //正向有功最大需量
-					  DT_ARRAY, 5, DT_STRUCT, 2, 
-												DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-						           DT_STRUCT, 2,
-												DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-												DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-												DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-												DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00     //反向有功最大需量
-	};
-#else
-	BYTE bTmpBuf[500] = {0};
-#endif
-	BYTE bOAD[4] = {0x60, 0x12, 0x03, 0x00};  //任务配置表 记录单元		   
-	BYTE bRSD[30] = {0};                                      //记录选择描述符
-	BYTE bRCSD[30] = {0x02, //02 —— RCSD，SEQUENCE OF CSD个数=2
-					  0x00, //OAD
-					  0x60, 0x41, 0x02, 0x00, //—— OAD1，采集成功时标
-					  0x01, // —— ROAD					 
-					  0x50, 0x04, 0x02, 0x00, //—— 日冻结
-					  0x04, //—— 关联对象属性描述符  SEQUENCE OF个数=4
-					  0x00, 0x10, 0x02, 0x00, //—— 正向有功总及费率
-					  0x00, 0x20, 0x02, 0x00, //—— 反向有功总及费率
-					  0x10, 0x10, 0x02, 0x00, //—— 正向有功最大需量
-					  0x10, 0x20, 0x02, 0x00, //—— 反向有功最大需量
-	};  //记录列选择描述符                               
-	BYTE *ptr = NULL;
-	
-	if(EditSpecBox(2,"请输入表序号:",cInput,60000,2,DATA_DEC)>= 0)
+	if(EditSpecBox(2,"请输入表序号:",cInput,60000,4,DATA_DEC)>= 0)
 	{
-		sscanf(cInput, "%d", &iMtrNo);
+		sscanf(cInput, "%04d", &iMtrNo);
 		if (iMtrNo<POINT_NUM && iMtrNo>=1)
 		{
 			TOobMtrInfo tTMtrInfo;
@@ -3518,110 +3802,154 @@ int QueryDataOfDay(void *arg)
 			{
 				if (cInput[4]=='-' && cInput[7]=='-')
 				{
-					WORD wYear;
-					BYTE bMonth;
-					BYTE bDay;
+					tTime.nYear = (cInput[0]-'0')*1000 + (cInput[1]-'0')*100 + (cInput[2]-'0')*10 + (cInput[3]-'0');
+					tTime.nMonth = (cInput[5]-'0')*10 + (cInput[6]-'0');
+					tTime.nDay = (cInput[8]-'0')*10 + (cInput[9]-'0');
+                    tTime.nHour = tTime.nMinute = tTime.nSecond = 0;
+                    dwCurSec = TimeToSeconds(tTime) + 24*60*60;  // 作为查询存储时间
+                    SecondsToTime(dwCurSec, &tTime); 
+                    OoWordToLongUnsigned(tTime.nYear, bTime);
+                    bTime[2] = tTime.nMonth;
+                    bTime[3] = tTime.nDay;
+                    bTime[4] = bTime[5] = bTime[6] = 0;                     
 
-					wYear = (cInput[0]-'0')*1000 + (cInput[1]-'0')*100 + (cInput[2]-'0')*10 + (cInput[3]-'0');
-					bMonth = (cInput[5]-'0')*10 + (cInput[6]-'0');
-					bDay = (cInput[8]-'0')*10 + (cInput[9]-'0');
-					OoWordToLongUnsigned(wYear, bTime);
-					bTime[2] = bMonth;
-					bTime[3] = bDay;  
-
-					/*
-					**记录选择描述符RSD配置
-					*/
-					ptr = bRSD;
-					*ptr = 5;       //—— RSD，选择方法5
-					ptr++;          //—— 采集存储时间
-					memcpy(ptr, bTime, sizeof(bTime));
-					ptr += sizeof(bTime);  
-					*ptr = 4;       //—— 电能表集合MS 一组配置序号  	[4] 	SEQUENCE OF long-unsigned
-					ptr++;          
-					*ptr = 1;        //电表配置序号个数=1
-					ptr++;
-					*ptr = iMtrNo;   //电表序号
-#ifndef DEBUG_DISP
-					nRet = ReadRecord(bOAD, bRSD, bRCSD, &iTabIdx, &iStart, bTmpBuf, sizeof(bTmpBuf), &wRetNum);
-					if (nRet < 0)
-					{
-						MessageBox("查询失败",KEY_ESC,10000);
-						goto flag;
-					}
-#endif
-					memset(bTime, 0, sizeof(bTime));
-					ptr = bTmpBuf;          //OAD1，采集成功时标
-					memcpy(bTime, ptr, 8);  //date_time_s 年-月-日 时:分:秒 8bytes
-					ptr += 8;               //正向有功总及费率
-					memcpy(bPower1, ptr, 27);
-					ptr += 27;              //反向有功总及费率
-					memcpy(bPower2, ptr, 27);
-					ptr += 27;              //正向有功最大需量
-					memcpy(bMaxDemand1, ptr, 77);
-					ptr += 77;              //反向有功最大需量
-					memcpy(bMaxDemand2, ptr, 77);
-					
 					while(1)
 					{
 						i = 0;
 						memset(menuitem, 0, sizeof(menuitem));
+                        memset(bTmpBuf, 0x00, sizeof(bTmpBuf));
+                        iRet = ReadDateofDay(iMtrNo, dwOAD[iPageNum],  bTime, bTmpBuf);
+						/*01 01 01 05 06 00 A9 8A C7 06 01 53 15 8E 06 01 FC A0 55 06 02 A6 2B 1C 06 03 4F B5 E3 1C 07 E1 06 13 0E 2E 01 00*/
+                        cp = bTmpBuf;
+                        sprintf(menuitem[i++], "测量点%d",iMtrNo);
 						switch(iPageNum)
 						{
 						case 0:
-							cp = bPower1+3;
-							sprintf(menuitem[i++], "正有总: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "正有尖: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "正有峰: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "正有平: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "正有谷: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+                            if(iRet>0)
+                            {
+                                cp += 5;
+    							sprintf(menuitem[i++], "正有总: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有尖: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有峰: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有平: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有谷: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+                            }
+                            else{
+                                cp += 5;
+    							sprintf(menuitem[i++], "正有总: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有尖: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有峰: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有平: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有谷: xxxxxx.xxkWh");
+                            }
 							break;
-						case 1:
-							cp = bPower2+3;
-							sprintf(menuitem[i++], "反有总: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "反有尖: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "反有峰: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "反有平: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "反有谷: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+						case 1:			
+                            if(iRet>0)
+                            {
+                                cp += 5;
+    							sprintf(menuitem[i++], "反有总: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有尖: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有峰: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有平: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有谷: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+                            }
+                            else{
+                                cp += 5;
+    							sprintf(menuitem[i++], "反有总: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有尖: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有峰: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有平: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有谷: xxxxxx.xxkWh");
+                            }
 							break;
-						case 2:
-							cp = bMaxDemand1+5;
-							sprintf(menuitem[i++], "正有需量总: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "正有需量尖: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "正有需量峰: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "正有需量平: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "正有需量谷: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
+						case 2:	
+                            if(iRet>0)
+                            {
+                                cp += 5;
+    							sprintf(menuitem[i++], "正无总: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无尖: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无峰: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无平: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无谷: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+                            }
+                            else{
+                                cp += 5;
+    							sprintf(menuitem[i++], "正无总: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无尖: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无峰: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无平: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无谷: xxxxxx.xxkvarh");
+                            }
 							break;
 						case 3:
-							cp = bMaxDemand2+5;
-							sprintf(menuitem[i++], "反有需量总: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "反有需量尖: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "反有需量峰: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "反有需量平: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "反有需量谷: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
+                            if(iRet>0)
+                            {
+                                cp += 5;
+    							sprintf(menuitem[i++], "反无总: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无尖: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无峰: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无平: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无谷: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+                            }
+                            else{
+                                cp += 5;
+    							sprintf(menuitem[i++], "反无总: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无尖: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无峰: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无平: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无谷: xxxxxx.xxkvarh");
+                            }
 							break;
 						}
-						sprintf(menuitem[i++], " ");
-						sprintf(menuitem[i++], "抄表时间 %d/%d/%d %d:%d", OoLongUnsignedToWord(bTime+1)%100, bTime[3], bTime[4], bTime[5], bTime[6]);
+
+                        if(iRet>0)
+                        {
+                            cp += 5;
+                            OoDateTimeSToTime(cp, &tTimeRd);
+    						sprintf(menuitem[i++], "抄表时间 %02d-%02d-%02d %02d:%02d:%02d", tTimeRd.nYear%100, tTimeRd.nMonth, tTimeRd.nDay,
+                                           tTimeRd.nHour, tTimeRd.nMinute, tTimeRd.nSecond);
+                        }
+                        else{                            
+    						sprintf(menuitem[i++], "抄表时间 xx-xx-xx xx:xx:xx");
+                        }
+
+                        
 						tmpS[i].text = NULL;
 
-						listbox.Show(0, "日数据", tmpS, KEY_ESC | (KEY_OK << 8) | (KEY_UP << 16) | (KEY_DOWN << 24), 60000, false);
+						listbox.Show(0, "日数据", tmpS, KEY_ESC | KEY_UP<< 8 | KEY_DOWN << 16, 60000, false);
+						
 						if (listbox.key == KEY_ESC || listbox.key == KEY_NULL)
 						{
 							goto flag;
@@ -3664,6 +3992,56 @@ flag:
 
 
 
+int ReadDateofMonth(WORD wMtrSn, DWORD dwOAD, BYTE *pbQryTm,BYTE *pbBuf)
+{
+    /*60 12 03 00 05 07 E1 06 01 00 00 00 04 01 00 01 02 01 50 06 02 00 01 00 10 02 00 00 60 41 02 00*/
+    /*60 12 03 00 02 01 50 06 02 00 01 00 10 02 00 00 60 41 02 00 01 01 01 01 01 05 06 04 A2 CB 71 06 00 A9 8A C7 06 01 53 15 8E 06 01 FC A0 55 06 00 A9 8A C7 1C 07 E1 06 14 0A 39 0C 00*/
+    int iStart = -1;
+	int iTabIdx = 0;
+	WORD wRetNum = 0;
+    int iRet = -1;
+    BYTE bBuf[2048];
+
+    BYTE bOAD[4] = {0x60, 0x12, 0x03, 0x00};  //任务配置表 记录单元		   
+    BYTE bRSD[30] = {0};                                      //记录选择描述符
+    BYTE bRCSD[30] = {0x02, //02 —— RCSD，SEQUENCE OF CSD个数=2            
+            0x01, // —— ROAD					 
+            0x50, 0x06, 0x02, 0x00, //—— 日冻结
+            0x01, //—— 关联对象属性描述符  SEQUENCE OF个数=4
+            0x00, 0x10, 0x02, 0x00, //—— 正向有功总及费率
+            0x00, //OAD
+            0x60, 0x41, 0x02, 0x00, //—— OAD1，采集成功时标
+        };  //记录列选择描述符   
+
+    BYTE *Ptr = NULL;        
+        
+    // 记录选择描述符RSD配置
+    Ptr = bRSD;
+    *Ptr++ = 5;       //—— RSD，选择方法7
+    memcpy(Ptr, pbQryTm, 7);  // —— 采集存储时间
+    Ptr += 7; 
+    *Ptr++ = 0x04;  // 一组序号
+    *Ptr++ = 0x01;  // 序号个数
+    OoWordToLongUnsigned(1, Ptr);
+    Ptr+=2;    
+    *Ptr = 4;       //—— 电能表集合MS 一组配置序号    [4]     SEQUENCE OF long-unsigned
+    Ptr++;          
+    *Ptr = 1;        //电表配置序号个数=1
+    Ptr++;
+    OoWordToLongUnsigned(wMtrSn, Ptr);
+    Ptr += 2;   //电表序号
+
+    OoDWordToDoubleLongUnsigned(dwOAD, bRCSD+7);
+        
+    iRet = ReadRecord(bOAD, bRSD, bRCSD, &iTabIdx, &iStart, bBuf, sizeof(bBuf), &wRetNum);
+    if (iRet > 0)
+    {
+		memcpy(pbBuf, bBuf, iRet);
+    }
+    return iRet;	
+}
+
+
 int QueryDataOfMonth(void *arg)
 {
 	BYTE * pRCSD = NULL;
@@ -3671,7 +4049,7 @@ int QueryDataOfMonth(void *arg)
 	int iStart = -1;
 	int iTabIdx = 0;
 	WORD wRetNum = 0;
-	TTime tTime;
+	TTime tTime, tTimeRd;
 
 	char menuitem[7][32];
 	memset(menuitem, 0, sizeof(menuitem));
@@ -3689,82 +4067,31 @@ int QueryDataOfMonth(void *arg)
 	CListBoxEx listbox;
 	char cInput[12] = {0};
 	BYTE i = 0, j = 0;
-	//char szInput[33];
 	int iPageNum = 0;
 	int iMtrNo = 0;
-	BYTE bTime[7] = {0};
 	BYTE bPower1[27] = {0};
 	BYTE bPower2[27] = {0};
 	BYTE bMaxDemand1[80] = {0};
 	BYTE bMaxDemand2[80] = {0};
 	BYTE *cp = NULL;
 
-	int nRet;
-#ifdef DEBUG_DISP
-	BYTE bTmpBuf[] = {DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x10, 0x1E, 0x00, //日冻结时标
-					  DT_ARRAY, 5, DT_DB_LONG_U, 0x00, 0x05, 0x7E, 0x40, 
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,        //正向有功总及费率
-					  DT_ARRAY, 5, DT_DB_LONG_U, 0x00, 0x05, 0x7E, 0x40, 
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,
-								   DT_DB_LONG_U, 0x00, 0x01, 0x5F, 0x90,        //反向有功总及费率
-					  DT_ARRAY, 5, DT_STRUCT, 2, 
-												 DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												 DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-												 DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												 DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-												 DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												 DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-							       DT_STRUCT, 2,
-											     DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												 DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-												 DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												 DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,     //正向有功最大需量
-					  DT_ARRAY, 5, DT_STRUCT, 2, 
-												 DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												 DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-												 DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												 DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-												 DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												 DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-												 DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												 DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00,
-								   DT_STRUCT, 2,
-												 DT_DB_LONG_U, 0x00, 0x0F, 0x42, 0x40,
-												 DT_DATE_TIME_S, 0x07, 0xE0, 0x0B, 0x0A, 0x00, 0x00, 0x00     //反向有功最大需量
-	};
-#else
+	int iRet;
 	BYTE bTmpBuf[500] = {0};
-#endif
-	BYTE bOAD[4] = {0x50,0x06,0x02,0x00};		              //对象属性描述符，月冻结
-	BYTE bRSD[30] = {0};                                      //记录选择描述符
-	BYTE bRCSD[30] = {0x02, //02 —— RCSD，SEQUENCE OF CSD个数=2
-					  0x00, //OAD
-					  0x60, 0x41, 0x02, 0x00, //—— OAD1，采集成功时标
-					  0x01, // —— ROAD					 
-					  0x50, 0x06, 0x02, 0x00, //—— 月冻结
-					  0x04, //—— 关联对象属性描述符  SEQUENCE OF个数=4
-					  0x00, 0x10, 0x02, 0x00, //—— 正向有功总及费率
-					  0x00, 0x20, 0x02, 0x00, //—— 反向有功总及费率
-					  0x10, 0x10, 0x02, 0x00, //—— 正向有功最大需量
-					  0x10, 0x20, 0x02, 0x00, //—— 反向有功最大需量
-	};  //记录列选择描述符                               
-	BYTE *ptr = NULL;
+    DWORD dwOAD[8] = {
+        0x00100200,  // 正向有功
+        0x00200200,  // 反向有功
+        0x00300200,  // 正向无功
+        0x00400200,  // 反向无功
+        0x00500200,  // 一象限
+        0x00600200,  // 二象限
+        0x00700200,  // 三象限
+        0x00800200,  // 四象限
+    };
 	
-	if(EditSpecBox(2,"请输入表序号:",cInput,60000,2,DATA_DEC)>= 0)
+	if(EditSpecBox(2,"请输入表序号:",cInput,60000,4,DATA_DEC)>= 0)
 	{
-		sscanf(cInput, "%d", &iMtrNo);
-		if (iMtrNo<GB_MAXMETER && iMtrNo>=GB_MAXOFF)
+		sscanf(cInput, "%04d", &iMtrNo);
+		if (iMtrNo<POINT_NUM && iMtrNo>=1)
 		{
 			TOobMtrInfo tTMtrInfo;
 			memset(&tTMtrInfo, 0, sizeof(TOobMtrInfo));
@@ -3776,13 +4103,16 @@ int QueryDataOfMonth(void *arg)
 			}
 			//memset(cInput, 0, sizeof(cInput));
 			GetCurTime(&tTime);
+
+            AddIntervs(tTime, TIME_UNIT_MONTH,-1);
 			sprintf(cInput, "%04d-%02d", tTime.nYear, tTime.nMonth);
 			if (EditTextBox(2, "请选择查询日期", cInput, 60000, 7, DATA_DEC)>= 0)
 			{
 				if (cInput[4]=='-')
 				{
 					WORD wYear;
-					BYTE bMonth; 
+					BYTE bMonth; 	
+                    BYTE bTime[7] = {0};
 
 					AsciiToByte((BYTE *)cInput, 4, bTime);    //年
 					AsciiToByte((BYTE *)(cInput+5), 2, bTime+2);//月
@@ -3791,99 +4121,151 @@ int QueryDataOfMonth(void *arg)
 					OoWordToLongUnsigned(wYear, bTime);
 					bTime[2] = bMonth;
 					bTime[3] = 1;//日
-					/*
-					**记录选择描述符RSD配置
-					*/
-					ptr = bRSD;
-					*ptr = 5;       //—— RSD，选择方法5
-					ptr++;          //—— 采集存储时间
-					memcpy(ptr, bTime, sizeof(bTime));
-					ptr += sizeof(bTime);  
-					*ptr = 4;       //—— 电能表集合MS 一组配置序号  	[4] 	SEQUENCE OF long-unsigned
-					ptr++;          
-					*ptr = 1;        //电表配置序号个数=1
-					ptr++;
-					*ptr = iMtrNo;   //电表序号
-#ifndef DEBUG_DISP
-					nRet = ReadRecord(bOAD, bRSD, bRCSD, &iTabIdx, &iStart, bTmpBuf, sizeof(bTmpBuf), &wRetNum);
-					if (nRet < 0)
-					{
-						MessageBox("查询失败",KEY_ESC,10000);
-						goto flag;
-					}
-#endif
-					memset(bTime, 0, sizeof(bTime));
-					ptr = bTmpBuf;          //OAD1，采集成功时标
-					memcpy(bTime, ptr, 8);  //date_time_s 年-月-日 时:分:秒 8bytes
-					ptr += 8;               //正向有功总及费率
-					memcpy(bPower1, ptr, 27);
-					ptr += 27;              //反向有功总及费率
-					memcpy(bPower2, ptr, 27);
-					ptr += 27;              //正向有功最大需量
-					memcpy(bMaxDemand1, ptr, 77);
-					ptr += 77;              //反向有功最大需量
-					memcpy(bMaxDemand2, ptr, 77);
-					
+
+                    tTime.nYear = (cInput[0]-'0')*1000 + (cInput[1]-'0')*100 + (cInput[2]-'0')*10 + (cInput[3]-'0');
+					tTime.nMonth = (cInput[5]-'0')*10 + (cInput[6]-'0');
+					tTime.nDay = 1;
+                    tTime.nHour = tTime.nMinute = tTime.nSecond = 0;                    
+                    AddIntervs(tTime, TIME_UNIT_MONTH,1);
+                    OoWordToLongUnsigned(tTime.nYear, bTime);
+                    bTime[2] = tTime.nMonth;
+                    bTime[3] = tTime.nDay;
+                    bTime[4] = bTime[5] = bTime[6] = 0;     
+											
 					while(1)
 					{
 						i = 0;
 						memset(menuitem, 0, sizeof(menuitem));
+                        memset(bTmpBuf, 0, sizeof(bTmpBuf));  
+                        iRet = ReadDateofMonth(iMtrNo, dwOAD[iPageNum], bTime, bTmpBuf);
+                        cp = bTmpBuf;
+                        sprintf(menuitem[i++], "测量点%d",iMtrNo);
 						switch(iPageNum)
 						{
 						case 0:
-							cp = bPower1+3;
-							sprintf(menuitem[i++], "正有总: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "正有尖: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "正有峰: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "正有平: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "正有谷: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+                            if(iRet>0)
+                            {
+                                cp += 5;
+    							sprintf(menuitem[i++], "正有总: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有尖: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有峰: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有平: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有谷: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+                            }
+                            else{
+                                cp += 5;
+    							sprintf(menuitem[i++], "正有总: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有尖: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有峰: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有平: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正有谷: xxxxxx.xxkWh");
+                            }
 							break;
-						case 1:
-							cp = bPower2+3;
-							sprintf(menuitem[i++], "反有总: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "反有尖: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "反有峰: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "反有平: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
-							cp += 5;
-							sprintf(menuitem[i++], "反有谷: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+						case 1:			
+                            if(iRet>0)
+                            {
+                                cp += 5;
+    							sprintf(menuitem[i++], "反有总: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有尖: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有峰: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有平: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有谷: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+                            }
+                            else{
+                                cp += 5;
+    							sprintf(menuitem[i++], "反有总: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有尖: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有峰: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有平: xxxxxx.xxkWh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反有谷: xxxxxx.xxkWh");
+                            }
 							break;
-						case 2:
-							cp = bMaxDemand1+5;
-							sprintf(menuitem[i++], "正有需量总: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "正有需量尖: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "正有需量峰: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "正有需量平: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "正有需量谷: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
+						case 2:	
+                            if(iRet>0)
+                            {
+                                cp += 5;
+    							sprintf(menuitem[i++], "正无总: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无尖: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无峰: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无平: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无谷: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+                            }
+                            else{
+                                cp += 5;
+    							sprintf(menuitem[i++], "正无总: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无尖: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无峰: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无平: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "正无谷: xxxxxx.xxkvarh");
+                            }
 							break;
 						case 3:
-							cp = bMaxDemand2+5;
-							sprintf(menuitem[i++], "反有需量总: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "反有需量尖: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "反有需量峰: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "反有需量平: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
-							cp += 15;
-							sprintf(menuitem[i++], "反有需量谷: %.4fkW", (float)OoDoubleLongUnsignedToDWord(cp)*1e-4);
+                            if(iRet>0)
+                            {
+                                cp += 5;
+    							sprintf(menuitem[i++], "反无总: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无尖: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无峰: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无平: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无谷: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+                            }
+                            else{
+                                cp += 5;
+    							sprintf(menuitem[i++], "反无总: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无尖: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无峰: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无平: xxxxxx.xxkvarh");
+    							cp += 5;
+    							sprintf(menuitem[i++], "反无谷: xxxxxx.xxkvarh");
+                            }
 							break;
 						}
-						sprintf(menuitem[i++], " ");
-						sprintf(menuitem[i++], "抄表时间 %d/%d/%d %d:%d", OoLongUnsignedToWord(bTime+1)%100, bTime[3], bTime[4], bTime[5], bTime[6]);
-						tmpS[i].text = NULL;
+                        
+						if(iRet>0)
+                        {
+                            cp += 5;
+                            OoDateTimeSToTime(cp, &tTimeRd);
+    						sprintf(menuitem[i++], "抄表时间 %02d-%02d-%02d %02d:%02d:%02d", tTimeRd.nYear%100, tTimeRd.nMonth, tTimeRd.nDay,
+                                           tTimeRd.nHour, tTimeRd.nMinute, tTimeRd.nSecond);
+                        }
+                        else{
+    						sprintf(menuitem[i++], "抄表时间 xx-xx-xx xx:xx:xx");
+                        }
+                        
+                        tmpS[i].text = NULL;
 
-						listbox.Show(0, "月数据", tmpS, KEY_ESC | (KEY_OK << 8) | (KEY_UP << 16) | (KEY_DOWN <<24), 60000, false);
+						listbox.Show(0, "月数据", tmpS, KEY_ESC | KEY_UP<< 8 | KEY_DOWN << 16, 60000, false);
 						if (listbox.key == KEY_ESC || listbox.key == KEY_NULL)
 						{
 							goto flag;
@@ -7862,38 +8244,6 @@ int SetTermSmsPara(void *arg);
 int SetCommunicationStatePara(void *arg);
 int SetVPNPara(void *arg);
 
-/*
-int MenuTransParam(void *arg)
-{
-//	BYTE i = 0;
-	struct ListBoxExItem tmpM[] = {
-
-		{(char *)"通信方式",			0xFF,	SetCommunicationStatePara,	(void*)1},
-		{ (char *)"主站IP地址",			0xFF,	SetMasteTransParam,			(void*)0}, //
-		{ (char *)"以太网参数",			0xFF,	SetTermIPParam,				(void*)1}, //
-		//{(char *) "终端地址及行政区码", 0xFF,	SetTermAddr,				(void*)2}, //
-		{(char *) "服务器地址", 0xFF,	SetTermAddr,				(void*)2}, //
-		{ (char *)"短信中心号码",		0xFF,	SetTermSmsPara,				(void*)1}, //
-		{(char *)"虚拟专网设置",		0xFF,	SetVPNPara,					(void*)3},
-		{NULL,							0xFF,	Dummy,						(void*)3}, //
-	};
-	CListBoxEx listbox;
-
-	while(1)
-	{
-		listbox.Show(0,"配置参数",tmpM, KEY_ESC, 60000);
-		if (listbox.key == KEY_OK)
-		{
-			break;
-		}
-		else if (listbox.key == KEY_ESC || listbox.key == KEY_NULL)
-		{
-			return -1;
-		}
-	}
-	
-	return -1;
-}*/
 
 
 int SetTermAddr(void *arg)
@@ -7923,25 +8273,25 @@ int SetTermAddr(void *arg)
 	BYTE bAddrType;
 	BYTE bLogicAddr;
 	BYTE bAddrLen;
-	
+
 	//显示服务器地址，终端属于服务器
-	 if (OoReadAttr(0x4001, 0x02, bBuf, NULL, NULL) < 0)
-	 {
+	if (OoReadAttr(0x4001, 0x02, bBuf, NULL, NULL) < 0)
+	{
 		MessageBox("读取数据库出错!", KEY_ESC, 3000);
 		return -1;
-	 }
+	}
 
 	bAddrLen = bBuf[1];
 	for(i; i<bAddrLen; i++)
 	{
 		ByteToASCII(bBuf[2+i], &p);
 	}
-	
+
 	while(1)
 	{
 		i = 0;
-		
-		sprintf(menuitem[i++], "服务器地址：");  //服务器地址长度是变长，需要分两行处理
+
+		sprintf(menuitem[i++], "通信地址：");  //服务器地址长度是变长，需要分两行处理
 		memset(bTmpBuf, 0, sizeof(bTmpBuf));
 		memcpy(bTmpBuf, &szServAddr[0], 16);
 		sprintf(menuitem[i++], "%s", (char *)bTmpBuf);
@@ -7952,20 +8302,20 @@ int SetTermAddr(void *arg)
 			sprintf(menuitem[i++], "%s", (char *)bTmpBuf);
 		tmpS[i].text = NULL;
 
-		listbox.Show(0, "服务器地址设置",tmpS,KEY_ESC | KEY_OK <<8,60000);
+		listbox.Show(0, "通信地址设置",tmpS,KEY_ESC | KEY_OK <<8,60000);
 		if (listbox.key == KEY_ESC || listbox.key == KEY_NULL)
 		{
 			break;
 		}
-		
+
 		if (listbox.key == KEY_OK && listbox.item != 0)
 		{			
 			char szInput[33];
 			memset(szInput, 0, sizeof(szInput));
-	
+
 			sprintf(szInput, "%s", szServAddr);	 //spintf()会自动在szInput的末尾加上\0，所以szInput要多开1字节，防止溢出
 
-			if(EditTextBox(2, "设置服务器地址", szInput, 60000, 32, DATA_HEX)>=0) //这里只能是末尾可以设置为16进制，可设置为0x0f和0x0a
+			if(EditTextBox(2, "设置通信地址", szInput, 60000, 32, DATA_HEX)>=0) //这里只能是末尾可以设置为16进制，可设置为0x0f和0x0a
 			{	
 				i = 0;
 				j = 0;
@@ -7978,7 +8328,7 @@ int SetTermAddr(void *arg)
 						bLen++;
 					}
 				}
-					
+
 				AsciiToByte((BYTE *)szServAddr, (WORD)bLen, (bBuf+2));
 				bAddrLen = bLen/2;
 				if (MessageBox("确定要设置?",KEY_ESC,10000) > 0)
@@ -7988,7 +8338,7 @@ int SetTermAddr(void *arg)
 					if (OoWriteAttr(0x4001, 0x02, bBuf) > 0)
 					{
 						MessageBox("设置成功",KEY_ESC,3000);
-						TrigerSaveBank(BANK0, SECT4, -1);
+						TrigerSaveBank(BANK10, 0, -1);//0x4001映射为BANK10 0xa1d0
 						DoTrigerSaveBank();
 					}
 					else
@@ -8970,6 +9320,7 @@ int RecessCtrlPara(void *arg)
 			return -1;
 		}
 	}
+	return -1;
 }
 
 int StopCtrlPara(void *arg)
@@ -10087,7 +10438,7 @@ void TermiUpdate(BYTE bType)
 }
 
 
-void AppSysParaCfg(void)
+int AppSysParaCfg(void *arg)
 {
 	char szTemp[100];
 	char command[200];
@@ -10102,13 +10453,13 @@ void AppSysParaCfg(void)
 	if (iCnt <= 0)
 	{
 		MessageBox("文件不存在!", KEY_ESC, 2000);
-		return ;
+		return -1;
 	}
 
 //	int iIndex = UpdateList((char *)szList, iCnt);
 	int iIndex = UpdateDftList((char *)szList, iCnt, iSel);
 	if (iIndex < 0 )
-		return;
+		return -1;
 
 //	MessageBox("升级中,请等待!", KEY_ESC,500);
 //	MessageBox("请不要拔出U盘!", KEY_ESC,500);
@@ -10194,6 +10545,7 @@ void AppSysParaCfg(void)
 //	Sleep(2000);
 //#endif
 //	ResetCPU();
+	return 0;
 }
 
 int UsbUpdate(void *arg)
@@ -11276,7 +11628,7 @@ int TermiManageOpt(void *arg)
 		}
 		break;
 	case 12:
-		AppSysParaCfg();
+		AppSysParaCfg(0);
 		break;
 /*	case 18:
 		{
@@ -11348,7 +11700,6 @@ int TermCommpAndVersion(void *arg)
 			{
 				break;
 			}
-			
 			
 			if (listbox.key == KEY_OK)
 			{
@@ -11700,22 +12051,33 @@ void DrawAlarmMap(bool isDraw)
 	BYTE eventNum = 0;
 	if (isDraw)
 	{
+	    BYTE bBuf[EVT_ADDOAD_MAXLEN];
+        BYTE bArrayNum = 0;
+	    int iLen = OoReadAttr(0x3320, 0x02, bBuf, NULL, NULL);
+	    if(iLen>0)
+        {
+            bArrayNum = bBuf[1];
+        }
 		Flag = !Flag;
 		ReadItemEx(BN2, PN0, 0x2031, &eventNum);
-		if (eventNum == 0)
+		//if (eventNum == 0)
+		if(bArrayNum==0)
 		{
-			DrawBmp16x16(iconRssi[0], 38, 0);//
+			DrawBmp16x16(iconRssi[0], 54, 0);//
 			return;
 		}
 		if (PreFlag != Flag)
 		{
-			DrawBmp16x16(iconAlarm, 38, 0);//
+			DrawBmp16x16(iconAlarm, 54, 0);//
 		}
 		else
 		{
+		    DrawBmp16x16(iconRssi[0], 54, 0);
+		    /*
 			DrawBmp16x16(iconSess[0],38,0);
 			sprintf(cEvNum,"%02d",eventNum);
 			DrawStringAtLock(cEvNum, 38, 0, GUI_WHITE, GUI_BLACK);
+			*/
 		}
 	}
 	return ;
@@ -11868,8 +12230,12 @@ int DrawStateTask()
 	static BYTE bNum = 0;
 	TTime tmNow;
 
+    static bool fIsNeedDisp_s = true;
+    bool fIsNeedDisp = false;
+    fIsNeedDisp_s = !fIsNeedDisp_s;
+
 	BYTE bBuf[2] = {0};
-	char *NetType[] = {"","","2G","3G","4G"};
+	char *NetType[] = {"  ","  ","2G","3G","4G"};
 	char *Svrinfo[] = {"","中国移动","中国联通","中国电信"};
 	BYTE bModuleType;
 	
@@ -11924,43 +12290,142 @@ int DrawStateTask()
 	//} 
 	//else
 	{
-		DrawBmp16x16(iconRssi[0], 54, 0);//
+		//DrawBmp16x16(iconRssi[0], 54, 0);//
 	}
 
+    if(GetGprsOnlineState())
+    {
+        DrawBmp8x16(iconOnline, 0, 0);//信号塔
+    }
+    else
+    {
+        if(fIsNeedDisp_s!=fIsNeedDisp)
+        {
+            DrawBmp8x16(iconOnline, 0, 0);//信号塔
+        }
+        else{
+            DrawBmp8x16(iconOnlineNull, 0, 0);//信号塔
+        }
+    }
 
-	DrawBmp8x16(iconOnline, 0, 0);//信号塔
+    //DrawBmp8x16(iconOnline, 0, 0);//信号塔
+    
+	
 	DrawAlarmMap(true); //事件图标
+
+    char cmp[8];
+    memset(cmp, 0, sizeof(cmp));
+    WORD wMtrSn = 0;
+    ReadItemEx(BN2, PN0, 0x503c, (BYTE*)&wMtrSn);
+	sprintf(cmp,"%04d",wMtrSn);
+	DrawStringAtLock(cmp, 79, 0, GUI_WHITE, GUI_BLACK);//轮显状态栏上的测量点
+	DrawRectLock(72, 0, 112, GetFontHeight() - 2);
 
 	GetCurTime(&tmNow);
 	char tm[48];
-	sprintf(tm,"%02d:%02d",tmNow.nHour,tmNow.nMinute);
-	
+	sprintf(tm,"%02d:%02d",tmNow.nHour,tmNow.nMinute);	
 	DrawStringAtLock(tm, 122, 0, GUI_WHITE, GUI_BLACK);
+    
 #ifdef EN_DRAW_TOPSPLITLINE
+
+/*
 	ReadItemEx(BN2, PN0, 0x2050, &bModuleType);	
 	if(bModuleType == MODULE_SOCKET)//以太网
 	{
 		if(IsGprsConnected())//连接成功
-			DrawBmp16x16(iconSess[10], 22, 0);
-			
+			DrawBmp16x16(iconSess[10], 22, 0);			
 	}
-	else//GPRS
-	{
-		GetSysInfo(bBuf);
+*/
+// 以太网在线状态显示
+    if(GetEthOnlineState())
+    {
+        DrawBmp16x16(iconSess[4], 38, 0);//显示制式图标
+    }
+    else
+    {
+        if(fIsNeedDisp_s!=fIsNeedDisp)
+        {
+            DrawBmp16x16(iconSess[4], 38, 0);//显示制式图标
+        }
+        else
+        {
+            DrawBmp16x16(iconSess[0], 38, 0);//显示制式图标
+        }            
+    }	
+// end 以太网在线状态显示
 
-		DrawStringAtLock(NetType[bBuf[0]], 22, 0, GUI_WHITE, GUI_BLACK);//显示制式图标
-		DrawStringAtLock(Svrinfo[bBuf[1]], 50, 0, GUI_WHITE, GUI_BLACK);//显示运营商
-	}
+//begin 远程模块在线符号显示	
+    GetSysInfo(bBuf);
+    if(bBuf[0]>=2 && bBuf[0]<=4)
+    {
+        if(bBuf[0]==2)  // 2G信号
+        {
+            if(bBuf[1] == 3)   // 2G电信信号
+            {
+                if(GetGprsOnlineState())
+                {
+                    DrawBmp16x16(iconSess[3], 22, 0);//显示制式图标
+                }
+                else
+                {
+                    if(fIsNeedDisp_s==fIsNeedDisp)
+                    {
+                        DrawBmp16x16(iconSess[0], 22, 0);//显示制式图标
+                    }
+                    else
+                    {
+                        DrawBmp16x16(iconSess[3], 22, 0);//显示制式图标
+                    }            
+                }
+            }
+            else   // 2G移动、联通信号
+            {
+                if(GetGprsOnlineState())
+                {
+                    DrawBmp16x16(iconSess[1], 22, 0);//显示制式图标
+                }
+                else
+                {
+                    if(fIsNeedDisp_s==fIsNeedDisp)
+                    {
+                        DrawBmp16x16(iconSess[1], 22, 0);//显示制式图标
+                    }
+                    else
+                    {
+                        DrawBmp16x16(iconSess[0], 22, 0);//显示制式图标
+                    }            
+                }
+            }
+        }
+        else
+        {
+            if(GetGprsOnlineState())
+            {
+                DrawStringAtLock(NetType[bBuf[0]], 22, 0, GUI_WHITE, GUI_BLACK);//显示制式图标
+            }
+            else
+            {
+                if(fIsNeedDisp_s==fIsNeedDisp)
+                {
+                    DrawStringAtLock(NetType[bBuf[0]], 22, 0, GUI_WHITE, GUI_BLACK);//显示制式图标
+                }
+                else
+                {
+                    DrawBmp16x16(iconSess[0], 22, 0);
+                }                         
+            }
+        }
+    }
+    else
+    {  // 未注册成功
+        DrawBmp16x16(iconSess[0], 22, 0);
+    }
+
+		
+    //DrawStringAtLock(Svrinfo[bBuf[1]], 50, 0, GUI_WHITE, GUI_BLACK);//显示运营商
+//end 远程模块在线符号显示		
 
 	DrawRectLock(0, GetFontHeight() - 2, LCD_SIM_WIDTH, GetFontHeight() - 2);
-#if 0
-	DrawRectLock(71, 0, 71, GetFontHeight() - 2);
-	DrawRectLock(105, 0, 105, GetFontHeight() - 2);
-	memset(mp,0,sizeof(mp));
-
-	sprintf(mp,"%04d",GetAcPn());
-	DrawStringAtLock(mp, 75, 0, GUI_WHITE, GUI_BLACK);//轮显状态栏上的测量点
-#endif
 
 #endif
 	//bottom
@@ -12015,17 +12480,7 @@ int DrawStateTask()
 			(GetMaxLinePerScreen() - 1) * GetFontHeight());
 #endif
 	}
-
-//#ifndef SYS_WIN
-	if (IsMountUsb() && (!IsInUsbProcess()))	
-	{
-		SetUsbProcessState(1);
-		BlightOn(true);
-		iRet = UsbUpdate2(0);
-		LcdRefresh();
-	}
-//#endif
-		
+	
 	return iRet;
 }
 
@@ -14144,17 +14599,14 @@ int QueryEvtSchCfg(void *arg)
 		}
 	}
 
-	if (!GetTaskCfg(bIndex, (TTaskCfg*)&tTaskCfg))
+	if (!GetEventSchCfg(bIndex, (TEvtAcqSchCfg *)&tEvtAcqSchCfg))
 	{
 		MessageBox("读取配置出错!", KEY_ESC, 3000);
 		return -1;
 	}
+	
 
-	if (!GetEventSchCfg((TTaskCfg*)&tTaskCfg, (TEvtAcqSchCfg *)&tEvtAcqSchCfg))
-	{
-		MessageBox("读取配置出错!", KEY_ESC, 3000);
-		return -1;
-	}
+	
 
 	while(1)
 	{
@@ -14655,7 +15107,7 @@ int SetMPBasicPara(void *arg)
 	}
 
 	char menuitem[22][32];
-	BYTE i = 0;
+	BYTE i = 0, index = 0;
 	char szInput[33] = {0};
 	int iMpNo = 1;
 
@@ -14696,6 +15148,16 @@ int SetMPBasicPara(void *arg)
 	char *MtrProType[] = {"未知", "DL/T645-1997", "DL/T645-2007", "DL/T698.45", "CJ/T 188-2004"};
 	char *Boundrate[] = {"300bps", "600bps", "1200bps", "2400bps", "4800bps", "7200bps", 
 						 "9600bps", "19200bps", "38400bps", "57600bps", "115200bps", "自适应"};
+
+	struct DownLinkPort_t {
+		DWORD dwOAD;
+		char *PortInfo;
+	};
+	struct DownLinkPort_t tDownLinkPort[] = {
+		{0xF2010201, "485I"},
+		{0xF2010202, "485II"},
+		{0xF2090201, "载波无线"},
+	};
 	
 	if (EditSpecBox(2,"输入表序号:",szInput,60000,2,DATA_DEC)>=0)
 	{
@@ -14706,15 +15168,32 @@ int SetMPBasicPara(void *arg)
 			**获得电表信息
 			*/
 			wPn = MtrSnToPn(iMpNo);
-			if (!GetMeterInfo(wPn, &tTMtrInfo))
+			if (wPn == 0)
 			{
+				wPn = GetEmptyPn();
+				if (wPn == INVALID_POINT) //配满了
+				{
+					MessageBox("存储空间不足", KEY_ESC, 3000);
+					return -1;
+				}
 				if(MessageBox("该电表未配置!", KEY_ESC, 3000))
                 {
+                	InitTOobMtrInfo(&tTMtrInfo);
+					tTMtrInfo.wPn = wPn;
+					tTMtrInfo.wMtrSn = iMpNo;
                 }
                 else
                 {
 				    return -1;
                 }
+			}
+			else
+			{
+				if (!GetMeterInfo(wPn, &tTMtrInfo))
+				{
+					MessageBox("获取电表档案失败!", KEY_ESC, 3000);
+					return -1;
+				}
 			}
 
 			while(1)
@@ -14737,8 +15216,23 @@ int SetMPBasicPara(void *arg)
 				sprintf(menuitem[i++], "波特率:%s", Boundrate[(tTMtrInfo.bBps)&0x0F]);
 
 				sprintf(menuitem[i++], "规约类型:%s", MtrProType[(tTMtrInfo.bProType)&0x07]);
+
+				for (index=0; index<sizeof(tDownLinkPort)/sizeof(tDownLinkPort[0]); index++)
+				{
+					if (tTMtrInfo.dwPortOAD == tDownLinkPort[index].dwOAD)
+						break;
+				}
+
+				if (index < sizeof(tDownLinkPort)/sizeof(tDownLinkPort[0]))
+				{
+					sprintf(menuitem[i++], "端口:%s", tDownLinkPort[index].PortInfo);
+				}
+				else
+				{
+					sprintf(menuitem[i++], "端口:%s", "未知端口");
+				}
 				
-				sprintf(menuitem[i++], "端口:%08X", tTMtrInfo.dwPortOAD);
+				
 
 				memset(bTmpBuf, 0, sizeof(bTmpBuf));
 				memset(szTmp, 0, sizeof(szTmp));
@@ -14854,16 +15348,17 @@ int SetMPBasicPara(void *arg)
 					}
 					else if (listbox.item == 6)
 					{
-						memset(szInput, 0, sizeof(szInput));
-						memset(szTmp, 0, sizeof(szTmp));
-						//OoDWordToOad(tTMtrInfo.dwPortOAD, (BYTE *)szTmp);
-						//HexToASCII((BYTE *)szTmp, (BYTE *)szInput, 4);
-						sprintf(szInput, "%04X", tTMtrInfo.dwPortOAD);						
-						if (EditTextBox(2, "端口", szInput, 60000, 8, DATA_HEX) >= 0)
+						CListBoxEx listboxPort;
+						struct ListBoxExItem PortTmp1[] = {
+							{tDownLinkPort[0].PortInfo, 0xFF, Dummy, (void *)0x01},
+							{tDownLinkPort[1].PortInfo, 0xFF, Dummy, (void *)0x02},
+							{tDownLinkPort[2].PortInfo, 0xFF, Dummy, (void *)0x03},
+							{ NULL, 0xFF, NULL, NULL },
+						};
+						listboxPort.Show(0, "端口", PortTmp1, KEY_ESC | (KEY_OK << 8), 60000);
+						if (listboxPort.key == KEY_OK)
 						{
-							memset(bTmpBuf, 0, sizeof(bTmpBuf));
-							AsciiToByte((BYTE *)szInput, 8, bTmpBuf);
-							tTMtrInfo.dwPortOAD = OoOadToDWord(bTmpBuf);
+							tTMtrInfo.dwPortOAD = tDownLinkPort[listboxPort.item].dwOAD;
 						}
 					}
 					else if (listbox.item==8 || listbox.item==9)
@@ -14986,8 +15481,12 @@ int SetMPBasicPara(void *arg)
 						if (MessageBox("确定要设置?",KEY_ESC,10000) > 0)
 						{
 							if (SetMeterInfo(wPn, tTMtrInfo))
-							{
+							{	
+								BYTE bSecurity[2] = {0};
 								MessageBox("设置成功",KEY_ESC,3000);
+								memset(bSecurity, 0, sizeof(bSecurity));	
+								WriteItemEx(BN0, wPn, 0xF116, bSecurity);//清除电表安全模式参数
+								SetMtrSnToPn(wPn, iMpNo);
 								TrigerSaveBank(BN0, SECT6, -1);	//触发保存一次
 								DoTrigerSaveBank();
 							}
@@ -15298,7 +15797,7 @@ int ExeMaintenanceCmd(void *arg)
 	char szInput[33] = {0};
 	int iMpNo = 1;
 	TOobMtrInfo tTMtrInfo;
-	BYTE bApdu[6] = {0x01, 0x00, 0x10, 0x02, 0x00, 0x00};
+	BYTE bApdu[6] = {0x00, 0x10, 0x02, 0x00, 0x00};
 	int iRet;
 
 	if (EditSpecBox(2,"输入表序号:",szInput,60000,2,DATA_DEC)<0)
@@ -15316,7 +15815,7 @@ int ExeMaintenanceCmd(void *arg)
 		}
 		MessageBox("抄表中,请稍侯...", KEY_ESC, 0);
 		
-		iRet = DirAskMtrData(5, 2, tTMtrInfo.bTsa, tTMtrInfo.bTsaLen, bApdu, 6, 60, buff);
+		iRet = DirAskMtrData(5, 1, tTMtrInfo.bTsa, tTMtrInfo.bTsaLen, bApdu, 4, 60, buff);
 		if (iRet <= 0)
 		{
 			MessageBox("抄表失败!", KEY_ESC, 3000);
@@ -15335,7 +15834,7 @@ int ExeMaintenanceCmd(void *arg)
 			{ NULL, 0xFF, NULL, NULL },
 		};
 		sprintf(menuBuff[0], "表序号:%d", iMpNo);
-		BYTE *cp = buff + 9;
+		BYTE *cp = buff + 8;
 		sprintf(menuBuff[1], "正向有功电能示值");
 		sprintf(menuBuff[2], "总:    %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
 		cp += 5;
@@ -15385,7 +15884,6 @@ int ManualRdMtr(void *arg)
 	}
 	return -1;
 }
-
 
 int ProtocolSwitch(void *arg)
 {
@@ -15917,7 +16415,7 @@ int SetLoopDisplay(void *arg)
 
 
 
-
+/*
 int ManageTerm(void *arg)
 {
 //ReadMtrHandly
@@ -15947,7 +16445,7 @@ int ManageTerm(void *arg)
 
 	return -1;
 }
-
+*/
 
 int TermRealState(void *arg)
 {
@@ -16407,13 +16905,13 @@ int QueryTermData(void *arg)
 #ifdef FK_TERM
 		{ (char *) "控制状态", MENU_ONELEVEL_HAVE_NO, CtrlState, (void *)2},
 #endif
-		{ (char *) "事件信息", MENU_ONELEVEL_HAVE_NO, DisplayMssage, (void *)3},
+		{ (char *) "中文信息", MENU_ONELEVEL_HAVE_NO, DisplayMssage, (void *)3},
 		{ NULL, 0xFF, NULL, NULL },
 	};
 
 	while(1)
 	{
-		listbox.Show(0 , "测量点数据显示", items, KEY_ESC << 8, 60000);
+		listbox.Show(0 , "终端数据显示", items, KEY_ESC << 8, 60000);
 
 		if ((KEY_NULL == listbox.key)||(KEY_ESC == listbox.key))
 			break;
@@ -16421,6 +16919,83 @@ int QueryTermData(void *arg)
 
 	return -1;
 }
+
+
+// 界面密码设置
+int SetInterfacePasswod(void *arg)
+{
+	if( InputPwd() < 0)
+		return -1;
+
+	CListBoxEx listbox;
+	char menuitem[4][32];
+	int i = 0;
+	memset(menuitem,0,sizeof(menuitem));
+	struct ListBoxExItem items[] = {
+		{menuitem[i++],0xFE,Dummy,(void*)1},
+		{menuitem[i++],0xFE,Dummy,(void*)2},
+		{menuitem[i++],0xFE,Dummy,(void*)3},
+		{menuitem[i++],0xFE,Dummy,(void*)4},
+
+	};
+	i = 0;
+	char szNewPwd[16]={0};
+	ReadItemEx(BN10,PN0,0xa045,(BYTE*)szNewPwd);
+	sprintf(menuitem[i++],"输入新密码:%s",szNewPwd);
+	sprintf(menuitem[i++],"  %s","保存设置");
+	items[i].text = NULL;
+	while(1)
+	{
+		i = 0;
+		sprintf(menuitem[i++],"新密码: %s",szNewPwd);
+		listbox.Show(35,"新密码设置",items,KEY_ESC|(KEY_OK<<8),60000);
+
+		if(listbox.key == KEY_ESC || listbox.key == KEY_NULL)
+			break;
+
+		if(listbox.key == KEY_OK)
+		{
+			char szInput[16];
+			if(listbox.item == 0)
+			{
+				strcpy(szInput,szNewPwd);
+				if(EditTextBox(2, "新密码设置", szInput, 60000, 6, DATA_DEC) >= 0)
+				{
+					strcpy(szNewPwd,szInput);
+
+					BYTE bBuf[6]={0};
+					i = 0;
+					while(szNewPwd[i]!=' ' && i < 6)
+					{
+						bBuf[i] = szNewPwd[i];
+						i++;
+					}
+					memcpy(szNewPwd,bBuf,6);
+				}
+			}
+			else if(listbox.item == 1)
+			{
+				if(MessageBox("确定要设置密码?",KEY_ESC,10000) > 0)
+				{
+
+					if (WriteItemEx(BN10,PN0,0xa045,(BYTE*)szNewPwd)>0)
+					{
+						TrigerSaveBank(BANK10, 0, -1);//0x4001映射为BANK10 0xa1d0
+						DoTrigerSaveBank();
+						MessageBox("设置成功!",KEY_ESC,2000);
+					}
+					else
+					{
+						MessageBox("设置失败!",KEY_ESC,2000);
+					}
+				}
+			}
+		}
+	}
+	return -1;
+}
+
+
 
 int DispPnData(void *arg)
 {
@@ -16449,18 +17024,20 @@ int SetAndQueryPara(void *arg)
 	CListBoxEx listbox;
 
 	struct ListBoxExItem items[] = {
-		{ (char *) "通讯参数设置", MENU_ONELEVEL_HAVE_NO, ChoseCommunicationMode, (void *)1 },
+		{ (char *) "通信通道设置", MENU_ONELEVEL_HAVE_NO, ChoseCommunicationMode, (void *)1 },
 		{ (char *) "电表参数设置", MENU_ONELEVEL_HAVE_NO, SetMPBasicPara, (void *)2 },
-		{ (char *) "脉冲参数设置", MENU_ONELEVEL_HAVE_NO, SetPulsePara, (void *)3 },
+		//{ (char *) "脉冲参数设置", MENU_ONELEVEL_HAVE_NO, SetPulsePara, (void *)3 },
 		//{ (char *) "控制参数查询", MENU_ONELEVEL_HAVE_NO, QueryCtrlPara, (void *)4 },   //比较复杂，液晶不做，通过组态设置和查看
-		{ (char *) "任务配置单元查询", MENU_ONELEVEL_HAVE_NO, QueryTaskCfgUnit, (void *)4 },
-		{ (char *) "普通采集方案查询", MENU_ONELEVEL_HAVE_NO, QueryCommonSchCfg, (void *)5 },
-		{ (char *) "事件采集方案查询", MENU_ONELEVEL_HAVE_NO, QueryEvtSchCfg, (void *)6 },
-		{ (char *) "状态量参数设置", MENU_ONELEVEL_HAVE_NO, SetStatusPara, (void *)7 }, 
-		{ (char *) "终端时间设置", MENU_ONELEVEL_HAVE_NO, SetMySysTime, (void *)8 },
-		{ (char *) "终端地址设置", MENU_ONELEVEL_HAVE_NO, SetTermAddr, (void *)9 },
+		//{ (char *) "任务配置单元查询", MENU_ONELEVEL_HAVE_NO, QueryTaskCfgUnit, (void *)4 },
+		//{ (char *) "普通采集方案查询", MENU_ONELEVEL_HAVE_NO, QueryCommonSchCfg, (void *)5 },
+		//{ (char *) "事件采集方案查询", MENU_ONELEVEL_HAVE_NO, QueryEvtSchCfg, (void *)6 },
+		//{ (char *) "状态量参数设置", MENU_ONELEVEL_HAVE_NO, SetStatusPara, (void *)7 }, 
+		{ (char *)"界面密码设置",		MENU_ONELEVEL_HAVE_NO,	SetInterfacePasswod,(void*)0x03 },
+		{ (char *) "集中器时间设置", MENU_ONELEVEL_HAVE_NO, SetMySysTime, (void *)8 },
+		{ (char *) "集中器编号", MENU_ONELEVEL_HAVE_NO, SetTermAddr, (void *)9 },
 		{ NULL, 0xFF, NULL, NULL },
 	};
+
 
 	while(1)
 	{
@@ -16473,6 +17050,8 @@ int SetAndQueryPara(void *arg)
 	return -1;
 }
 
+
+/*
 int ManageAndMaintainTerm(void *arg)
 {
 	CListBoxEx listbox;
@@ -16494,6 +17073,110 @@ int ManageAndMaintainTerm(void *arg)
 
 	return -1;
 }
+*/
+
+
+int TermDebugCtr(void *arg)
+{
+	if( InputPwd() <= 0 )
+		return -1;
+
+	char menuitem[10][32] = {0};
+	int i = 0;
+	struct ListBoxExItem items[] = { { menuitem[i++],MENU_TWOLEVEL_HAVE_NO,UsbUpdate2,   (void*)2},
+									 { menuitem[i++],MENU_TWOLEVEL_HAVE_NO,AppSysParaCfg, (void*)2},
+									 {  NULL, 0xFF, NULL, NULL },
+								   };
+
+	i = 0;
+	sprintf(menuitem[i++],"%s","终端U盘操作");
+    sprintf(menuitem[i++],"%s","应用配置文件");
+	items[i].text = NULL;
+
+	CListBoxEx listbox(1);
+	listbox.Show(0,"终端调试",items,KEY_ESC, 60000);
+
+	if(listbox.key == KEY_ESC || listbox.key == KEY_NULL)
+	{
+		return -1;
+	}
+
+	return -1;
+}
+
+
+
+int DispTmInfo(void *arg)
+{
+	struct ListBoxExItem tmp[] ={   {  "终端厂商及版本信息",	0xFF, TermCommpAndVersion,  (void *) 0 },
+									{  "电池电量",			    0xFF, BatteryInfo,			(void *) 0 },
+									//{  "红外及维护口参数",	    0xFF, IrCommInfo,			(void *) 0 },
+									//{  "",				0xFE, TermCommpAndVersion,	(void *) 2 },
+									{ NULL, 0xFF, NULL, NULL },
+								};
+
+	CListBoxEx listbox;
+	listbox.Show(0, (char*) "终端信息", tmp, KEY_ESC, 60000);
+
+	return -1;
+}
+
+
+int ManageAndMaintainTerm(void * arg)
+{
+	CListBoxEx listbox;
+
+	//集中器版本、页面设置、现场调试、集中器重启、数据初始化、参数初始化、载波抄表管理、手动抄表、集中器数据
+	struct ListBoxExItem items[] ={	{ (char *)"集中器版本和信息",   MENU_ONELEVEL_HAVE_NO, DispTmInfo,       (void*)1 },
+									{ (char *)"现场调试",     MENU_ONELEVEL_HAVE_NO, TermDebugCtr,		  (void*)1 },
+									{ (char *)"重启终端",     MENU_ONELEVEL_HAVE_NO,TermiManageOpt,(void*)0},
+									{ (char *)"数据初始化",   MENU_ONELEVEL_HAVE_NO, TermiManageOpt,      (void*)1 },
+									{ (char *)"参数初始化",   MENU_ONELEVEL_HAVE_NO, TermiManageOpt,      (void*)2 },
+									{ (char *)"手动抄表",     MENU_ONELEVEL_HAVE_NO, ManualRdMtr,	  (void*)1 },
+									{ (char *) "终端数据",    MENU_ONELEVEL_HAVE_NO, QueryTermData, (void *)1 },
+									//{(char *) "载波抄表管理", 0xFF, LocalModeManager, (void*)3 },
+									//{(char *)"切换到1376.1协议",0xFF, ProtocolSwitch,(void*)1},
+									{ NULL, 0xFF, NULL, NULL },
+								};
+
+	while(1)
+	{
+		listbox.Show(0 , "终端管理与维护", items, KEY_ESC << 8, 60000);
+
+		if ((KEY_NULL == listbox.key)||(KEY_ESC == listbox.key))
+			break;
+	}
+
+	return -1;
+}
+
+
+
+
+/*
+int ManageAndMaintainTerm(void *arg)
+{
+	CListBoxEx listbox;
+
+	struct ListBoxExItem items[] = {
+		{ (char *) "终端数据", MENU_ONELEVEL_HAVE_NO, QueryTermData, (void *)1 },
+		{ (char *) "终端信息", MENU_ONELEVEL_HAVE_NO, TermiManageHelp, (void *)2 },
+		{ (char *) "终端管理", MENU_ONELEVEL_HAVE_NO, ManageTerm, (void *)3 },
+		{ NULL, 0xFF, NULL, NULL },
+	};
+
+	while(1)
+	{
+		listbox.Show(0 , "终端管理与维护", items, KEY_ESC << 8, 60000);
+
+		if ((KEY_NULL == listbox.key)||(KEY_ESC == listbox.key))
+			break;
+	}
+
+	return -1;
+}
+*/
+
 
 /*
 struct ListBoxExItem tmMainMenu[] = { { (char *) "实时数据", MENU_ONELEVEL_HAVE_NO, QueryRealUIP, NULL },//
@@ -16652,6 +17335,8 @@ TThreadRet DisplayThread(void* pvArg)
 						LoopDisplay(NULL);
 					 } 
 				}
+                
+                UsbAutoProcess();
 			}
 			
 			DWORD dwTick = GetTick();
@@ -16679,6 +17364,9 @@ TThreadRet DisplayThread(void* pvArg)
 			JudgeLcdBlight();
 			UpdThreadRunClick(iMonitorID);
 		}
+
+        WORD wPn = 0;
+	    WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&wPn);
 		ClearScreenRec(0, GetFontHeight(), LCD_SIM_WIDTH, LCD_SIM_HEIGHT - GetFontHeight());
 		while (1)
 		{
@@ -16699,468 +17387,385 @@ TThreadRet DisplayThread(void* pvArg)
 int LoopDisplay(void *arg)
 {
 	static DWORD dwLoopClick = 0;
-	static char j =  0;
-	BYTE bLoopPageNum = 11;
+	static BYTE iPageNum = 0;
+	int  iLoopPageNum = 16;
 	DWORD dwStartSecond = GetClick();
 
 	if (dwStartSecond<dwLoopClick+8 && dwLoopClick!=0)
 		return 0;
+
+    dwLoopClick = dwStartSecond;
 	
-	BYTE buff[256];
 	BYTE bTmpBuf[10] = {0};
 
 	BYTE bAddrLen;
-	BYTE bBuf[20] = {0};
+	BYTE bBuf[256] = {0};
 	char szServAddr[32] = {0};
 	BYTE bAddrBuf[35] = {0};
 	int i;
+    char *title[] = {
+        "通信参数",  // 0
+        "抄表统计信息", // 1
+        "有功功率",  // 2
+        "无功功率",  // 3
+        "视在功率",  // 4
+        "三相电压",  // 5
+        "三相电流",  // 6       
+        "功率因数",  // 7
+        "正向有功电能示值",  // 8            
+        "正向无功电能示值",  // 9
+        "反向有功电能示值",  // 10
+        "反向无功电能示值",  // 11
+        "一象限无功电能示值",  // 12
+        "二象限无功电能示值",  // 13
+        "三象限无功电能示值",  // 14
+        "四象限无功电能示值",  // 15         
+    }; 
+            
+    const DWORD dwDeltaPnID[] = { 
+        0x00,             // 0 对应通信参数
+        0x00,             // 1 对抄表统计信息
+        0x20040200,   // 2 有功功率
+        0x20050200,  // 3 无功功率
+        0x20060200,  // 4 视在功率
+        0x20000200,   // 5 电压
+        0x20010200,   // 6 电流
+        0x200A0200,  // 7 功率因数
+        0x00100200,   // 8 正有            
+        0x00300200,   // 9 正无
+        0x00200200,   // 10 反有
+        0x00400200,   // 11 反无
+        0x00500200,   // 12 一象限
+        0x00600200,   // 13 二象限
+        0x00700200,   // 14 三象限
+        0x00800200,   // 15 四象限
+    };
 
-	//BYTE bNum = 0;
-	//char dir = 1;
-	WORD  wAcPn = GetAcPn();
-	char title[20] = {0};
+	WORD  wAcPn = GetAcMtrSn();   // 获取交采测量点
 	char menuitem[8][24];
-	dwLoopClick = dwStartSecond;
-	dwStartSecond = GetCurTime()/(24*60*60)*24*60*60;
-	struct ListBoxExItem tmReadPowerMeter[] = { { menuitem[0], 0xFE, Dummy, (void *) 1 },//
-	{ menuitem[1], 0xFE, Dummy, (void *) 2 },//
-	{ menuitem[2], 0xFE, Dummy, (void *) 3 },//			
-	{ menuitem[3], 0xFE, Dummy, (void *) 4 },//		
-	{ menuitem[4], 0xFE, Dummy, (void *) 5 },//			
-	{ menuitem[5], 0xFE, Dummy, (void *) 6 },//			
-	{ menuitem[6], 0xFE, Dummy, (void *) 7 },//
-	{ menuitem[7], 0xFE, Dummy, (void *) 8 },//
-	{ NULL, 0xFF, NULL, NULL }, //
+    
+	struct ListBoxExItem tmReadPowerMeter[] = { 
+        { menuitem[0], 0xFE, Dummy, (void *) 1 },//
+    	{ menuitem[1], 0xFE, Dummy, (void *) 2 },//
+    	{ menuitem[2], 0xFE, Dummy, (void *) 3 },//			
+    	{ menuitem[3], 0xFE, Dummy, (void *) 4 },//		
+    	{ menuitem[4], 0xFE, Dummy, (void *) 5 },//			
+    	{ menuitem[5], 0xFE, Dummy, (void *) 6 },//			
+    	{ menuitem[6], 0xFE, Dummy, (void *) 7 },//
+    	{ menuitem[7], 0xFE, Dummy, (void *) 8 },//
+    	{ NULL, 0xFF, NULL, NULL }, //
 	};
 	memset(menuitem, 0, sizeof(menuitem));
 
-	//DWORD dwTime = 0;	
-	TBankItem BI = {BN0,GetAcPn(),0x901f};
-	int rxlen;
-	char str[128];
-
 	if(IsMountUsb())//
 	{
+	    wAcPn = 0;
+	    WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&wAcPn);
 		return 1;
 	}
 
 	ReadItemEx(BN1, PN0, 0x2049, bTmpBuf);
 
-	while(j<bLoopPageNum)
+	while(iPageNum<iLoopPageNum)
 	{
-		if (j>=0 && j<9) //0~8的轮显界面是关于脉冲测量点电能电量的，暂未做,先不显示
+	    if (( bTmpBuf[iPageNum/8] & (0x01<<(iPageNum%8)) ) == 0x00)
 		{
-			j++;
+		    if(iPageNum!=1)  // 抄表统计信息暂时不显示
+            {
+                break;
+            }      			
 		}
-		else if (( bTmpBuf[j/8] & (0x01<<(j%8)) ) == 0x00)
-		{
-			break;
-		}
-		else
-		{
-			j++;
-		}
-
-		/*if(( bTmpBuf[j/8] & (0x01<<(j%8)) ) == 0x00)
-			break;
-		else
-		{
-			//bNum++;
-			j++;
-		}*/
-
-		//if(j>=10)
-		//{
-		//	j = 0;
-		//	if(bNum >= 10)
-		//	{
-		//		fNeedDisplay = false;
-		//		g_PastClick = GetClick();
-		//		return -1;
-		//	}
-		//	bNum = 0;
-		//}
+        iPageNum++;		
 	}
 	
-	
-	switch (j)
+    if(iPageNum>=2 && iPageNum<=15)
+    {
+        WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&wAcPn);
+    }
+    else{
+         wAcPn = 0;
+         WriteItemEx(BN2, PN0, 0x503c, (BYTE*)&wAcPn);
+    }
+
+    BYTE *cp = bBuf;    
+    TApduInfo tApduInfo;
+    int iRet = -1;
+    int iStep = -1;
+
+    memset(bBuf, 0, sizeof(bBuf));
+    if(iPageNum>=2 && iPageNum<=15)
+    {        
+        tApduInfo.wOI = dwDeltaPnID[iPageNum]>>16;
+        tApduInfo.bAttr = (dwDeltaPnID[iPageNum]>>8)&0xff;
+        tApduInfo.bIndex = dwDeltaPnID[iPageNum]&0xff;
+        iRet = OoProReadAttr(tApduInfo.wOI, tApduInfo.bAttr, tApduInfo.bIndex, bBuf, sizeof(bBuf), &iStep);
+        cp = bBuf + 2 + 1;
+    }
+
+    BYTE bComBuf[24] = {0};
+    TFieldParser tComParser = {bComBuf};
+    WORD wFmtLen = 0;
+    BYTE bType = 0;
+    WORD wItemOffSet = 0;
+    WORD wItemLen = 0;
+    DWORD   dwOAD;
+    BYTE *pbFmt;
+    typedef struct{
+        BYTE bStructType;
+        BYTE bFiledNum;
+        BYTE bStringType;
+        BYTE bLen;
+        BYTE bIP[4];
+        BYTE bLongUnsighedType;
+        BYTE bPort[2];
+    }TMasterPara; 
+    TMasterPara tMaster;
+    
+    i = 0;   
+    
+	switch (iPageNum)
 	{
-	case 0:
-		{
-			BI.wID = 0x901f;
-		 	rxlen = ReadItemEx(&BI, 1, buff,dwStartSecond);
+	    case 0:  // 通信参数
+            memset(bComBuf,0,sizeof(bComBuf));
+            wFmtLen = 0;
+            bType = 0;
+        	wItemOffSet = 0;
+        	wItemLen = 0;
+            
+        	memset(&tMaster, 0, sizeof(TMasterPara));    	    
+    	    dwOAD = 0x45000300;	//主站通信参数
+			tComParser.wCfgLen=OoReadAttr(dwOAD>>16, (dwOAD>>8)&0xff, bComBuf, &pbFmt, &wFmtLen);
+			tComParser.pbCfg = bComBuf;
+			OoParseField(&tComParser, pbFmt, wFmtLen, false);
+            ReadParserField(&tComParser, 0x00, (BYTE *)&tMaster, &bType, &wItemOffSet, &wItemLen);   //主站1			          
+            sprintf(menuitem[i++],"无线公网:");
+            sprintf(menuitem[i++],"主站IP:%d.%d.%d.%d", tMaster.bIP[0], tMaster.bIP[1], tMaster.bIP[2], tMaster.bIP[3]);
+    		sprintf(menuitem[i++],"主站端口:%d", OoLongUnsignedToWord(tMaster.bPort));
 
-			if (rxlen > 0)
-			{
-				BYTE *cp = buff;
-				memset(title,0,sizeof(title));
-				sprintf(title,"正向有功电能示值");
-				sprintf(menuitem[0], "测量点: %d",wAcPn);
-				memset(str, 0, sizeof(str));
-				Fmt14ToStr(cp, str);//
-				sprintf(menuitem[1], "总: %skWh", str);
+            memset(bComBuf,0,sizeof(bComBuf));
+            memset(&tMaster, 0, sizeof(TMasterPara));    	    
+            wFmtLen = 0;
+            bType = 0;
+            wItemOffSet = 0;
+            wItemLen = 0;
+            dwOAD = 0x45100300;	//主站通信参数
+			tComParser.wCfgLen=OoReadAttr(dwOAD>>16, (dwOAD>>8)&0xff, bComBuf, &pbFmt, &wFmtLen);
+			tComParser.pbCfg = bComBuf;
+			OoParseField(&tComParser, pbFmt, wFmtLen, false);
+            ReadParserField(&tComParser, 0x00, (BYTE *)&tMaster, &bType, &wItemOffSet, &wItemLen);   //主站1	
+            sprintf(menuitem[i++],"以太网:");
+    		sprintf(menuitem[i++],"主站IP:%d.%d.%d.%d", tMaster.bIP[0], tMaster.bIP[1], tMaster.bIP[2], tMaster.bIP[3]);
+    		sprintf(menuitem[i++],"主站端口:%d", OoLongUnsignedToWord(tMaster.bPort));                
+            break;
+        case 1:  // 抄表统计信息
+            break;
 
-				cp += 5;	
-
-				memset(str, 0, sizeof(str));
-				Fmt14ToStr(cp, str);//
-				sprintf(menuitem[2], "尖: %skWh", str);
-
-				cp += 5;
-
-				memset(str, 0, sizeof(str));
-				Fmt14ToStr(cp, str);//
-				sprintf(menuitem[3], "峰: %skWh", str);
-
-				cp += 5;
-
-				memset(str, 0, sizeof(str));
-				Fmt14ToStr(cp, str);//
-				sprintf(menuitem[4], "平：%skWh", str);
-
-				cp += 5;
-
-				memset(str, 0, sizeof(str));
-				Fmt14ToStr(cp, str);//
-				sprintf(menuitem[5], "谷：%skWh", str);
-			}
-		}
-		break;
-	case 1:
-		//反向有功电能示值
-		{
-			BI.wID = 0x902f;
-			rxlen = ReadItemEx(&BI, 1, buff,dwStartSecond);
-
-			if (rxlen > 0)
-			{
-
-				BYTE *cp = buff;		
-				memset(title,0,sizeof(title));
-				sprintf(title,"反向有功电能示值");
-				sprintf(menuitem[0], "测量点: %d",wAcPn);
-				memset(str, 0, sizeof(str));
-				Fmt14ToStr(cp, str);//
-				sprintf(menuitem[1], "总: %skWh", str);
-
-				cp += 5;	
-
-				memset(str, 0, sizeof(str));
-				Fmt14ToStr(cp, str);//
-				sprintf(menuitem[2], "尖: %skWh", str);
-
-				cp += 5;
-
-				memset(str, 0, sizeof(str));
-				Fmt14ToStr(cp, str);//
-				sprintf(menuitem[3], "峰: %skWh", str);
-
-				cp += 5;
-
-				memset(str, 0, sizeof(str));
-				Fmt14ToStr(cp, str);//
-				sprintf(menuitem[4], "平：%skWh", str);
-
-				cp += 5;
-
-				memset(str, 0, sizeof(str));
-				Fmt14ToStr(cp, str);//
-				sprintf(menuitem[5], "谷：%skWh", str);
-			}
-		}
-		break;
-	case 2:
-		//正向无功电能示值
-		{
-			TBankItem NewItemBank[] = {
-				{BN0,wAcPn,0x9110},
-				{BN0,wAcPn,0x9120},
-			};
-			rxlen = ReadItemEx(NewItemBank, 2, buff,dwStartSecond);
-
-			if (rxlen > 0)
-			{
-				BYTE *cp = buff;
-				memset(title,0,sizeof(title));
-				sprintf(title,"无功电能示值");
-				sprintf(menuitem[0], "测量点: %d",wAcPn);
-				memset(str, 0, sizeof(str));
-				Fmt11ToStr(cp, str);//
-				sprintf(menuitem[1], "正向无功总:%skvarh", str);
-
-				cp += 4;	
-				Fmt11ToStr(cp, str);
-				sprintf(menuitem[2], "反向无功总:%skvarh", str);
-			}
-		}
-		break;
-	case 3:
-		//电压
-		{
-			BI.wID = 0xB61F;
-			rxlen = ReadItemEx(&BI, 1, buff,dwStartSecond);
-
-			if (rxlen > 0)
-			{
-				BYTE *cp = buff;
-
-				memset(title,0,sizeof(title));
-				sprintf(title,"当前电压");
-				sprintf(menuitem[0], "测量点: %d",wAcPn);
-				memset(str, 0, sizeof(str));
-				Fmt7ToStr(cp, str);
-				sprintf(menuitem[1], "A相电压 %sV", str);
-				sprintf(menuitem[2], "%s", "");
-				memset(str, 0, sizeof(str));
-				Fmt7ToStr(cp+2, str);
-				sprintf(menuitem[3], "B相电压 %sV", str);
-				sprintf(menuitem[4], "%s", "");
-				memset(str, 0, sizeof(str));
-				Fmt7ToStr(cp+4, str);
-				sprintf(menuitem[5], "C相电压 %sV", str);
-			}
-		}
-		break;
-	case 4:
-		//电流
-		{
-			BI.wID = 0xB62F;
-			rxlen = ReadItemEx(&BI, 1, buff,dwStartSecond);
-
-			if (rxlen > 0)
-			{
-				BYTE *cp = buff;
-				memset(title,0,sizeof(title));
-				sprintf(title,"当前电流");
-				sprintf(menuitem[0], "测量点: %d",wAcPn);
-				memset(str, 0, sizeof(str));
-				Fmt25ToStr(cp, str);
-				sprintf(menuitem[1], "A相电流 %sA", str);
-				sprintf(menuitem[2], "%s", "");
-				memset(str, 0, sizeof(str));
-				Fmt25ToStr(cp+3, str);
-				sprintf(menuitem[3], "B相电流 %sA", str);
-				sprintf(menuitem[4], "%s", "");
-				memset(str, 0, sizeof(str));
-				Fmt25ToStr(cp+6, str);
-				sprintf(menuitem[5], "C相电流 %sA", str);
-			}
-		}
-		break;
-	case 5:
-		//有功功率
-		{
-			BI.wID = 0xB63F;
-			rxlen = ReadItemEx(&BI, 1, buff,dwStartSecond);
-
-			if (rxlen > 0)
-			{
-				BYTE *cp = buff;
-				memset(title,0,sizeof(title));
-				sprintf(title,"当前有功功率");
-				sprintf(menuitem[0], "测量点: %d",wAcPn);
-				//	sprintf(menuitem[1], "有功功率:");
-				memset(str, 0, sizeof(str));
-				Fmt9ToStr(cp, str);//
-				sprintf(menuitem[1], " 总有功功率 %skW", str);
-
-				cp += 3;	
-
-				memset(str, 0, sizeof(str));
-				Fmt9ToStr(cp, str);//
-				sprintf(menuitem[2], "A相有功功率 %skW", str);
-
-				cp += 3;
-
-				memset(str, 0, sizeof(str));
-				Fmt9ToStr(cp, str);//
-				sprintf(menuitem[3], "B相有功功率 %skW", str);
-
-				cp += 3;
-
-				memset(str, 0, sizeof(str));
-				Fmt9ToStr(cp, str);//
-				sprintf(menuitem[4], "C相有功功率 %skW", str);	
-
-				sprintf(menuitem[5], "%s", "");
-			}
-		}
-		break;
-	case 6:
-		//无功功率
-		{
-			BI.wID = 0xB64F;
-			rxlen = ReadItemEx(&BI, 1, buff,dwStartSecond);
-
-			if (rxlen > 0)
-			{
-				BYTE *cp = buff;
-				memset(title,0,sizeof(title));
-				sprintf(title,"当前无功功率");
-				sprintf(menuitem[0], "测量点: %d",wAcPn);
-				//	sprintf(menuitem[1], "无功功率:");
-				memset(str, 0, sizeof(str));
-				Fmt9ToStr(cp, str);//
-				sprintf(menuitem[1], " 总无功功率 %skvar", str);
-
-				cp += 3;	
-
-				memset(str, 0, sizeof(str));
-				Fmt9ToStr(cp, str);//
-				sprintf(menuitem[2], "A相无功功率 %skvar", str);
-
-				cp += 3;
-
-				memset(str, 0, sizeof(str));
-				Fmt9ToStr(cp, str);//
-				sprintf(menuitem[3], "B相无功功率 %skvar", str);
-
-				cp += 3;
-
-				memset(str, 0, sizeof(str));
-				Fmt9ToStr(cp, str);//
-				sprintf(menuitem[4], "C相无功功率 %skvar", str);	
-
-				sprintf(menuitem[5], "%s", "");
-			}
-		}
-		break;
-	case 7:
-		//功率因数
-		{
-			BI.wID = 0xB65F;
-			rxlen = ReadItemEx(&BI, 1, buff,dwStartSecond);
-
-			if (rxlen > 0)
-			{
-				BYTE *cp = buff;
-				memset(title,0,sizeof(title));
-				sprintf(title,"当前功率因数");
-				sprintf(menuitem[0], "测量点: %d",wAcPn);
-				//	sprintf(menuitem[1], "功率因数:");
-				memset(str, 0, sizeof(str));
-				Fmt5ToStr(cp, str);
-				sprintf(menuitem[1], " 总功率因数 %s%%", str);
-				memset(str, 0, sizeof(str));
-				Fmt5ToStr(cp+2, str);
-				sprintf(menuitem[2], "A相功率因数 %s%%", str);
-				memset(str, 0, sizeof(str));
-				Fmt5ToStr(cp+4, str);
-				sprintf(menuitem[3], "B相功率因数 %s%%", str);
-				memset(str, 0, sizeof(str));
-				Fmt5ToStr(cp+6, str);
-				sprintf(menuitem[4], "C相功率因数 %s%%", str);
-
-				sprintf(menuitem[5], "%s", "");
-			}
-		}
-		break;
-	case 8://总加组剩余电量
-		{
-			int iVal = 0;
-			memset(title,0,sizeof(title));
-			sprintf(title,"总加组剩余电量");
-			for (BYTE bGrp=1; bGrp<=8; bGrp++)
-			{
-				if (IsGrpValid(bGrp))
-				{
-					if (ReadItemEx(BN0, bGrp, 0x110f, buff) > 0) //C1F23 总加组 终端当前剩余电量（费）
-					{
-						iVal += Fmt3ToVal(buff, 4);
-					}
-				}
-			}
-
-			ValToFmt3(iVal, buff, 4);
-			Fmt03ToStr(buff, str);
-			sprintf(menuitem[0], "");
-			sprintf(menuitem[1], "总剩余电量: %s", str); //跟山东计量中心检测人员确认：是所有有效总加组的剩余电量之和
-		}
-		break;
-	case 9://终端逻辑地址
-		{
-			i = 0;
-			BYTE *pbFmt = NULL;
-			WORD wFmtLen = 0;
-			BYTE *p = NULL;
-			if (0 > OoReadAttr(0x4001, 0x02, bBuf, &pbFmt, &wFmtLen))
-				return -1;
-
-			bAddrLen = bBuf[1];
-
-			/*while(i < bAddrLen)
-			{
-				szServAddr[i] = (bBuf[2+i]&0xf0)>>4;
-				szServAddr[i+1] = bBuf[2+i]&0x0f;	
-				i++;
-			}
-			ByteToASCII();*/
-			for (i=0; i<bAddrLen; i++)
-			{
-				p = (BYTE *)(szServAddr+i);
-				ByteToASCII(bBuf[2+i], &p);
-			}
-			//rxlen = ReadItemEx(BN10, PN0, 0xa04f,buff);
-
-			//if (rxlen > 0)
-			//{
-			i = 0;
-			memset(title,0,sizeof(title));
-			sprintf(title,"终端信息");
-
-			sprintf(menuitem[i++],"厂商代号: %C%C%C%C",g_bTermSoftVer[4],g_bTermSoftVer[5],g_bTermSoftVer[6],g_bTermSoftVer[7]);
-			//sprintf(menuitem[i++],"设备编号: %s",&TmpBuff[8]);
-			sprintf(menuitem[i++],"软件版本: %c%c%c%c",g_bTermSoftVer[10],g_bTermSoftVer[11],g_bTermSoftVer[12],g_bTermSoftVer[13]);
-			sprintf(menuitem[i++],"软件日期: %c%c-%c%c-%c%c",g_bTermSoftVer[16],g_bTermSoftVer[17],g_bTermSoftVer[18],g_bTermSoftVer[19],g_bTermSoftVer[20],g_bTermSoftVer[21]);
-			sprintf(menuitem[i++],"硬件版本: %c%c%c%c",g_bTermSoftVer[24],g_bTermSoftVer[25],g_bTermSoftVer[26],g_bTermSoftVer[27]);
-			sprintf(menuitem[i++],"硬件日期: %c%c-%c%c-%c%c",g_bTermSoftVer[30],g_bTermSoftVer[31],g_bTermSoftVer[32],g_bTermSoftVer[33],g_bTermSoftVer[34],g_bTermSoftVer[35]);
-			sprintf(menuitem[i++], "服务器地址：");  //服务器地址长度是变长，需要分两行处理
-			memset(bAddrBuf, 0, sizeof(bAddrBuf));
-			memcpy(bAddrBuf, &szServAddr[0], 16);
-			sprintf(menuitem[i++], "%s", (char *)bAddrBuf);
-			memcpy(bAddrBuf, &szServAddr[16], 16);
-			if (IsAllAByte(bAddrBuf, 0, sizeof(bAddrBuf)))
-				sprintf(menuitem[i], " "); //否则没光标
-			else
-				sprintf(menuitem[i], "%s", (char *)bAddrBuf);
-			//}
-		}
-		break;
-	case 10://当前日期及时间
-		{
-			memset(title,0,sizeof(title));
-			sprintf(title,"当前日期及时间");
-			TTime tmTimeNow;
-			GetCurTime(&tmTimeNow);
-			sprintf(menuitem[0], " 当前日期: %04d-%02d-%02d", tmTimeNow.nYear,tmTimeNow.nMonth,tmTimeNow.nDay);
-			sprintf(menuitem[1], " 当前时间: %02d:%02d",tmTimeNow.nHour, tmTimeNow.nMinute); //不显示秒，秒数更新不了
-		}
-		break;
+        case 2:   // 有功功率
+            if(iRet>0)
+            {
+                sprintf(menuitem[i++], "总：%.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
+                cp += 5;
+                sprintf(menuitem[i++], "A相: %.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
+                cp += 5;
+                sprintf(menuitem[i++], "B相: %.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
+                cp += 5;
+                sprintf(menuitem[i++], "C相: %.1fW", (float)OoDoubleLongToInt(cp)*1e-1);
+                cp += 5;
+            }
+            else
+            {
+                sprintf(menuitem[i++], "总: xxxxx.xW");
+                sprintf(menuitem[i++], "A相: xxxxx.xW");
+                sprintf(menuitem[i++], "B相: xxxxx.xW");
+                sprintf(menuitem[i++], "C相: xxxxx.xW");
+            }
+            break;            
+        case 3:   // 无功功率     
+            if(iRet>0)
+            {
+                sprintf(menuitem[i++], "总：%.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
+                cp += 5;
+                sprintf(menuitem[i++], "A相: %.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
+                cp += 5;
+                sprintf(menuitem[i++], "B相: %.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);
+                cp += 5;
+                sprintf(menuitem[i++], "C相: %.1fvar", (float)OoDoubleLongToInt(cp)*1e-1);  
+                cp += 5;
+            }
+            else
+            {
+                printf(menuitem[i++], "总: xxxxx.xvar");
+                sprintf(menuitem[i++], "A相: xxxxx.xvar");
+                sprintf(menuitem[i++], "B相: xxxxx.xvar");
+                sprintf(menuitem[i++], "C相: xxxxx.xvar");
+            }
+            break;
+        case 4:   //  视在功率
+            if(iRet>0)
+            {
+                sprintf(menuitem[i++], "总：%.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
+                cp += 5;
+                sprintf(menuitem[i++], "A相: %.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
+                cp += 5;
+                sprintf(menuitem[i++], "B相: %.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
+                cp += 5;
+                sprintf(menuitem[i++], "C相: %.1fVA", (float)OoDoubleLongToInt(cp)*1e-1);
+                cp += 5;
+            }
+            else
+            {
+                sprintf(menuitem[i++], "总: xxxxx.xVA");
+                sprintf(menuitem[i++], "A相: xxxxx.xVA");
+                sprintf(menuitem[i++], "B相: xxxxx.xVA");
+                sprintf(menuitem[i++], "C相: xxxxx.xVA");
+            }
+            break;           
+        case 5:   // 电压
+            if(iRet>0)
+            {
+                sprintf(menuitem[i++],"A相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);
+                cp += 3;
+                sprintf(menuitem[i++],"B相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);
+                cp += 3;
+                sprintf(menuitem[i++],"C相: %.1fV", OoLongUnsignedToWord(cp)*1e-1);
+            }
+            else
+            {
+                sprintf(menuitem[i++],"A相: xxx.xV");
+                sprintf(menuitem[i++],"B相: xxx.xV");
+                sprintf(menuitem[i++],"C相: xxx.xV");
+            }
+            break;
+            
+        case 6:   // 电流
+            if(iRet>0)
+            {
+    		    sprintf(menuitem[i++],"A相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
+    		    cp += 5;
+    		    sprintf(menuitem[i++],"B相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
+    	        cp += 5;
+    		    sprintf(menuitem[i++],"C相: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);
+    	        cp += 5;
+    	        sprintf(menuitem[i++],"N线: %.3fA", (float)OoDoubleLongToInt(cp)*1e-3);    								
+            }
+            else
+            {
+                sprintf(menuitem[i++],"A相: xxx.xxxA");
+                sprintf(menuitem[i++],"B相: xxx.xxxA");
+                sprintf(menuitem[i++],"C相: xxx.xxxA");
+                sprintf(menuitem[i++],"N线: xxx.xxxA");
+            }
+            break;            
+        case 7:   // 功率因数
+            if(iRet>0)
+            {
+                sprintf(menuitem[i++], "总：%.3f", (float)OoLongToInt16(cp)*1e-3);
+                cp += 3;
+                sprintf(menuitem[i++], "A相：%.3f", (float)OoLongToInt16(cp)*1e-3);
+                cp += 3;
+                sprintf(menuitem[i++], "B相：%.3f", (float)OoLongToInt16(cp)*1e-3);
+                cp += 3;
+                sprintf(menuitem[i++], "C相：%.3f", (float)OoLongToInt16(cp)*1e-3); 
+                cp += 3;
+            }
+            else
+            {
+                sprintf(menuitem[i++], "总: x.xxx");
+                sprintf(menuitem[i++], "A相: x.xxx");
+                sprintf(menuitem[i++], "B相: x.xxx");
+                sprintf(menuitem[i++], "C相: x.xxx");
+            }               
+            break;
+        case 8:  // 正有
+        case 10:  // 反有
+            if(iRet>0)
+            {
+                sprintf(menuitem[i++], "总: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+        	    cp += 5;
+                sprintf(menuitem[i++], "尖: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+        	    cp += 5;
+        	    sprintf(menuitem[i++], "峰: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+        	    cp += 5;
+        		sprintf(menuitem[i++], "平: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+        	    cp += 5;
+        	    sprintf(menuitem[i++], "谷: %.2fkWh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);                    
+            }
+		    break;
+        case 9:  // 正无
+        case 11:  // 反无
+            if(iRet>0)
+            {
+                sprintf(menuitem[i++],"总: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+                cp += 5;
+    	        sprintf(menuitem[i++],"尖: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    	        cp += 5;
+                sprintf(menuitem[i++],"峰: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    		    cp += 5;
+                sprintf(menuitem[i++],"平: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+    		    cp += 5;
+                sprintf(menuitem[i++],"谷: %.2fkvarh", (float)OoDoubleLongToInt(cp)*1e-2);
+            }
+            break;
+        case 12:   // 一象限
+        case 13:   // 二象限
+        case 14:   // 三象限
+        case 15:   // 四象限
+            if(iRet>0)
+            {
+                sprintf(menuitem[i++],"总: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    		    cp += 5;
+    		    sprintf(menuitem[i++],"尖: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+                cp += 5;
+                sprintf(menuitem[i++],"峰: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    	        cp += 5;
+                sprintf(menuitem[i++],"平: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+    		    cp += 5;
+                sprintf(menuitem[i++],"谷: %.2fkvarh", (float)OoDoubleLongUnsignedToDWord(cp)*1e-2);
+            }
+            break;        
+	    default:
+            break;		
 	}
 
+    if(iRet<=0) 
+    {
+        if(iPageNum==8 || iPageNum==10)
+        {
+            sprintf(menuitem[i++],"总: xxxxxx.xxkWh");
+            sprintf(menuitem[i++],"尖: xxxxxx.xxkWh");
+            sprintf(menuitem[i++],"峰: xxxxxx.xxkWh");
+            sprintf(menuitem[i++],"平: xxxxxx.xxkWh");
+            sprintf(menuitem[i++],"谷: xxxxxx.xxkWh");
+        }
+        else if(iPageNum==9 || (iPageNum>=11&& iPageNum<=15))
+        {
+            sprintf(menuitem[i++],"总: xxxxxx.xxkvarh");
+            sprintf(menuitem[i++],"尖: xxxxxx.xxkvarh");
+            sprintf(menuitem[i++],"峰: xxxxxx.xxkvarh");
+            sprintf(menuitem[i++],"平: xxxxxx.xxkvarh");
+            sprintf(menuitem[i++],"谷: xxxxxx.xxkvarh");
+        }
+    }
 	
 	fNeedDisplay = true;
 
-	//j++;
-	if (j == bLoopPageNum)
+	if (iPageNum == iLoopPageNum)
 	{
-		j = 0;
+		iPageNum = 0;
 		fNeedDisplay = false;
 		g_PastClick = GetClick();
 	}
-	else if (j > bLoopPageNum) // j = bLoopPageNum留给主界面显示
+	else if (iPageNum > iLoopPageNum) // 
 	{
-		j = 0;
+		iPageNum = 0;
 	}
-	else
-		j++;
-
-
+    
 	if (fNeedDisplay)
 	{
 		static CListBoxEx listbox(LISTBOXVALUE);
-		listbox.Show(0, title, tmReadPowerMeter, KEY_RIGHT | KEY_LEFT << 8 | KEY_OK << 16, 1000,false);
-	}
+		listbox.Show(0, title[iPageNum], tmReadPowerMeter, KEY_RIGHT | KEY_LEFT << 8 | KEY_OK << 16, 1000,false);
+        iPageNum ++;
+    }    
 
 	return -1;
 }

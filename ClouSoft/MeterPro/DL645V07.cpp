@@ -1190,6 +1190,13 @@ int DL645V07TxRx(struct TMtrPro* pMtrPro, TV07Tmp* pTmpV07, TItemList* ptItem, W
 			{
 				DTRACE(DB_DL645V07, ("TxRx :Tx_ID:%x has next data \r\n", ptItem->dwProId)); 
 				pTmpV07->fRdNext = true;
+				if ((dwRxId&0xff000000) < 0x30000000) //电量、需量、瞬时量正常不会有多帧
+				{
+					BYTE bPnRdStatWordFlg[PN_MASK_SIZE];
+					ReadItemEx(BN0, PN0, 0x3B19, bPnRdStatWordFlg);//抄读主动上报状态字电表标志位
+					bPnRdStatWordFlg[pMtrPro->pMtrPara->wPn/8] |= (1<<(pMtrPro->pMtrPara->wPn%8));
+					WriteItemEx(BN0, PN0, 0x3B19, bPnRdStatWordFlg);
+				}
 				return 1;
 			}
 		}

@@ -22,6 +22,7 @@
 #include "apptypedef.h"
 
 static WORD g_wGrpCurPowerID[2] = {0x2302, 0x2303}; //当前总加功率
+static WORD g_wGrpSlidePowerID[2] = {0x2304, 0x2305}; //当前总加功率
 static WORD g_wGrpDayDeltaID[2] = {0x2306, 0x2307}; //当日累计
 static WORD g_wGrpMonDeltaID[2] = {0x2308, 0x2309}; //当月累计
 static WORD g_wGrpDayLeftDeltaID[2] = {0x035F, 0x036F}; //参数配置前剩下的日delta电量
@@ -31,6 +32,7 @@ static WORD g_wGrpMonStartEnID[2] = {0x03BF, 0x03CF}; //当月起点示值
 
 //测量点按抄表间隔固定更新当前数据
 static const WORD g_wCurID[] = {0xa010, 0xa020, 0xa030, 0xa040};
+static const WORD g_wPulseCurID[] = {0x2419, 0x241a, 0x241b, 0x241c};
 
 static WORD g_wDayStartID[] = {0x003F, 0x004F, 0x005F, 0x006F}; //日起始
 static WORD g_wMonStartID[] = {0x009F, 0x00AF, 0x00BF, 0x00CF}; //月起始
@@ -116,6 +118,8 @@ bool CDpGrp::Init(WORD  wPn)
 	if (m_bPnProp == 0) //全为交采脉冲等测量点则按1分钟计算
 		m_bMtrIntv = 1;
 
+	m_bPwrSlideMin = m_bMtrIntv;
+
 	LoadData();
 	LoadPara();
 
@@ -138,13 +142,19 @@ void  CDpGrp::LoadPara()
 	{
 		if (m_GrpInfP[i].bProp == PN_PROP_METER)
 		{
-			if (ReadItemEx(BN0, m_GrpInfP[i].bPn, 0x6000, bBuf) > 0)
+			if (ReadItemEx(BN0, m_GrpInfP[i].wPn, 0x6000, bBuf) > 0)
 			{
 				pOadMap = GetOIMap(0x60000200);
-				pbBuf = OoGetField(bBuf, pOadMap->pFmt, pOadMap->wFmtLen, 3, &wLen, &bType, &pbFeildFmt, &wFeildLen);
+				pbBuf = OoGetField(bBuf+1, pOadMap->pFmt, pOadMap->wFmtLen, 2, &wLen, &bType, &pbFeildFmt, &wFeildLen);
+				if (pbBuf == NULL)
+					continue;
 				pbTmp = OoGetField(pbBuf, pbFeildFmt, wFeildLen, 2, &wLen, &bType);
+				if (pbTmp == NULL)
+					continue;
 				wPt = OoLongUnsignedToWord(pbTmp+1);
 				pbTmp = OoGetField(pbBuf, pbFeildFmt, wFeildLen, 3, &wLen, &bType);
+				if (pbTmp == NULL)
+					continue;
 				wCt = OoLongUnsignedToWord(pbTmp+1);
 				
 				if (wCt != 0)
@@ -156,12 +166,16 @@ void  CDpGrp::LoadPara()
 		}
 		else
 		{
-			if (ReadItemEx(BN0, m_GrpInfP[i].bPn, 0x2402, bBuf) > 0)
+			if (ReadItemEx(BN0, m_GrpInfP[i].wPn, 0x2402, bBuf) > 0)
 			{
-				pOadMap = GetOIMap(0x24020200);
+				pOadMap = GetOIMap(0x24020300);
 				pbBuf = OoGetField(bBuf, pOadMap->pFmt, pOadMap->wFmtLen, 0, &wLen, &bType);
+				if (pbBuf == NULL)
+					continue;
 				wPt = OoLongUnsignedToWord(pbBuf+1);
 				pbBuf = OoGetField(bBuf, pOadMap->pFmt, pOadMap->wFmtLen, 1, &wLen, &bType);
+				if (pbBuf == NULL)
+					continue;
 				wCt = OoLongUnsignedToWord(pbBuf+1);
 
 				if (wCt != 0)
@@ -172,6 +186,10 @@ void  CDpGrp::LoadPara()
 			}
 		}
 	}
+
+	ReadItemEx(BN0, m_wPn, 0x230c, bBuf);
+	if (bBuf[1] > 0)
+		m_bPwrSlideMin = bBuf[1];
 }
 
 //描述：初始化检查库内数据的合理性，并做相应的处理
@@ -198,8 +216,7 @@ void CDpGrp::LoadData()
 	{
 		if (ReadItemEx(BN0, m_wPn, g_wGrpDayDeltaID[i], bBuf, isNow.dwS, isNow.dwEndS) > 0)//没读到
 		{
-			m_iDayDeltaE[i][0] = RATE_NUM;
-			for (j=1; j<BLOCK_ITEMNUM;j++)
+			for (j=0; j<BLOCK_ITEMNUM;j++)
 			{
 				m_iDayDeltaE[i][j] = OoLong64ToInt64(&bBuf[3+9*i]);
 			}
@@ -223,8 +240,7 @@ void CDpGrp::LoadData()
 	{
 		if (ReadItemEx(BN0, m_wPn, g_wGrpMonDeltaID[i], bBuf, isNow.dwS, isNow.dwEndS) > 0)//没读到
 		{
-			m_iMonDeltaE[i][0] = RATE_NUM;
-			for (j=1; j<BLOCK_ITEMNUM;j++)
+			for (j=0; j<BLOCK_ITEMNUM;j++)
 			{
 				m_iMonDeltaE[i][j] = OoLong64ToInt64(&bBuf[3+9*i]);
 			}
@@ -241,15 +257,16 @@ void CDpGrp::LoadData()
 	}	
 
 	//当前总加功率，总加示值电量上电为无效，抄到数据立即更新
+	iGroupP = INVALID_VAL64;
+	bBuf[0] = DT_LONG64;
+	OoInt64ToLong64(iGroupP, &bBuf[1]);
 	TimeToIntvS(now, INTVCAL, &isNow);
 	for (i=0; i<2; i++)
 	{
-		iGroupP = INVALID_VAL64;
-		bBuf[0] = DT_LONG64;
-		OoInt64ToLong64(iGroupP, &bBuf[1]);
 		WriteItemEx(BN0, m_wPn, g_wGrpCurPowerID[i], bBuf, isNow.dwS);//当前总加功率
 	}
-	WriteItemVal64(BN0, m_wPn, 0x0a07, &iGrpE[1], isNow.dwS); //当前总加有功电能，供控制使用	
+
+	WriteItemEx(BN0, m_wPn, 0x0a07, bBuf, isNow.dwS); //当前总加有功电能，供控制使用	
 	TrigerSaveBank(BN18, 0, -1); //功率统计起点值触发保存.
 }
 
@@ -262,11 +279,11 @@ bool CDpGrp::InitPara(BYTE& bReqNum)
 	int i=0,j=0;
 	WORD wLen;
 	BYTE *pbFeildFmt;
-	WORD wFeildLen;
+	WORD wMtrPn, wFeildLen;
 	const ToaMap *pOadMap;
 	BYTE bType, *pbBuf, *pbTmp;
 	BYTE bBuf[GRPPARA_LEN];
-	BYTE bMtrPn,bPnType,bIDFlag,bOp;
+	BYTE bPnType,bIDFlag,bOp;
 	
 	if (ReadItemEx(BN0, m_wPn, 0x2301, bBuf) > 0)
 	{		
@@ -275,29 +292,52 @@ bool CDpGrp::InitPara(BYTE& bReqNum)
 		for (i=0; i<m_bMtrNum; i++)
 		{
 			pbBuf = OoGetField(bBuf, pOadMap->pFmt, pOadMap->wFmtLen, i, &wLen, &bType, &pbFeildFmt, &wFeildLen);
-			bMtrPn = MtrAddrToPn(pbBuf+1, pbBuf[1]+1);//测量点号
-			bPnType = GetPnProp(bMtrPn); //测量点类型
+			if (pbBuf == NULL)
+				continue;
+			wMtrPn = MtrAddrToPn(pbBuf+3, pbBuf[3]+1);//测量点号
+			if (wMtrPn > 0)
+			{			
+				bPnType = PN_PROP_METER; //测量点类型
+			}
+			else if ((wMtrPn=PulseAddrToPn(pbBuf+3, pbBuf[3]+1)) > 0)
+			{
+				bPnType = PN_PROP_PULSE;
+				wMtrPn -= 1; //内部脉冲测量点号从0开始
+			}
+			else
+				continue;
+
 			pbTmp = OoGetField(pbBuf, pbFeildFmt, wFeildLen, 1, &wLen, &bType);
+			if (pbTmp == NULL)
+				continue;
 			bIDFlag = pbTmp[1]&0x01;
 			pbTmp = OoGetField(pbBuf, pbFeildFmt, wFeildLen, 2, &wLen, &bType);
+			if (pbTmp == NULL)
+				continue;
 			bOp = pbTmp[1]&0x01;
 
-			m_GrpInfP[i].bPn	= bMtrPn; //测量点号
+			m_GrpInfP[i].wPn	= wMtrPn; //测量点号
 			m_GrpInfP[i].bProp	= bPnType; //测量点类型
-			m_GrpInfP[i].wCurId = 0xa052; //ID号
+			if (bPnType == PN_PROP_METER)
+				m_GrpInfP[i].wCurId = 0xa052; //ID号
+			else
+				m_GrpInfP[i].wCurId = 0x2404; //ID号
 			m_GrpInfP[i].bOp	= bOp; //运算符
 			m_GrpInfP[i].bDir	= bIDFlag;
 
-			m_GrpInfQ[i].bPn	= bMtrPn; //测量点号
+			m_GrpInfQ[i].wPn	= wMtrPn; //测量点号
 			m_GrpInfQ[i].bProp	= bPnType; //测量点类型
-			m_GrpInfQ[i].wCurId = 0xa053; //ID号
+			if (bPnType == PN_PROP_METER)
+				m_GrpInfQ[i].wCurId = 0xa053; //ID号
+			else
+				m_GrpInfQ[i].wCurId = 0x2405; //ID号
 			m_GrpInfQ[i].bOp	= bOp; //运算符
 			m_GrpInfQ[i].bDir	= bIDFlag;
 
-			m_GrpInfEp[i].bPn	= bMtrPn;	   //测量点号
+			m_GrpInfEp[i].wPn	= wMtrPn;	   //测量点号
 			m_GrpInfEp[i].bProp = bPnType; //测量点类型
 			m_GrpInfEp[i].bDir	= bIDFlag;
-			m_GrpInfEq[i].bPn	= bMtrPn;	   //测量点号			
+			m_GrpInfEq[i].wPn	= wMtrPn;	   //测量点号			
 			m_GrpInfEq[i].bProp = bPnType; //测量点类型			
 			m_GrpInfEq[i].bDir	= bIDFlag;
 		
@@ -306,22 +346,38 @@ bool CDpGrp::InitPara(BYTE& bReqNum)
 
 			if (bIDFlag == 0)//正向
 			{
-				m_GrpInfEp[i].wCurId = 0xa010;
+				if (bPnType == PN_PROP_METER)
+					m_GrpInfEp[i].wCurId = 0xa010;
+				else
+					m_GrpInfEp[i].wCurId = 0x2419;
+
 				m_GrpInfEp[i].wDayStartId = 0x003F;
 				m_GrpInfEp[i].wMonStartId  = 0x009F;
 
-				m_GrpInfEq[i].wCurId = 0xa030;
+				if (bPnType == PN_PROP_METER)
+					m_GrpInfEq[i].wCurId = 0xa030;
+				else
+					m_GrpInfEq[i].wCurId = 0x241a;
+
 				m_GrpInfEq[i].wDayStartId = 0x004F;
 				m_GrpInfEq[i].wMonStartId = 0x00AF;
 				
 			}
 			else//反向
 			{
-				m_GrpInfEp[i].wCurId = 0xa020;
+				if (bPnType == PN_PROP_METER)
+					m_GrpInfEp[i].wCurId = 0xa020;
+				else
+					m_GrpInfEp[i].wCurId = 0x241b;
+
 				m_GrpInfEp[i].wDayStartId = 0x005F;
 				m_GrpInfEp[i].wMonStartId  = 0x00BF;
 
-				m_GrpInfEq[i].wCurId = 0xa040;
+				if (bPnType == PN_PROP_METER)
+					m_GrpInfEq[i].wCurId = 0xa040;
+				else
+					m_GrpInfEq[i].wCurId = 0x241c;
+
 				m_GrpInfEq[i].wDayStartId = 0x006F;
 				m_GrpInfEq[i].wMonStartId = 0x00CF;
 			}		
@@ -331,35 +387,43 @@ bool CDpGrp::InitPara(BYTE& bReqNum)
 				m_bPnProp = 1;
 			}
 			
-			m_biRepP[j].wPn = bMtrPn; //测量点号
-			m_biRepP[j].wID = 0xa052;
+			m_biRepP[j].wPn = wMtrPn; //测量点号
+			if (bPnType == PN_PROP_METER)
+				m_biRepP[j].wID = 0xa052;
+			else
+				m_biRepP[j].wID = 0x2404;
+
 			m_biRepP[j].wBn = BN0;
 
-			m_biRepQ[j].wPn = bMtrPn; //测量点号
-			m_biRepQ[j].wID = 0xa053;
+			m_biRepQ[j].wPn = wMtrPn; //测量点号
+			if (bPnType == PN_PROP_METER)
+				m_biRepQ[j].wID = 0xa053;
+			else
+				m_biRepQ[j].wID = 0x2405;
+
 			m_biRepQ[j].wBn = BN0;
 
-			m_biRepEp[j].wPn = bMtrPn; //测量点号
-			m_biRepEq[j].wPn = bMtrPn; //测量点号
+			m_biRepEp[j].wPn = wMtrPn; //测量点号
+			m_biRepEq[j].wPn = wMtrPn; //测量点号
 			m_biRepEp[j].wBn = BN0;
 			m_biRepEq[j].wBn = BN0;				
 			m_biRepEp[j].wID = m_GrpInfEp[i].wCurId;
 			m_biRepEq[j].wID =  m_GrpInfEq[i].wCurId;	
 
 			m_gfsdDayStart[0].biRepItem[i].wBn = BN18;
-			m_gfsdDayStart[0].biRepItem[i].wPn = bMtrPn;
+			m_gfsdDayStart[0].biRepItem[i].wPn = wMtrPn;
 			m_gfsdDayStart[0].biRepItem[i].wID = m_GrpInfEp[i].wDayStartId;
 
 			m_gfsdDayStart[1].biRepItem[i].wBn = BN18;
-			m_gfsdDayStart[1].biRepItem[i].wPn = bMtrPn;
+			m_gfsdDayStart[1].biRepItem[i].wPn = wMtrPn;
 			m_gfsdDayStart[1].biRepItem[i].wID = m_GrpInfEq[i].wDayStartId;
 
 			m_gfsdMonStart[0].biRepItem[i].wBn = BN18;
-			m_gfsdMonStart[0].biRepItem[i].wPn = bMtrPn;
+			m_gfsdMonStart[0].biRepItem[i].wPn = wMtrPn;
 			m_gfsdMonStart[0].biRepItem[i].wID = m_GrpInfEp[i].wMonStartId;
 
 			m_gfsdMonStart[1].biRepItem[i].wBn = BN18;
-			m_gfsdMonStart[1].biRepItem[i].wPn = bMtrPn;
+			m_gfsdMonStart[1].biRepItem[i].wPn = wMtrPn;
 			m_gfsdMonStart[1].biRepItem[i].wID = m_GrpInfEq[i].wMonStartId;			
 			j ++; //多少个电表测量点就有多少个ID				
 		}
@@ -379,11 +443,11 @@ int CDpGrp::GetIdInxE(WORD wCurID)
 
 	for (int i=0; i<2; i++)
 	{
-		if (wCurID==0xa010 || wCurID==0xa030)
+		if (wCurID==0xa010 || wCurID==0xa030 || wCurID==0x2419 || wCurID==0x241b)
 		{
 			iRet = 0;
 		}
-		else if (wCurID==0xa020 || wCurID==0xa040)
+		else if (wCurID==0xa020 || wCurID==0xa040 || wCurID==0x241a || wCurID==0x241c)
 		{
 			iRet = 1;
 		}			
@@ -421,11 +485,12 @@ void CDpGrp::UpdDayMonStartVal(BYTE bInterv, TTime tmNow)
 	DWORD dwSec = 0;
 	TTime tm = tmNow;
 	TGrpInf* pGrpInf;
-	WORD wDeltaID, wStartEnId;
+	WORD wDeltaID, wStartEnId, wCurID;
 	int64 *piDeltaVal;
 	TGrpFrzStartData*   pStartData;
 	int64 iGrpE[BLOCK_ITEMNUM];	
 	int64 iCurVal[BLOCK_ITEMNUM];
+	BYTE bDataBuf[30];
 	DWORD *pdwStartSec;
 	bool *pfNewStartFlg;
 
@@ -474,36 +539,58 @@ void CDpGrp::UpdDayMonStartVal(BYTE bInterv, TTime tmNow)
 		//更新测量点日月起始值
 		for (int i=0; i<m_bMtrNum; i++)
 		{
-			if (ReadItemVal64(pStartData->biRepItem[i].wBn, pStartData->biRepItem[i].wPn, pStartData->biRepItem[i].wID, &pStartData->iStartVal[i][0], isNow.dwS, isNow.dwEndS) <= 0)
+			if (ReadItemVal64(pStartData->biRepItem[i].wBn, pStartData->biRepItem[i].wPn, pStartData->biRepItem[i].wID, &iCurVal[0], isNow.dwS, isNow.dwEndS) <= 0)
 			{
 				if (bInterv == INTVDAY)
 				{
 					for (int j=0; j<sizeof(g_wDayStartID)/sizeof(WORD); j++)
 					{	
-						SetArrVal64(iCurVal, INVALID_VAL64, BLOCK_ITEMNUM);
-						iCurVal[0] = m_bRateNum; //费率数
-
-						//更新日起点 有效无效均更新
-						if (ReadItemVal64(BN0, pStartData->biRepItem[i].wPn, g_wCurID[j], &iCurVal[1], isNow.dwS, isNow.dwEndS) > 0) //645ID无费率数
+						if (g_wDayStartID[j] == pStartData->biRepItem[i].wID)
 						{
-							WriteItemVal64(BN18, pStartData->biRepItem[i].wPn, g_wDayStartID[j], iCurVal, isNow.dwS);
-							DTRACE(DB_DP, ("CDpMtr::DayChange():PN=%d,g_wDayStartID=%x StartVal=%lld\n ",pStartData->biRepItem[i].wPn, g_wDayStartID[j], iCurVal[1]));		
-						}	
+							memset(bDataBuf, 0, sizeof(bDataBuf));
+
+							if (m_GrpInfP[i].bProp == PN_PROP_METER)
+								wCurID = g_wCurID[j];
+							else
+								wCurID = g_wPulseCurID[j];
+									
+							//更新日起点 有效无效均更新
+							if (ReadItemEx(BN0, pStartData->biRepItem[i].wPn, wCurID, bDataBuf, isNow.dwS, isNow.dwEndS) > 0)
+							{
+								for (BYTE k=0; k<BLOCK_ITEMNUM; k++)
+									iCurVal[k] = OoDoubleLongToInt(&bDataBuf[3+5*k]);
+								WriteItemVal64(BN18, pStartData->biRepItem[i].wPn, g_wDayStartID[j], iCurVal, isNow.dwS);
+								DTRACE(DB_DP, ("CDpMtr::UpdDayMonStartVal():PN=%d,g_wDayStartID=%x StartVal=%lld\n ",pStartData->biRepItem[i].wPn, g_wDayStartID[j], iCurVal[0]));
+							}
+
+							break;
+						}
 					}
 				}
 				else
 				{
 					for (int j=0; j<sizeof(g_wMonStartID)/sizeof(WORD); j++)
 					{	
-						SetArrVal64(iCurVal, INVALID_VAL64, BLOCK_ITEMNUM);
-						iCurVal[0] = m_bRateNum; //费率数
-
-						//更新日起点 有效无效均更新
-						if (ReadItemVal64(BN0, pStartData->biRepItem[i].wPn, g_wCurID[j], &iCurVal[1], isNow.dwS, isNow.dwEndS) > 0) //645ID无费率数
+						if (g_wMonStartID[j] == pStartData->biRepItem[i].wID)
 						{
-							WriteItemVal64(BN18, pStartData->biRepItem[i].wPn, g_wMonStartID[j], iCurVal, isNow.dwS);
-							DTRACE(DB_DP, ("CDpMtr::DayChange():PN=%d,g_wDayStartID=%x StartVal=%lld\n ",pStartData->biRepItem[i].wPn, g_wMonStartID[j], iCurVal[1]));		
-						}	
+							memset(bDataBuf, 0, sizeof(bDataBuf));
+
+							if (m_GrpInfP[i].bProp == PN_PROP_METER)
+								wCurID = g_wCurID[j];
+							else
+								wCurID = g_wPulseCurID[j];
+
+							//更新日起点 有效无效均更新
+							if (ReadItemEx(BN0, pStartData->biRepItem[i].wPn, wCurID, bDataBuf, isNow.dwS, isNow.dwEndS) > 0)
+							{
+								for (BYTE k=0; k<BLOCK_ITEMNUM; k++)
+									iCurVal[k] = OoDoubleLongToInt(&bDataBuf[3+5*k]);
+								WriteItemVal64(BN18, pStartData->biRepItem[i].wPn, g_wMonStartID[j], iCurVal, isNow.dwS);
+								DTRACE(DB_DP, ("CDpMtr::UpdDayMonStartVal():PN=%d,g_wMonStartID=%x StartVal=%lld\n ",pStartData->biRepItem[i].wPn, g_wMonStartID[j], iCurVal[0]));	
+							}
+
+							break;
+						}
 					}
 				}
 			}
@@ -541,8 +628,7 @@ void CDpGrp::UpdDayMonStartVal(BYTE bInterv, TTime tmNow)
 				isLastDay.dwEndS = isNow.dwEndS;
 					
 				DeltaENew(wDeltaID, pGrpInf, bInterv, isNow, isOldStart, isOldDelt);
-				//DeltaE(wDeltaID, pGrpInf, bType, isNow, isOldStart, isOldDelt);		
-				DTRACE(DB_DP, ("CDpGrp::UpdDayMonStartVal GPN=%d deltDayVal=%lld dwSec=%d dwNewSec=%d!\n",m_wPn, m_iDayDeltaE[n][1], isOldDelt.dwS, isNow.dwS));		
+				DTRACE(DB_DP, ("CDpGrp::UpdDayMonStartVal GPN=%d deltDayVal=%lld dwSec=%d dwNewSec=%d!\n",m_wPn, m_iDayDeltaE[n][0], isOldDelt.dwS, isNow.dwS));		
 				UpdClsFrzData(n, bInterv, isLastDay.dwS, isNewDelt.dwS); 	//冻结电量数据转存,写新日时标		
 			}
 			for (int i=0; i<m_bMtrNum; i++)
@@ -552,7 +638,7 @@ void CDpGrp::UpdDayMonStartVal(BYTE bInterv, TTime tmNow)
 
 			//起点有更新，此处为正常的日月切换更新，需同步更新总加组起点示值
 			int iRet = ReadItemVal64(BN18, m_wPn, wStartEnId, iGrpE, isNow.dwS, isNow.dwEndS);
-			if (pdwStartSec[n]!=isNow.dwS || iRet<=0 || (iRet>0 && IsAllAVal64(&iGrpE[1], INVALID_VAL64, TOTAL_RATE_NUM))) 
+			if (pdwStartSec[n]!=isNow.dwS || iRet<=0 || (iRet>0 && IsAllAVal64(&iGrpE[0], INVALID_VAL64, TOTAL_RATE_NUM))) 
 			{
 				if ( *pfNewStartFlg ) //需要更新起点
 				{
@@ -562,7 +648,7 @@ void CDpGrp::UpdDayMonStartVal(BYTE bInterv, TTime tmNow)
 				}
 				else
 				{
-					if (iRet<=0 || (iRet>0 && IsAllAVal64(&iGrpE[1], INVALID_VAL64, TOTAL_RATE_NUM)))
+					if (iRet<=0 || (iRet>0 && IsAllAVal64(&iGrpE[0], INVALID_VAL64, TOTAL_RATE_NUM)))
 						CalcuEnSum(iGrpE, n, bInterv, isNow, GRP_START_E);		//计算原起点示值（可能同测量点示值）做总加组示值起点	
 					//else  为更新过的有效起点，可直接启用
 				}
@@ -571,7 +657,7 @@ void CDpGrp::UpdDayMonStartVal(BYTE bInterv, TTime tmNow)
 				//DTRACE(DB_DP, ("CDpGrp::UpdDayMonStartVal Grp=%d WID=0X%2x, wStartCurEnVal=%lld dwSec=%d \n",m_wPn, wStartEnId, iGrpE[1], isNow.dwS));
 
 				//若更新成功
-				if ( !IsAllAVal64(&iGrpE[1], INVALID_VAL64, TOTAL_RATE_NUM) ) 
+				if ( !IsAllAVal64(&iGrpE[0], INVALID_VAL64, TOTAL_RATE_NUM) ) 
 				{
 					TrigerSaveBank(BN18, 0, -1); //起点示值	触发保存.
 					pdwStartSec[n] = isNow.dwS;
@@ -589,7 +675,7 @@ void CDpGrp::UpdDayMonStartVal(BYTE bInterv, TTime tmNow)
 				if (*pdwMtrUpdSec==pStartData->dwUpdSec && *pdwMtrUpdSec!=0)
 				{
 					CalcuEnSum(iNewMtrE, n, bInterv, isNow, MTR_START_E); 
-					for (BYTE i=1; i<BLOCK_ITEMNUM; i++) //总及分费率的循环
+					for (BYTE i=0; i<BLOCK_ITEMNUM; i++) //总及分费率的循环
 					{
 						if (iNewMtrE[i] != piMtrE[i])	//测量点当前起点算出的值与之前的起点算出的值不同，则表明测量点有更新
 						{
@@ -609,6 +695,7 @@ void CDpGrp::UpdDayMonStartVal(BYTE bInterv, TTime tmNow)
 		}	
 	}
 }
+
 //描述：计算某时刻的总加组电能量的差值
 //		计算方式为计算每个总加组的示值与总加组的起点示值相减，再加上累计值起点
 //@wResultID 返回的运算结果对应的ID
@@ -663,13 +750,13 @@ void CDpGrp::DeltaENew(WORD wResultID, TGrpInf* pGrpInf, BYTE bInterv, TIntvSec 
 
 	//计算当前示值，格式为测量点示值格式
 	CalcuEnSum(iCurVal, n, INTVCAL, isNow, GRP_CUR_E);	
-	if ( IsAllAVal64(&iCurVal[1], INVALID_VAL64, TOTAL_RATE_NUM) )
+	if ( IsAllAVal64(&iCurVal[0], INVALID_VAL64, TOTAL_RATE_NUM) )
 		return; //当前值无效则不更新累计值数据	
 
 	//起点时标不对则返回
 	if (ReadItemVal64(BN18, m_wPn, *pwStartId, iStartVal, isStart.dwS, isStart.dwEndS) <= 0)
 		return; //起点时标不对则返回
-	else if ( IsAllAVal64(&iStartVal[1], INVALID_VAL64, TOTAL_RATE_NUM) )
+	else if ( IsAllAVal64(&iStartVal[0], INVALID_VAL64, TOTAL_RATE_NUM) )
 		return; //起点为无效数据则不更新
 	else if ((iRv=IsMtrEngDec(n, bInterv, isNow)) > 0)
 	{
@@ -677,28 +764,22 @@ void CDpGrp::DeltaENew(WORD wResultID, TGrpInf* pGrpInf, BYTE bInterv, TIntvSec 
 		TTime now;
 		SecondsToTime(isNow.dwS, &now);							
 		CalcuEnSum(iGrpE, n, bInterv, isNow, GRP_CUR_E);	//计算当前示值做总加组示值起点	
-		if ( memcmp((BYTE*)&iStartVal[1], (BYTE*)&iGrpE[1], sizeof(int64)*TOTAL_RATE_NUM) !=0 ) //避免反复操作
+		if ( memcmp((BYTE*)&iStartVal[0], (BYTE*)&iGrpE[0], sizeof(int64)*TOTAL_RATE_NUM) !=0 ) //避免反复操作
 		{
 			SetStartDeltaE(bInterv, *pwDeltaId, now);	
 			WriteItemVal64(BN18, m_wPn, *pwStartId, iGrpE, isStart.dwS); //写入起点示值		 
 			*pwStartTime = isStart.dwS;						//更新记录时标		
-			DTRACE(DB_DP, ("CDpGrp::DeltaENew***** sub is error: Grp=%d, WID=0X%2x, get new iStartVal=%lld, dwSec=%d,\r\n", m_wPn, *pwStartId, iGrpE[1], isNow.dwS));
+			DTRACE(DB_DP, ("CDpGrp::DeltaENew***** sub is error: Grp=%d, WID=0X%2x, get new iStartVal=%lld, dwSec=%d,\r\n", m_wPn, *pwStartId, iGrpE[0], isNow.dwS));
 
 			TrigerSaveBank(BN18, 0, -1); //即时保存的起点数据
 		}
 		return;
 	}
-	else if (iRv < 0) //测量点上一周期示值的镜像读不到，意味着刚上电或参数变更，可能漏判示度下降或误判变更的起点	
-	{
-		DTRACE(DB_DP, ("CDpGrp::DeltaENew####1, Grp=%d wResultID=0X%2x mPn iLastCurVal is not arrive!,\r\n", m_wPn, wResultID));
-		if (ReadItemVal64(BN0, m_wPn, wResultID, iGrpE, isStart.dwS, isStart.dwEndS)<=0 || IsAllAVal64(&iGrpE[1], INVALID_VAL64, TOTAL_RATE_NUM))
-		{
-			SetArrVal64(iGrpE, 0, BLOCK_ITEMNUM); //没写过的值0
-			iGrpE[0] = RATE_NUM;
-			WriteItemVal64(BN0, m_wPn, wResultID, iGrpE, isDelta.dwS); //计算累计的量	
-		}
-		return;
-	}
+	//else if (iRv < 0) //测量点上一周期示值的镜像读不到，意味着刚上电或参数变更，可能漏判示度下降或误判变更的起点	
+	//{
+	//	DTRACE(DB_DP, ("CDpGrp::DeltaENew####1, Grp=%d wResultID=0X%2x mPn iLastCurVal is not arrive!,\r\n", m_wPn, wResultID));
+	//	return;
+	//}
 	else	
 		fUpd = true;	
 	
@@ -713,9 +794,8 @@ void CDpGrp::DeltaENew(WORD wResultID, TGrpInf* pGrpInf, BYTE bInterv, TIntvSec 
 	int iRet = 0;
 	if (fUpd)
 	{
-		iGrpE[0] = RATE_NUM;
 		//计算除费率数之外的各项的电能（含总及4个费率）
-		for (BYTE i=1; i<BLOCK_ITEMNUM; i++) //总及分费率的循环
+		for (BYTE i=0; i<BLOCK_ITEMNUM; i++) //总及分费率的循环
 		{		
 			//考虑到费率不齐的时候						
 			if (iGrpE[i] == INVALID_VAL64)
@@ -739,7 +819,7 @@ void CDpGrp::DeltaENew(WORD wResultID, TGrpInf* pGrpInf, BYTE bInterv, TIntvSec 
 				else
 					iGrpE[i] = iCurVal[i]-iStartVal[i];				
 			}			
-			
+
 			//加上原始累计值
 			if ( fAdd && iLeftDeltaE[i] != INVALID_VAL64)		
 			{
@@ -758,10 +838,10 @@ void CDpGrp::DeltaENew(WORD wResultID, TGrpInf* pGrpInf, BYTE bInterv, TIntvSec 
 		BYTE bBuf[64];
 		bBuf[0] = DT_ARRAY;
 		bBuf[1] = RATE_NUM+1;
-		for (int i=0; i<BLOCK_ITEMNUM-1;i++)
+		for (int i=0; i<BLOCK_ITEMNUM;i++)
 		{
 			bBuf[2+9*i] = DT_LONG64;
-			OoInt64ToLong64(iGrpE[i+1], &bBuf[3+9*i]);
+			OoInt64ToLong64(iGrpE[i], &bBuf[3+9*i]);
 		}
 		WriteItemEx(BN0, m_wPn, wResultID, bBuf, isDelta.dwS);
 	}
@@ -788,7 +868,6 @@ void CDpGrp::CalcuEnSum(int64* pVal64, BYTE n, BYTE bInterv, TIntvSec isNow, BYT
 	TGrpFrzStartData* pStartData;	
 	
 	SetArrVal64(iGrpE, 0, BLOCK_ITEMNUM);
-	iGrpE[0] = RATE_NUM; //第一个为费率数
 
 	if (n == 0)						
 		pGrpInf = m_GrpInfEp;			
@@ -800,22 +879,25 @@ void CDpGrp::CalcuEnSum(int64* pVal64, BYTE n, BYTE bInterv, TIntvSec isNow, BYT
 		//所有测量点的数据均更新过（含抄表成功、抄表失败以及不支持的数据）	
 		for (i=0; i<m_bMtrNum; i++)
 		{		
-			if (ReadItemEx(BN0, pGrpInf[i].bPn, pGrpInf[i].wCurId, bBuf, isNow.dwS, isNow.dwEndS) > 0 )//有效数据
+			if (ReadItemEx(BN0, pGrpInf[i].wPn, pGrpInf[i].wCurId, bBuf, isNow.dwS, isNow.dwEndS) > 0 )//有效数据
 			{
 				//若数据有效则进行运算
-				for (j=1; j<BLOCK_ITEMNUM; j++) //计算除费率数之外的各项的电能（含总及4个费率）
+				for (j=0; j<BLOCK_ITEMNUM; j++) //计算除费率数之外的各项的电能（含总及4个费率）
 				{
-					iTmpBuf[i][j] = OoLong64ToInt64(&bBuf[3+j*9]);
+					iTmpBuf[i][j] = OoDoubleLongToInt(&bBuf[3+j*5]);
 					if (iTmpBuf[i][j] != INVALID_VAL64)
 					{
-						iTmpBuf[i][j] *=  m_iCT[i]*m_iPT[i];
+						if (pGrpInf[i].bProp == PN_PROP_METER)
+							iTmpBuf[i][j] *=  (m_iCT[i]*m_iPT[i]*100);
+						else
+							iTmpBuf[i][j] *=  (m_iCT[i]*m_iPT[i]);
 						DataSum(&iGrpE[j], iGrpE[j], iTmpBuf[i][j], pGrpInf[i].bOp);							
 					}
 				}			
 			}	
 			else //若数据全部无效（含抄表失败或不支持的数据）则立即更新为无效数据
 			{
-				SetArrVal64(&iGrpE[1], INVALID_VAL64, TOTAL_RATE_NUM);
+				SetArrVal64(&iGrpE[0], INVALID_VAL64, TOTAL_RATE_NUM);
 				break;
 			}
 		}
@@ -830,17 +912,20 @@ void CDpGrp::CalcuEnSum(int64* pVal64, BYTE n, BYTE bInterv, TIntvSec isNow, BYT
 		for (i=0; i<m_bMtrNum; i++)
 		{		
 			//若数据有效则进行运算
-			if ( !IsAllAVal64(&pStartData->iStartVal[i][1], INVALID_VAL64, TOTAL_RATE_NUM) )
+			if ( !IsAllAVal64(&pStartData->iStartVal[i][0], INVALID_VAL64, TOTAL_RATE_NUM) )
 			{
 				memcpy((BYTE*)iTmpBuf, (BYTE*)pStartData->iStartVal, sizeof(iTmpBuf));
 
-				for (j=1; j<BLOCK_ITEMNUM; j++) //计算除费率数之外的各项的电能（含总及4个费率）
+				for (j=0; j<BLOCK_ITEMNUM; j++) //计算除费率数之外的各项的电能（含总及4个费率）
 				{
 					if (iTmpBuf[i][j] != INVALID_VAL64)
 					{
 						if (bEnType == GRP_START_E)//总加组起点的示值
 						{
-							iTmpBuf[i][j] *=  m_iCT[i]*m_iPT[i];
+							if (pGrpInf[i].bProp == PN_PROP_METER)
+								iTmpBuf[i][j] *=  (m_iCT[i]*m_iPT[i]*100);
+							else
+								iTmpBuf[i][j] *=  (m_iCT[i]*m_iPT[i]);
 						}
 						else //if (bEnType == MTR_START_E)
 						{				
@@ -856,7 +941,7 @@ void CDpGrp::CalcuEnSum(int64* pVal64, BYTE n, BYTE bInterv, TIntvSec isNow, BYT
 			}			
 			else //若数据全部无效（含抄表失败或不支持的数据）则立即更新为无效数据
 			{
-				SetArrVal64(&iGrpE[1], INVALID_VAL64, TOTAL_RATE_NUM);
+				SetArrVal64(&iGrpE[0], INVALID_VAL64, TOTAL_RATE_NUM);
 				break;
 			}
 		}
@@ -887,22 +972,31 @@ int CDpGrp::IsMtrEngDec(BYTE n, BYTE bInterv, TIntvSec isNow)
 		SetArrVal64(iCurVal, INVALID_VAL64, BLOCK_ITEMNUM);
 		SetArrVal64(iLastCurVal, INVALID_VAL64, BLOCK_ITEMNUM);
 
-		iLen3 = ReadItemEx(BN0, pGrpInf[i].bPn, pGrpInf[i].wCurId, bLastBuf, isNow.dwS-m_bMtrIntv*60, isNow.dwEndS-m_bMtrIntv*60);	//取前一抄表间隔的值
-		iLen1 = ReadItemEx(BN0, pGrpInf[i].bPn, pGrpInf[i].wCurId, bCurBuf, isNow.dwS, isNow.dwEndS);	  //取当前抄表间隔的值
-
-		for (j=1; j<BLOCK_ITEMNUM; j++) //计算除费率数之外的各项的电能（含总及4个费率）
+		iLen3 = ReadItemEx(BN0, pGrpInf[i].wPn, pGrpInf[i].wCurId+0x0100, bLastBuf, isNow.dwS-m_bMtrIntv*60, isNow.dwEndS-m_bMtrIntv*60);	//取前一抄表间隔的值
+		if (iLen3 > 0)
 		{
-			iLastCurVal[j] = OoLong64ToInt64(&bLastBuf[3+j*9]);
-			iCurVal[j] = OoLong64ToInt64(&bCurBuf[3+j*9]);
+			for (j=0; j<BLOCK_ITEMNUM; j++) //计算除费率数之外的各项的电能（含总及4个费率）
+			{
+				iLastCurVal[j] = OoDoubleLongToInt(&bLastBuf[3+j*5]);
+			}
 		}
 
-		if (iLen1<=0 || IsAllAVal64(&iCurVal[1], INVALID_VAL64, TOTAL_RATE_NUM)) 
+		iLen1 = ReadItemEx(BN0, pGrpInf[i].wPn, pGrpInf[i].wCurId, bCurBuf, isNow.dwS, isNow.dwEndS);	  //取当前抄表间隔的值
+		if (iLen1 > 0)
+		{
+			for (j=0; j<BLOCK_ITEMNUM; j++) //计算除费率数之外的各项的电能（含总及4个费率）
+			{
+				iCurVal[j] = OoDoubleLongToInt(&bCurBuf[3+j*5]);
+			}
+		}
+
+		if (iLen1<=0 || IsAllAVal64(&iCurVal[0], INVALID_VAL64, TOTAL_RATE_NUM)) 
 			return 0; //当前值无效则不判断		
-		if (iLen3<=0 || IsAllAVal64(&iLastCurVal[1], INVALID_VAL64, TOTAL_RATE_NUM)) 
+		if (iLen3<=0 || IsAllAVal64(&iLastCurVal[0], INVALID_VAL64, TOTAL_RATE_NUM)) 
 			return -1; //上一次值无效则不判断	
-		
+
 		//若数据有效则进行判断
-		for (j=1; j<BLOCK_ITEMNUM; j++) //计算除费率数之外的各项的电能（含总及4个费率）
+		for (j=0; j<BLOCK_ITEMNUM; j++) //计算除费率数之外的各项的电能（含总及4个费率）
 		{
 			if ( iCurVal[j] < iLastCurVal[j])  //只要有某个测量点某费率的示度下降，则为示度下降		
 			{
@@ -960,9 +1054,13 @@ void CDpGrp::CalcuCurData(TTime tmNow)
 			//所有测量点的数据均更新过（含抄表成功、抄表失败以及不支持的数据）
 			for (i=0; i<m_bMtrNum; i++)
 			{			
-				if (ReadItemEx(BN0, pGrpInf[i].bPn, pGrpInf[i].wCurId, bBuf, isNow.dwS, isNow.dwEndS) > 0 )
-				{	
-					iTmpBuf[i][0] = OoLong64ToInt64(&bBuf[3]);
+				if (ReadItemEx(BN0, pGrpInf[i].wPn, pGrpInf[i].wCurId, bBuf, isNow.dwS, isNow.dwEndS) > 0 )
+				{
+					if (pGrpInf[i].bProp == PN_PROP_METER)
+						iTmpBuf[i][0] = OoDoubleLongToInt(&bBuf[3]);
+					else
+						iTmpBuf[i][0] = OoDoubleLongToInt(&bBuf[1]);
+
 					if (iTmpBuf[i][0]!=INVALID_VAL64 && pGrpInf[i].bDir==1 && iTmpBuf[i][0]>0) //反向功率取反
 						iTmpBuf[i][0] = -iTmpBuf[i][0];
 					else if (iTmpBuf[i][0]!=INVALID_VAL64 && pGrpInf[i].bDir==0 && iTmpBuf[i][0]<0) //正向功率取正
@@ -978,10 +1076,11 @@ void CDpGrp::CalcuCurData(TTime tmNow)
 					break;
 				}
 			}
-			iGroupP = INVALID_VAL64;
+
 			bBuf[0] = DT_LONG64;
 			OoInt64ToLong64(iGroupP, &bBuf[1]);
 			WriteItemEx(BN0, m_wPn, g_wGrpCurPowerID[n], bBuf, isNow.dwS);
+			WriteItemEx(BN0, m_wPn, g_wGrpSlidePowerID[n], bBuf, isNow.dwS);
 		}
 	}
 	
@@ -1006,15 +1105,15 @@ void CDpGrp::CalcuCurData(TTime tmNow)
 		{
 			CalcuEnSum(iGrpE, n, INTVCAL, isNow, GRP_CUR_E);			//计算当前示值
 			bBuf[0] = DT_ARRAY;
-			bBuf[1] = BLOCK_ITEMNUM-1;
-			for (i=1; i<BLOCK_ITEMNUM; i++)
+			bBuf[1] = BLOCK_ITEMNUM;
+			for (i=0; i<BLOCK_ITEMNUM; i++)
 			{
 				bBuf[2+i*9] = DT_LONG64;
 				OoInt64ToLong64(iGrpE[i], &bBuf[3+i*9]);
 			}
 			if (n == 0)
 			{
-				WriteItemEx(BN0, m_wPn, 0x0a07, bBuf, isNow.dwS); //当前总加有功电能，供控制使用	
+				WriteItemEx(BN0, m_wPn, 0x0a07, &bBuf[2], isNow.dwS); //当前总加有功电能，供控制使用	
 			}
 
 			//计算Delta数据
@@ -1022,20 +1121,19 @@ void CDpGrp::CalcuCurData(TTime tmNow)
 			//当日累计总加电能	
 			TIntvSec isStart;			
 			TimeToIntvS(tmNow, INTVDAY, &isStart);
-			//DeltaE(g_wGrpDayDeltaID[n], pGrpInf, INTVDAY, isNow, isStart, isNow);
 			DeltaENew(g_wGrpDayDeltaID[n], pGrpInf, INTVDAY, isNow, isStart, isNow);
+
 			//当月累计总加电能
 			TimeToIntvS(tmNow, INTVMON, &isStart);
-			//DeltaE(g_wGrpMonDeltaID[n], pGrpInf, INTVMON, isNow, isStart, isNow);
 			DeltaENew(g_wGrpMonDeltaID[n], pGrpInf, INTVMON, isNow, isStart, isNow);
 		}
 	}
 }
 
-// 描述：将当日当月的累计电能差值电能转存到上一日并将当日当月的累计电量清零
-//@bIdx		要转存的电量的索引（对应正有、正无、反有、反无）
-//@bType	日转存还是月转存的标识
-//@dwSec	要转存的时标
+// 描述：将当日当月的累计电量清零
+//@bIdx		要清零的电量的索引（对应正有、正无、反有、反无）
+//@bType	日清零还是月清零的标识
+//@dwSec	要清零的时标
 void CDpGrp::UpdClsFrzData(BYTE bIdx, BYTE bInterv, DWORD dwOldS, DWORD dwNewS)
 {
 	BYTE bBuf[64];
@@ -1047,7 +1145,7 @@ void CDpGrp::UpdClsFrzData(BYTE bIdx, BYTE bInterv, DWORD dwOldS, DWORD dwNewS)
 	if (bInterv == INTVDAY)
 	{
 		ClsBlockE(BN0, g_wGrpDayDeltaID[bIdx], &m_iDayDeltaE[bIdx][0], 0, dwNewS); //当日清零		
-		DTRACE(DB_DP, ("CDpGrp::UpdClsFrzData DAY GPN=%d g_wGrpDayDeltaID=%x Val=%lld, dwSec=%d!\n",m_wPn,g_wGrpDayDeltaID[bIdx],m_iDayDeltaE[bIdx][1],dwNewS));
+		DTRACE(DB_DP, ("CDpGrp::UpdClsFrzData DAY GPN=%d g_wGrpDayDeltaID=%x Val=%lld, dwSec=%d!\n",m_wPn,g_wGrpDayDeltaID[bIdx],m_iDayDeltaE[bIdx][0],dwNewS));
 
 		ClsBlockE(BN18, g_wGrpDayLeftDeltaID[bIdx], iValBuf, 0, dwNewS); //当日起点累计清零	
 		ClsBlockE(BN18, g_wGrpDayStartEnID[bIdx], iValBuf, INVALID_VAL64, dwNewS); //当日起点示值清零	
@@ -1055,13 +1153,12 @@ void CDpGrp::UpdClsFrzData(BYTE bIdx, BYTE bInterv, DWORD dwOldS, DWORD dwNewS)
 	else if (bInterv == INTVMON)
 	{
 		ClsBlockE(BN0, g_wGrpMonDeltaID[bIdx], &m_iMonDeltaE[bIdx][0], 0, dwNewS); //当月清零		
-		DTRACE(DB_DP, ("CDpGrp::UpdClsFrzData MON GPN=%d g_wGrpDayDeltaID=%x Val=%lld, dwSec=%d!\n",m_wPn,g_wGrpMonDeltaID[bIdx],m_iMonDeltaE[bIdx][1],dwNewS));
+		DTRACE(DB_DP, ("CDpGrp::UpdClsFrzData MON GPN=%d g_wGrpDayDeltaID=%x Val=%lld, dwSec=%d!\n",m_wPn,g_wGrpMonDeltaID[bIdx],m_iMonDeltaE[bIdx][0],dwNewS));
 
 		ClsBlockE(BN18, g_wGrpMonLeftDeltaID[bIdx], iValBuf, 0, dwNewS); //当月起点累计清零	
 		ClsBlockE(BN18, g_wGrpMonStartEnID[bIdx], iValBuf, INVALID_VAL64, dwNewS); //当月起点示值清零
 	}
 }
-
 
 //描述：准点日切换
 //备注：主要为功率统计数据以及当总加组所含测量点无电表时的准点切换
@@ -1070,8 +1167,9 @@ void CDpGrp::DayChange(TTime tmNow)
 	TIntvSec  isNow;
 	DWORD dwCurS, dwCurEndS;
 	int64 iValBuf[BLOCK_ITEMNUM];
-	BYTE i, j;
+	BYTE i, j, bDataBuf[30];
 	TTime time;
+	WORD wCurID;
 
 	GetCurTime(&time);
 	TimeToIntvS(tmNow, INTVDAY, &isNow);		
@@ -1097,15 +1195,24 @@ void CDpGrp::DayChange(TTime tmNow)
 			for (j=0; j<m_bMtrNum; j++)
 			{
 				SetArrVal64(iValBuf, INVALID_VAL64, BLOCK_ITEMNUM);
-				iValBuf[0] = m_bRateNum; //费率数
 
-				//更新日起点 有效无效均更新				
-				ReadItemVal64(BN0, m_GrpInfEp[j].bPn, g_wCurID[i], &iValBuf[1], dwCurS, dwCurEndS);		
-				WriteItemVal64(BN18, m_GrpInfEp[j].bPn, g_wDayStartID[i], iValBuf, isNow.dwS);
-				DTRACE(DB_DP, ("CDpMtr::DayChange():PN=%d,g_wDayStartID=%x StartVal=%lld\n ",m_GrpInfEp[j].bPn, g_wDayStartID[i], iValBuf[1]));		
+				if (m_GrpInfP[j].bProp == PN_PROP_METER)
+					wCurID = g_wCurID[i];
+				else
+					wCurID = g_wPulseCurID[i];
+
+				//更新日起点 有效无效均更新	
+				memset(bDataBuf, 0, sizeof(bDataBuf));
+				if (ReadItemEx(BN0, m_GrpInfEp[j].wPn, wCurID, bDataBuf, dwCurS, dwCurEndS) > 0 )
+				{	
+					for (BYTE k=0; k<BLOCK_ITEMNUM; k++)
+						iValBuf[k] = OoDoubleLongToInt(&bDataBuf[3+5*k]);
+				}
+				WriteItemVal64(BN18, m_GrpInfEp[j].wPn, g_wDayStartID[i], iValBuf, isNow.dwS);
+				DTRACE(DB_DP, ("CDpMtr::DayChange():PN=%d,g_wDayStartID=%x StartVal=%lld\n ",m_GrpInfEp[j].wPn, g_wDayStartID[i], iValBuf[0]));
 			}
 		}
-	}	
+	}
 
 	TrigerSaveBank(BN18, 0, -1); //功率统计起点值触发保存.
 }
@@ -1117,8 +1224,9 @@ void CDpGrp::MonChange(TTime tmNow)
 	TIntvSec  isNow;
 	DWORD dwCurS, dwCurEndS;
 	int64 iValBuf[BLOCK_ITEMNUM];
-	BYTE i, j;
+	BYTE i, j, bDataBuf[30];
 	TTime time;
+	WORD wCurID;
 
 	GetCurTime(&time);
 	TimeToIntvS(tmNow, INTVMON, &isNow);
@@ -1130,7 +1238,7 @@ void CDpGrp::MonChange(TTime tmNow)
 		{
 			//转存上月及清当月 	
 			UpdClsFrzData(i, INTVMON, isNow.dwS, isNow.dwS);	
-			DTRACE(DB_DP, ("CDpGrp::DayChange()1:PN=%d,DayDeltaID=%x \n ",m_wPn, g_wGrpMonDeltaID[i]));
+			DTRACE(DB_DP, ("CDpGrp::MonChange()1:PN=%d,MonDeltaID=%x \n ",m_wPn, g_wGrpMonDeltaID[i]));
 		}	
 
 		if (m_bPnProp != PN_PROP_METER)
@@ -1144,19 +1252,28 @@ void CDpGrp::MonChange(TTime tmNow)
 			for (j=0; j<m_bMtrNum; j++)
 			{
 				SetArrVal64(iValBuf, INVALID_VAL64, BLOCK_ITEMNUM);
-				iValBuf[0] = m_bRateNum; //费率数
 
-				//更新日起点 有效无效均更新				
-				ReadItemVal64(BN0, m_GrpInfEp[j].bPn, g_wCurID[i], &iValBuf[1], dwCurS, dwCurEndS);		
-				WriteItemVal64(BN18, m_GrpInfEp[j].bPn, g_wMonStartID[i], iValBuf, isNow.dwS);
-				DTRACE(DB_DP, ("CDpMtr::DayChange():PN=%d,g_wDayStartID=%x StartVal=%lld\n ",m_GrpInfEp[j].bPn, g_wMonStartID[i], iValBuf[1]));		
+				if (m_GrpInfP[j].bProp == PN_PROP_METER)
+					wCurID = g_wCurID[i];
+				else
+					wCurID = g_wPulseCurID[i];
+
+				//更新日起点 有效无效均更新	
+				memset(bDataBuf, 0, sizeof(bDataBuf));
+				if (ReadItemEx(BN0, m_GrpInfEp[j].wPn, wCurID, bDataBuf, dwCurS, dwCurEndS) > 0 )
+				{	
+					for (BYTE k=0; k<BLOCK_ITEMNUM; k++)
+						iValBuf[k] = OoDoubleLongToInt(&bDataBuf[3+5*k]);
+				}
+				WriteItemVal64(BN18, m_GrpInfEp[j].wPn, g_wMonStartID[i], iValBuf, isNow.dwS);
+				DTRACE(DB_DP, ("CDpMtr::MonChange():PN=%d,g_wMonStartID=%x StartVal=%lld\n ",m_GrpInfEp[j].wPn, g_wMonStartID[i], iValBuf[0]));		
 			}
 		}
 	}
 
 	TrigerSaveBank(BN18, 0, -1); //功率统计起点值触发保存.
-}                    
-                
+}
+
 //描述：主体调度函数
 void CDpGrp::DoDataProc()
 {
@@ -1182,14 +1299,12 @@ void CDpGrp::DoDataProc()
 	UpdDayMonStartVal(INTVMON, now);	
 
 	CalcuCurData(now);
-
 } 
-
 
 //描述：记录总加组最新的日月起点累计值,格式FMT3
 void CDpGrp::SetStartDeltaE(BYTE bInterv, WORD wDeltaEId, TTime& tm)
 {	
-	BYTE n = 0;
+	BYTE i, n = 0;
 	BYTE bBuf[64];
 	TIntvSec isNow;
 	int64 iValBuf[BLOCK_ITEMNUM];
@@ -1204,14 +1319,23 @@ void CDpGrp::SetStartDeltaE(BYTE bInterv, WORD wDeltaEId, TTime& tm)
 
 	if (bInterv == INTVDAY) //读到数据写入有效数据，读不到时写入0
 	{		
-		ReadItemEx(BN0, m_wPn, g_wGrpDayDeltaID[n], bBuf, isNow.dwS, isNow.dwEndS);
-		WriteItemEx(BN18, m_wPn, g_wGrpDayLeftDeltaID[n], bBuf, isNow.dwS);
-		DTRACE(DB_DP, ("CDpGrp::SetStartDeltaE m_wPn=%d wStartDeltaEnVal=%lld dwSec=%d \n",m_wPn,iValBuf[1], isNow.dwS));	
+		if (ReadItemEx(BN0, m_wPn, g_wGrpDayDeltaID[n], bBuf, isNow.dwS, isNow.dwEndS) > 0)
+		{
+			for (i=0; i<BLOCK_ITEMNUM; i++)
+				iValBuf[i] = OoLong64ToInt64(&bBuf[3+9*i]);
+		}
+		WriteItemVal64(BN18, m_wPn, g_wGrpDayLeftDeltaID[n], iValBuf, isNow.dwS);
+		DTRACE(DB_DP, ("CDpGrp::SetStartDeltaE m_wPn=%d wDayStartDeltaEnVal=%lld dwSec=%d \n",m_wPn,iValBuf[0], isNow.dwS));	
 	}
 	else if (bInterv == INTVMON)
 	{
-		ReadItemEx(BN0, m_wPn, g_wGrpMonDeltaID[n], bBuf, isNow.dwS, isNow.dwEndS);
-		WriteItemEx(BN18, m_wPn, g_wGrpMonLeftDeltaID[n], bBuf, isNow.dwS);
+		if (ReadItemEx(BN0, m_wPn, g_wGrpMonDeltaID[n], bBuf, isNow.dwS, isNow.dwEndS) > 0)
+		{
+			for (i=0; i<BLOCK_ITEMNUM; i++)
+				iValBuf[i] = OoLong64ToInt64(&bBuf[3+9*i]);
+		}
+		WriteItemVal64(BN18, m_wPn, g_wGrpMonLeftDeltaID[n], iValBuf, isNow.dwS);
+		DTRACE(DB_DP, ("CDpGrp::SetStartDeltaE m_wPn=%d wMonStartDeltaEnVal=%lld dwSec=%d \n",m_wPn,iValBuf[0], isNow.dwS));
 	}
 }
 
@@ -1227,7 +1351,7 @@ void CDpGrp::SetNewStartEnFlg(bool fFlg, DWORD dwNewTime)
 
 	BYTE bBuf[64];
 	int64 iGroupP;
-	int64 iGrpE[BLOCK_ITEMNUM];
+	int64 iGrpE = INVALID_VAL64;
 	TTime now;
 	TIntvSec isNow;
 
@@ -1239,16 +1363,27 @@ void CDpGrp::SetNewStartEnFlg(bool fFlg, DWORD dwNewTime)
 	for (BYTE i=0; i<2; i++)
 	{
 		iGroupP = INVALID_VAL64;
-		iGroupP = INVALID_VAL64;
 		bBuf[0] = DT_LONG64;
 		OoInt64ToLong64(iGroupP, &bBuf[1]);
 		WriteItemEx(BN0, m_wPn, g_wGrpCurPowerID[i], bBuf, isNow.dwS);//当前总加功率	
+		WriteItemEx(BN0, m_wPn, g_wGrpSlidePowerID[i], bBuf, isNow.dwS);//当前总加功率
 	}
-	bBuf[0] = DT_ARRAY;
-	bBuf[1] = 1;
-	bBuf[2] = DT_LONG64;
-	OoInt64ToLong64(iGrpE[1], &bBuf[3]);
+
+	bBuf[0] = DT_LONG64;
+	OoInt64ToLong64(iGrpE, &bBuf[1]);
 	WriteItemEx(BN0, m_wPn, 0x0a07, bBuf, isNow.dwS); //当前总加有功电能，供控制使用			
+}
+
+extern bool g_fMtrParaChg;
+void SetMtrParaChg(bool fFlg)
+{
+	g_fMtrParaChg = fFlg;
+	DTRACE(DB_METER, ("SetMtrParaChg: para chg =%d!\r\n", g_fMtrParaChg));
+}
+
+bool IsMtrParaChg()
+{
+	return g_fMtrParaChg;
 }
 
 extern bool g_fGrpParaChg;
@@ -1348,11 +1483,11 @@ void RunGrpDataProcess()
 	{		
 		if (g_GroupPn[i] != NULL)//新增
 		{
-				g_GroupPn[i]->DoDataProc();
+			g_GroupPn[i]->DoDataProc();
 		}
 	}
-}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
- 
+}
+
 //获取总加组当前控制状态
 bool GetGrpCurCtrlSta(int iGrp, TGrpCurCtrlSta *pGrpCurCtrlSta)
 {
@@ -1373,22 +1508,21 @@ bool GetGrpCurCtrlSta(int iGrp, TGrpCurCtrlSta *pGrpCurCtrlSta)
 	ptr += 8;	
 	ptr++;		//DT_INT
 	//memcpy(pGrpCurCtrlSta->FloatRate, ptr, 4);			//当前功率下浮控浮动系数
-	pGrpCurCtrlSta->FloatRate = OoDoubleLongToInt(ptr);
-	ptr += 4;
+	pGrpCurCtrlSta->FloatRate = *ptr++;
 	ptr += 2;	//DT_BIT_STR和字节数
-	pGrpCurCtrlSta->bAllPwrCtrlOutPutSta = *ptr;		//功控跳闸输出状态
+	pGrpCurCtrlSta->bAllPwrCtrlOutPutSta = ByteBitReverse(*ptr);		//功控跳闸输出状态
 	ptr++;
 	ptr += 2;	//DT_BIT_STR和字节数
-	pGrpCurCtrlSta->bMonthCtrlOutPutSta = *ptr;			//月电控跳闸输出状态
+	pGrpCurCtrlSta->bMonthCtrlOutPutSta = ByteBitReverse(*ptr);			//月电控跳闸输出状态
 	ptr++;
 	ptr += 2;	//DT_BIT_STR和字节数
-	pGrpCurCtrlSta->bBuyCtrlOutPutSta = *ptr;			//购电控跳闸输出状态
+	pGrpCurCtrlSta->bBuyCtrlOutPutSta = ByteBitReverse(*ptr);			//购电控跳闸输出状态
 	ptr++;
 	ptr += 2;	//DT_BIT_STR和字节数
-	pGrpCurCtrlSta->bPCAlarmState = *ptr;				//功控越限告警状态
+	pGrpCurCtrlSta->bPCAlarmState = ByteBitReverse(*ptr);				//功控越限告警状态
 	ptr++;
 	ptr += 2;	//DT_BIT_STR和字节数
-	pGrpCurCtrlSta->bECAlarmState = *ptr;				//电控越限告警状态
+	pGrpCurCtrlSta->bECAlarmState = ByteBitReverse(*ptr);				//电控越限告警状态
 	ptr++;
 
 	return true;
@@ -1408,23 +1542,22 @@ bool SetGrpCurCtrlSta(int iGrp, TGrpCurCtrlSta *pGrpCurCtrlSta)
 		OoInt64ToLong64(pGrpCurCtrlSta->CurPwrVal, ptr);
 		ptr += 8;
 		*ptr++ = DT_INT;					//当前功率下浮控浮动系数
-		OoIntToDoubleLong(pGrpCurCtrlSta->FloatRate, ptr);
-		ptr += 4;
+		*ptr++ = pGrpCurCtrlSta->FloatRate;
 		*ptr++ = DT_BIT_STR;				//功控跳闸输出状态	
-		*ptr++ = 1;
-		*ptr++ = pGrpCurCtrlSta->bAllPwrCtrlOutPutSta;
+		*ptr++ = 8;
+		*ptr++ = ByteBitReverse(pGrpCurCtrlSta->bAllPwrCtrlOutPutSta);
 		*ptr++ = DT_BIT_STR;				//月电控跳闸输出状态
-		*ptr++ = 1;
-		*ptr++ = pGrpCurCtrlSta->bMonthCtrlOutPutSta;
+		*ptr++ = 8;
+		*ptr++ = ByteBitReverse(pGrpCurCtrlSta->bMonthCtrlOutPutSta);
 		*ptr++ = DT_BIT_STR;				//购电控跳闸输出状态
-		*ptr++ = 1;
-		*ptr++ = pGrpCurCtrlSta->bBuyCtrlOutPutSta;
+		*ptr++ = 8;
+		*ptr++ = ByteBitReverse(pGrpCurCtrlSta->bBuyCtrlOutPutSta);
 		*ptr++ = DT_BIT_STR;				//功控越限告警状态
-		*ptr++ = 1;
-		*ptr++ = pGrpCurCtrlSta->bPCAlarmState;
+		*ptr++ = 8;
+		*ptr++ = ByteBitReverse(pGrpCurCtrlSta->bPCAlarmState);
 		*ptr++ = DT_BIT_STR;				//电控越限告警状态
-		*ptr++ = 1;
-		*ptr++ = pGrpCurCtrlSta->bECAlarmState;
+		*ptr++ = 8;
+		*ptr++ = ByteBitReverse(pGrpCurCtrlSta->bECAlarmState);
 
 		if (OoWriteAttr(0x2300+iGrp, 0x11, bBuf) < 0)
 		{
@@ -1488,19 +1621,19 @@ bool SetGrpCtrlSetSta(int iGrp,	TGrpCtrlSetSta *pGrpCtrlSetSta)
 		*ptr++ = DT_UNSIGN;			
 		*ptr++ = pGrpCtrlSetSta->bSchemeNum;		//时段控定值方案号
 		*ptr++ = DT_BIT_STR;						
-		*ptr++ = 1;
+		*ptr++ = 8;
 		*ptr++ = pGrpCtrlSetSta->bValidFlag;		//功控时段有效标志位
 		*ptr++ = DT_BIT_STR;
-		*ptr++ = 1;
+		*ptr++ = 8;
 		*ptr++ = pGrpCtrlSetSta->bPwrCtrlSta;		//功控状态
 		*ptr++ = DT_BIT_STR;
-		*ptr++ = 1;
+		*ptr++ = 8;
 		*ptr++ = pGrpCtrlSetSta->bEngCtrlSta;		//电控状态
 		*ptr++ = DT_BIT_STR;
-		*ptr++ = 1;
+		*ptr++ = 8;
 		*ptr++ = pGrpCtrlSetSta->bPwrCtrlTurnSta;	//功控轮次状态
 		*ptr++ = DT_BIT_STR;
-		*ptr++ = 1;
+		*ptr++ = 8;
 		*ptr++ = pGrpCtrlSetSta->bEngCtrlTurnSta;	//电控轮次状态
 		
 		if (OoWriteAttr(0x2300+iGrp, 0x10, bBuf) < 0)

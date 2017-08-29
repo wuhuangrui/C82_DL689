@@ -190,6 +190,13 @@ private:
 
 	void DoTermStat();
 	bool InitTermStat();			//读取TermInfo.dat文件信息
+
+#ifdef SYS_WIN
+	BYTE			m_bPn;						//测量点号（或总加组号）
+	void			DebugPulseEng(DWORD dwSec);
+	void			DebugPulsePwr(DWORD dwSec);
+	void			DebugData(DWORD wID, DWORD dwSec);
+#endif
 };
 
 

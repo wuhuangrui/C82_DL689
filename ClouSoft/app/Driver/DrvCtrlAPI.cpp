@@ -23,6 +23,7 @@
 #include "LibDbAPI.h"
 #include "bios.h"
 #include "FaAPI.h"
+#include "LoadCtrl.h"
 
 
 BYTE g_bLastState[2] = {0, 0};
@@ -163,10 +164,10 @@ void SetCtrlLed(bool fOn, BYTE bId)
 
 	case LED_TURN1://轮次1
 	
-		/*if (GetCtrlCfg(1) == 0)
+		if (GetCtrlCfg(1) == 0)
 		{
 			return;
-		}*/
+		}
 		if (ReadCtrlState(bBuf))//获取之前的状态
 			fSend = true;
 
@@ -194,10 +195,10 @@ void SetCtrlLed(bool fOn, BYTE bId)
 
 	case LED_TURN2://轮次2
 		
-		/*if (GetCtrlCfg(2) == 0)
+		if (GetCtrlCfg(2) == 0)
 		{
 			return;
-		}*/
+		}
 		if (ReadCtrlState(bBuf))//获取之前的状态
 			fSend = true;
 
@@ -254,11 +255,11 @@ void DoYk(bool fOpen, BYTE bId, BYTE bMode)
 	switch(bId)
 	{
 	case CTRL_TURN1://轮次1
-		/*if (GetCtrlCfg(1) == 0)
+		if (GetCtrlCfg(1) == 0)
 		{
 			fInitN1 =  false;
 			return;
-		}*/
+		}
 		if (!bMode)
 		{
 			if (!fInitN1 || (fOpen != fN1))
@@ -307,11 +308,11 @@ void DoYk(bool fOpen, BYTE bId, BYTE bMode)
 		
 		break;
 	case CTRL_TURN2://轮次2
-		/*if (GetCtrlCfg(2) == 0)
+		if (GetCtrlCfg(2) == 0)
 		{
 			fInitN2 = false;
 			return;
-		}*/
+		}
 		if (!bMode)
 		{
 			if (!fInitN2 || (fOpen != fN2))
@@ -394,6 +395,7 @@ void DoYk(bool fOpen, BYTE bId, BYTE bMode)
 BYTE MakeSendFrm(BYTE *pbTx, BYTE *pbRx, BYTE bFN)
 {
 	BYTE bCmdFrm[7];
+	int i = 0;
 	WORD wCrc = 0;
 	memset(bCmdFrm, 0, sizeof(bCmdFrm));
 
@@ -413,7 +415,7 @@ BYTE MakeSendFrm(BYTE *pbTx, BYTE *pbRx, BYTE bFN)
 
 BYTE TxRxComm(BYTE *pbTx, BYTE *pbRx)
 {
-	WORD wLen = 0;
+	WORD wLen = 0, i = 0;
 	BYTE bDebug = pbRx[0];
 
 	WaitSemaphore(g_semRWCtrlModl);
@@ -469,9 +471,8 @@ BYTE TxRxComm(BYTE *pbTx, BYTE *pbRx)
 
 BYTE ReadCtrlLoop(BYTE &bRx)
 {
-
 	BYTE bRxBuf[20];
-	BYTE bLen = 0, i=0;
+	BYTE bLen = 0, i = 0, bH =0, bL = 0;
 	BYTE bFN = 0xa5;
 	//BYTE bCmdFrm[7] = {0x68, 0x9c, 0xff, 0xff, 0xfe, 0xdd, 0x16};
 	BYTE bTxBuf[2] = {0, 0};
@@ -632,12 +633,15 @@ void InitCtrlModule()
 
 BYTE GetCtrlCfg(BYTE bTurn)
 {
+	BYTE bBuf[10];
 	BYTE bCfgF45 = 0, bCfgF48 = 0, bCfg = 0;
 	int iGrp =0;
 	for (iGrp=1; iGrp<=GRP_NUM; iGrp++)
 	{
-		ReadItemEx(BN0, (WORD)iGrp, 0x02df, &bCfgF45); //F45功控轮次设定
-		ReadItemEx(BN0, (WORD)iGrp, 0x030f, &bCfgF48); //F48电控轮次设定
+		OoReadAttr(0x2300+iGrp,	0x0E, bBuf, NULL, NULL);	//总加组功控轮次配置
+		bCfgF45 = bBuf[2];
+		OoReadAttr(0x2300+iGrp,	0x0F, bBuf, NULL, NULL); //总加组电控轮次配置
+		bCfgF48 = bBuf[2];
 
 		bCfg |= bCfgF45|bCfgF48;
 
@@ -645,8 +649,7 @@ BYTE GetCtrlCfg(BYTE bTurn)
 		bCfgF48 = 0;
 	}
 		
-//	return bCfg & (1<<(bTurn-1));
-	return 1;
+	return bCfg & (1<<(bTurn-1));
 }
 
 void DoTurnLedCtrl()
@@ -694,6 +697,8 @@ void DoTurnLedCtrl()
 
 void DoLoopLed(BYTE &bFrm)
 {
+	//return ;
+	BYTE bRxBuf[20];
 	static bool fN1 = true;
 	static bool fN2 = true;
 	static bool fErrN1 = true;
@@ -702,24 +707,33 @@ void DoLoopLed(BYTE &bFrm)
 	BYTE bBuf[1+1+1+8*8];
 	memset(bBuf, 0, sizeof(bBuf));
 
-	if (ReadItemEx(BN0, PN0, 0x105f, bBuf) <=0)	//读"终端当前控制状态"ID
-	{
-		
-	}
-
 	BYTE bStatus = 0;
 	BYTE bGrpFlg = 0;
+	int iGrp;
+	TGrpCurCtrlSta tGrpCurCtrlSta;
 
-	bStatus |= bBuf[0];//遥控跳闸
-	bGrpFlg = bBuf[2];//总加组有效标志位
+	ReadItemEx(BN0, PN0, 0x8200, bBuf);
+	bStatus |= bBuf[2];//遥控跳闸
+	if ((iGrp=g_LoadCtrl.GetPwrCtrlGrp()) > 0)
+		bGrpFlg |= (1<<(iGrp-1));//总加组有效标志位
+	if ((iGrp=g_LoadCtrl.GetBuyCtrlGrp()) > 0)
+		bGrpFlg |= (1<<(iGrp-1));//总加组有效标志位
+	if ((iGrp=g_LoadCtrl.GetMonCtrlGrp()) > 0)
+		bGrpFlg |= (1<<(iGrp-1));//总加组有效标志位
 
 	for (int i=0; i<GRP_NUM; i++, bGrpFlg>>=1)
 	{
 		if ((bGrpFlg&0x01) != 0)
 		{
-			bStatus |= bBuf[3+2+1+8*i];//功控跳闸
-			bStatus |= bBuf[3+2+1+8*i+1];//月电控跳闸
-			bStatus |= bBuf[3+2+1+8*i+2];//购电控跳闸
+			memset(&tGrpCurCtrlSta, 0, sizeof(TGrpCurCtrlSta));
+			if(!GetGrpCurCtrlSta(i+1, &tGrpCurCtrlSta))
+			{
+				continue;
+			}
+
+			bStatus |= tGrpCurCtrlSta.bAllPwrCtrlOutPutSta;//功控跳闸
+			bStatus |= tGrpCurCtrlSta.bMonthCtrlOutPutSta;//月电控跳闸
+			bStatus |= tGrpCurCtrlSta.bBuyCtrlOutPutSta;//购电控跳闸
 		}
 
 	}
@@ -793,6 +807,8 @@ void DoLedByPulse()
 	BYTE bStatus = 0, bGrpFlg = 0;
 	BYTE bVal = 0;
 	DWORD dwSec = 0;
+	int iGrp;
+	TGrpCurCtrlSta tGrpCurCtrlSta;
 
 	static DWORD dwSecCloseN1 = 0;
 	static DWORD dwSecOpenN1 = 0;
@@ -819,23 +835,30 @@ void DoLedByPulse()
 		dwSecCloseN2 = dwSec;
 		fInit = true;
 	}
-	
-	if (ReadItemEx(BN0, PN0, 0x105f, bBuf) <=0)	//读"终端当前控制状态"ID
-	{
-		return;
-	}
 
-	bStatus |= bBuf[0];//遥控跳闸
-	bGrpFlg = bBuf[2];//总加组有效标志位
+	ReadItemEx(BN0, PN0, 0x8200, bBuf);
+	bStatus |= bBuf[2];//遥控跳闸
+	if ((iGrp=g_LoadCtrl.GetPwrCtrlGrp()) > 0)
+		bGrpFlg |= (1<<(iGrp-1));//总加组有效标志位
+	if ((iGrp=g_LoadCtrl.GetBuyCtrlGrp()) > 0)
+		bGrpFlg |= (1<<(iGrp-1));//总加组有效标志位
+	if ((iGrp=g_LoadCtrl.GetMonCtrlGrp()) > 0)
+		bGrpFlg |= (1<<(iGrp-1));//总加组有效标志位
+
 	for (int i=0; i<GRP_NUM; i++, bGrpFlg>>=1)
 	{
 		if ((bGrpFlg&0x01) != 0)
 		{
-			bStatus |= bBuf[3+2+1+8*i];//功控跳闸
-			bStatus |= bBuf[3+2+1+8*i+1];//月电控跳闸
-			bStatus |= bBuf[3+2+1+8*i+2];//购电控跳闸
+			memset(&tGrpCurCtrlSta, 0, sizeof(TGrpCurCtrlSta));
+			if(!GetGrpCurCtrlSta(i+1, &tGrpCurCtrlSta))
+			{
+				continue;
+			}
+
+			bStatus |= tGrpCurCtrlSta.bAllPwrCtrlOutPutSta;//功控跳闸
+			bStatus |= tGrpCurCtrlSta.bMonthCtrlOutPutSta;//月电控跳闸
+			bStatus |= tGrpCurCtrlSta.bBuyCtrlOutPutSta;//购电控跳闸
 		}
-		
 	}
 
 	if (bStatus == 0)

@@ -898,13 +898,21 @@ void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 	int iRet;
 	BYTE bBuf[128];
 	DWORD *pdwOAD, dwOAD;
-	WORD *pwDataLen, *pInID, wCSDLen, wNum, wFailCnt = 0;
+	WORD *pwDataLen, *pInID, wCSDLen, wNum;
 	WORD wInterv = GetMeterInterv();
 	DWORD dwSec = GetCurTime()/(wInterv*60)*wInterv*60;
 	pInID = MtrGetFixedInItems();
 	pdwOAD = MtrGetFixedItems(&wNum);
 	pwDataLen = MtrGetFixedLen();
+	BYTE bFailCnt = 0;
+	BYTE bTryCnt = 0;
 
+	OoReadAttr(0x310F, ATTR6, bBuf, NULL, NULL);
+	bTryCnt = bBuf[3];
+	if(bTryCnt == 0)
+		bTryCnt =3;
+
+	ReadItemEx(BN2, wPn, 0x6004, &bFailCnt);
 	if (GetPnMtrPro(wPn) == PROTOCOLNO_SBJC) //如果是水气热测量点
 		return;
 
@@ -937,7 +945,9 @@ void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 				}
 
 				WriteItemEx(BN0, wPn, pInID[wIndex], bBuf);
-				wFailCnt = 0;
+				bFailCnt = 0;
+				WriteItemEx(BN2, wPn, 0x6004, &bFailCnt);
+
 				if (IsMtrErr(wPn))
 				{
 					OnMtrErrRecv(wPn);
@@ -948,8 +958,10 @@ void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 			{
 				if (IsMtrErr(wPn))
 					break;
-				wFailCnt++;
-				if (wFailCnt >= 3)
+				if (bFailCnt < bTryCnt/*3*/)
+					bFailCnt++;
+				WriteItemEx(BN2, wPn, 0x6004, &bFailCnt);
+				if (bFailCnt >= bTryCnt/*3*/)
 				{
 					OnMtrErrEstb(wPn);
 					DoPortRdErr(true);
@@ -976,11 +988,18 @@ void DoFixTask(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 int DoTask(WORD wPn, TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, bool* pfModified)
 {
 	int iRet;
-	WORD wFailCnt = 0;
 	BYTE bBuf[512];
 	TRdItem tRdItem;
 	BYTE bTryCnt = 0;
+	BYTE bFailCnt = 0;
 
+	OoReadAttr(0x310F, ATTR6, bBuf, NULL, NULL);
+	bTryCnt = bBuf[3];
+	if(bTryCnt == 0)
+		bTryCnt =3;
+		
+	ReadItemEx(BN2, wPn, 0x6004, &bFailCnt);
+	
 	*pfModified = DoTaskSwitch(pMtrRdCtrl);
 	while ((iRet=SearchAnUnReadID(GetPnCn(wPn), wPn, pMtrRdCtrl, &tRdItem)) > 0)
 	{
@@ -1009,9 +1028,12 @@ int DoTask(WORD wPn, TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, bool* pfModified)
 
 			//hyl 20170412 特殊处理3105事件，按任务方案存储
 			if (tRdItem.dwOAD==0x40000200)
-				SaveMtrDataHook(tRdItem.dwOAD,&pMtrRdCtrl->mtrExcTmp, 1);	
+				SaveMtrDataHook(tRdItem.dwOAD,&pMtrRdCtrl->mtrExcTmp, 1);
+			else
+				SaveMtrDataHook(tRdItem.dwOAD,&pMtrRdCtrl->mtrExcTmp, 0);
 
-			wFailCnt = 0;
+			bFailCnt = 0;
+			WriteItemEx(BN2, wPn, 0x6004, &bFailCnt);
 			if (IsMtrErr(wPn))
 			{
 				OnMtrErrRecv(wPn);
@@ -1023,15 +1045,18 @@ int DoTask(WORD wPn, TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, bool* pfModified)
 			iRet = RD_ERR_UNFIN;
 			if (IsMtrErr(wPn))
 				break;
-			wFailCnt++;
+			if (bFailCnt < bTryCnt/*3*/)
+				bFailCnt++;
+			WriteItemEx(BN2, wPn, 0x6004, &bFailCnt);
 #ifdef EN_SBJC_V2          
 			if (pMtrPro->pMtrPara->bProId == PROTOCOLNO_SBJC)
 			{
-				wFailCnt = 3;
+				bFailCnt = 3;
+				WriteItemEx(BN2, wPn, 0x6004, &bFailCnt);
 			}           
 #endif
 
-			if (wFailCnt >= 3)
+			if (bFailCnt >= bTryCnt/*3*/)
 			{
 				OnMtrErrEstb(wPn);
 				DoPortRdErr(true);

@@ -59,6 +59,7 @@ BYTE g_bCosDataFmt[3] = {0x01, 0x04, DT_LONG};
 BYTE g_bFreqDataFmt[] = {0x01, 0x01, DT_LONG_U};
 BYTE g_bVarDmdFmt[] = {DT_DB_LONG};							//需量
 BYTE g_bPwrPrice[1] = {DT_DB_LONG_U};	//电价
+BYTE g_bCurSetPwrPrice[] = {DT_ARRAY, 0x20, DT_DB_LONG_U};	//当前套费率电价
 BYTE g_bRtcVolFmt[] = {DT_LONG_U};
 BYTE g_bMtrBlkRunStateFmt[5] = {DT_ARRAY, 0x07, DT_BIT_STR, 0x10,LRF};	//电表运行状态字
 BYTE g_bMtrSubRunStateFmt[3] = {DT_BIT_STR, 0x10,LRF};	//电表运行状态字1~7
@@ -720,6 +721,7 @@ DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,
 DT_STRUCT,3,DT_UNSIGN,DT_UNSIGN,DT_UNSIGN,							
 };
 
+BYTE g_bExceptFmt[] = {DT_ENUM};
 
 //无线公网属性2：通信配置
 BYTE g_bGprs2Fmt[] = {0x02, 0x0C, 
@@ -789,7 +791,7 @@ DT_LONG_U,	//已接收报文条数
 BYTE g_bYkParaFmt[] = {DT_STRUCT, 2,
 DT_DB_LONG_U,
 DT_LONG_U};
-BYTE g_bCtrlStaFmt[] = {DT_BIT_STR, 1, RLF};
+BYTE g_bCtrlStaFmt[] = {DT_BIT_STR, 8, RLF};
 
 BYTE g_bGuarant02Fmt[] = {DT_ENUM};
 BYTE g_bGuarant03Fmt[] = {DT_LONG_U};
@@ -813,75 +815,75 @@ BYTE g_bTurnAlrTimeFmt[] = {DT_ARRAY, 8,
 DT_UNSIGN,							
 }; //轮次告警时间
 BYTE g_bPeriodCtrlParaFmt[] = {
-	DT_ARRAY, 8,
-	DT_STRUCT, 6,
-	DT_OI,	//总加组对象
-	DT_BIT_STR,	1, RLF, //方案标识
-	DT_STRUCT, 9, //第一套定值
-	DT_BIT_STR,	1, RLF, //时段号
-	DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8个时段功控定值
-	DT_STRUCT, 9, //第二套定值
-	DT_BIT_STR,	1, RLF, //时段号
-	DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8个时段功控定值
-	DT_STRUCT, 9, //第三套定值
-	DT_BIT_STR,	1, RLF, //时段号
-	DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8个时段功控定值
-	DT_INT, //时段功控定值浮动系数
+							DT_ARRAY, 8,
+							DT_STRUCT, 6,
+							DT_OI,	//总加组对象
+							DT_BIT_STR,	8, RLF, //方案标识
+							DT_STRUCT, 9, //第一套定值
+							DT_BIT_STR,	8, RLF, //时段号
+							DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8个时段功控定值
+							DT_STRUCT, 9, //第二套定值
+							DT_BIT_STR,	8, RLF, //时段号
+							DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8个时段功控定值
+							DT_STRUCT, 9, //第三套定值
+							DT_BIT_STR,	8, RLF, //时段号
+							DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8个时段功控定值
+							DT_INT, //时段功控定值浮动系数
 }; //时段功控配置方案集
 BYTE g_bRestCtrlParaFmt[] = {
-	DT_ARRAY, 8,
-	DT_STRUCT, 5,
-	DT_OI,	//总加组对象
-	DT_LONG64, //厂休控定值
-	DT_DATE_TIME_S, //限电起始时间
-	DT_LONG_U, //限电延续时间
-	DT_BIT_STR,	1, RLF, //每周限电日
+							DT_ARRAY, 8,
+							DT_STRUCT, 5,
+							DT_OI,	//总加组对象
+							DT_LONG64, //厂休控定值
+							DT_DATE_TIME_S, //限电起始时间
+							DT_LONG_U, //限电延续时间
+							DT_BIT_STR,	8, RLF, //每周限电日
 }; //厂休控配置方案集
 BYTE g_bShutoutCtrlParaFmt[] = {
-	DT_ARRAY, 8,
-	DT_STRUCT, 4,
-	DT_OI,	//总加组对象
-	DT_DATE_TIME_S, //报停起始时间
-	DT_DATE_TIME_S, //报停结束时间
-	DT_LONG64, //报停控功率定值
+							DT_ARRAY, 8,
+							DT_STRUCT, 4,
+							DT_OI,	//总加组对象
+							DT_DATE_TIME_S, //报停起始时间
+							DT_DATE_TIME_S, //报停结束时间
+							DT_LONG64, //报停控功率定值
 }; //营业报停控配置方案集
 BYTE g_bBuyCtrlParaFmt[] = {
-	DT_ARRAY, 8,
-	DT_STRUCT, 8,
-	DT_OI,	//总加组对象
-	DT_DB_LONG_U, //购电单号
-	DT_ENUM, //追加/刷新标识
-	DT_ENUM, //购电类型
-	DT_LONG64, //购电量（费）值
-	DT_LONG64, //报警门限值
-	DT_LONG64, //跳闸门限值
-	DT_ENUM, //购电控模式
+							DT_ARRAY, 8,
+							DT_STRUCT, 8,
+							DT_OI,	//总加组对象
+							DT_DB_LONG_U, //购电单号
+							DT_ENUM, //追加/刷新标识
+							DT_ENUM, //购电类型
+							DT_LONG64, //购电量（费）值
+							DT_LONG64, //报警门限值
+							DT_LONG64, //跳闸门限值
+							DT_ENUM, //购电控模式
 }; //购电控配置方案集
 BYTE g_bMonthCtrlParaFmt[] = {
-	DT_ARRAY, 8,
-	DT_STRUCT, 4,
-	DT_OI,	//总加组对象
-	DT_LONG64, //月电量控定值
-	DT_UNSIGN, //报警门限值系数
-	DT_INT, //月电量控定值浮动系数
+							DT_ARRAY, 8,
+							DT_STRUCT, 4,
+							DT_OI,	//总加组对象
+							DT_LONG64, //月电量控定值
+							DT_UNSIGN, //报警门限值系数
+							DT_INT, //月电量控定值浮动系数
 }; //月电控配置方案集
 BYTE g_bCtrlInputStatusFmt[] = {
-	DT_ARRAY, 8,
-	DT_STRUCT, 2,
-	DT_OI,	//总加组对象
-	DT_ENUM, //投入状态
+							DT_ARRAY, 8,
+							DT_STRUCT, 2,
+							DT_OI,	//总加组对象
+							DT_ENUM, //投入状态
 }; //控制投入状态
 BYTE g_bCtrlOutputStatusFmt[] = {
-	DT_ARRAY, 8,
-	DT_STRUCT, 2,
-	DT_OI,	//总加组对象
-	DT_BIT_STR, 1, RLF, //输出状态
+							DT_ARRAY, 8,
+							DT_STRUCT, 2,
+							DT_OI,	//总加组对象
+							DT_BIT_STR, 8, RLF, //输出状态
 }; //控制输出状态
 BYTE g_bCtrlAlrStatusFmt[] = {
-	DT_ARRAY, 8,
-	DT_STRUCT, 2,
-	DT_OI,	//总加组对象
-	DT_ENUM, //告警状态
+							DT_ARRAY, 8,
+							DT_STRUCT, 2,
+							DT_OI,	//总加组对象
+							DT_ENUM, //告警状态
 }; //越限告警状态
 
 ////ESAM////////////////////////////////////////////////////
@@ -1310,30 +1312,30 @@ DT_ENUM,		//运算符标志 enum
 BYTE g_bGrpPowFmt[] = {DT_LONG64};	//总加组功率
 BYTE g_bGrpEngFmt[] = {DT_ARRAY, 5, DT_LONG64};	//总加组电能量
 BYTE g_bGrpSlipIntervFmt[] = {DT_UNSIGN};	//总加组滑差周期
-BYTE g_bGrpTurnFmt[] = {DT_BIT_STR, 1, RLF};	//总加组轮次配置
+BYTE g_bGrpTurnFmt[] = {DT_BIT_STR, 8, RLF};	//总加组轮次配置
 BYTE g_bGrpCtrlStaCfgFmt[] = {DT_STRUCT, 6,		//结构及成员个数
-DT_UNSIGN,	//时段控定值方案号
-DT_BIT_STR, 1, RLF,	//功控时段有效标志位
-DT_BIT_STR, 1, RLF,	//功控状态
-DT_BIT_STR, 1, RLF,	//电控状态
-DT_BIT_STR, 1, RLF,	//功控轮次状态
-DT_BIT_STR, 1, RLF,	//电控轮次状态
-};	//总加组控制设置状态
+								DT_UNSIGN,	//时段控定值方案号
+								DT_BIT_STR, 8, RLF,	//功控时段有效标志位
+								DT_BIT_STR, 8, RLF,	//功控状态
+								DT_BIT_STR, 8, RLF,	//电控状态
+								DT_BIT_STR, 8, RLF,	//功控轮次状态
+								DT_BIT_STR, 8, RLF,	//电控轮次状态
+							};	//总加组控制设置状态
 BYTE g_bGrpCtrlStaCurFmt[] = {DT_STRUCT, 7,		//结构及成员个数
-DT_LONG64,	//当前功控定值
-DT_INT,	//当前功率下浮控浮动系数
-DT_BIT_STR, 1, RLF,	//功控跳闸输出状态
-DT_BIT_STR, 1, RLF,	//月电控跳闸输出状态
-DT_BIT_STR, 1, RLF,	//购电控跳闸输出状态
-DT_BIT_STR, 1, RLF,	//功控越限告警状态
-DT_BIT_STR, 1, RLF,	//电控越限告警状态
+								DT_LONG64,	//当前功控定值
+								DT_INT,	//当前功率下浮控浮动系数
+								DT_BIT_STR, 8, RLF,	//功控跳闸输出状态
+								DT_BIT_STR, 8, RLF,	//月电控跳闸输出状态
+								DT_BIT_STR, 8, RLF,	//购电控跳闸输出状态
+								DT_BIT_STR, 8, RLF,	//功控越限告警状态
+								DT_BIT_STR, 8, RLF,	//电控越限告警状态
 };	//总加组当前控制状态
 BYTE g_bGrpDataUnitFmt[] = { DT_STRUCT, 10, 
-DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT,  //属性3~属性7单位
-DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT,  //属性8~属性12单位
-};	//总加组换算及单位
+								DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT,  //属性3~属性7单位
+								DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT, DT_SCALE_UNIT,  //属性8~属性12单位
+								};	//总加组换算及单位
 //脉冲计量相关格式
-BYTE g_bCommAddrFmt[] = { DT_OCT_STR, 16 };	//RLV
+BYTE g_bCommAddrFmt[] = { DT_OCT_STR, 16, RLV};	//RLV
 
 BYTE g_bPTCTFmt[] = { DT_STRUCT, 0x02,
 DT_LONG_U,		//PT
@@ -2975,11 +2977,11 @@ ToaMap g_OIConvertClass[] =
 	{0x33080206,	8,		MAP_SYSDB,		0x3A0E,	 	 PN0,   0,		g_bEvtMaxDmdFmt,				sizeof(g_bEvtMaxDmdFmt),		NULL},//电能表需量超限事件单元∷超限期间需量最大值  double-long-unsigned
 	{0x33080207,	8,		MAP_SYSDB,		0x3A0F,	 	 PN0,   0,		g_bEvtMaxDmdDateFmt,			sizeof(g_bEvtMaxDmdDateFmt),		NULL},//电能表需量超限事件单元∷超限期间需量最大值发生时间  date_time_s
 	{0x33090206,	8,		MAP_SYSDB,		0x3A10,	 	 PN0,   0,		g_bEvtBitStrFmt,					sizeof(g_bEvtBitStrFmt),		NULL},//停/上电事件记录单元∷属性标志     bit-string（SIZE(8)）
+	{0x330A0206,	8,		MAP_SYSDB,		0x3A11,	 	 PN0,   0,		g_bEvtYKCtrlPEFmt,				sizeof(g_bEvtYKCtrlPEFmt),		NULL},//遥控事件记录单元∷控后2分钟总加组功率 array long64
 	{0x330B0206,	8,		MAP_SYSDB,		0x3A12,	 	 PN0,   0,		g_bEvtLong64Fmt,					sizeof(g_bEvtLong64Fmt),		NULL},//有功总电能量差动越限事件记录单元∷越限时对比总加组有功总电能量 long64（单位：kWh，换算：-4），
 	{0x330B0207,	8,		MAP_SYSDB,		0x3A13,	 	 PN0,   0,		g_bEvtLong64Fmt,						sizeof(g_bEvtLong64Fmt),		NULL},//有功总电能量差动越限事件记录单元∷越限时参照总加组有功总电能量 long64（单位：kWh，换算：-4），
 	{0x330B0208,	8,		MAP_SYSDB,		0x3A14,	 	 PN0,   0,		g_bEvtIntFmt,					sizeof(g_bEvtIntFmt),		NULL},//有功总电能量差动越限事件记录单元∷越限时差动越限相对偏差值 integer（单位：%，换算：0）	
 	{0x330B0209,	8,		MAP_SYSDB,		0x3A15,	 	 PN0,   0,		g_bEvtLong64Fmt,					sizeof(g_bEvtLong64Fmt),		NULL},//有功总电能量差动越限事件记录单元∷越限时差动越限绝对偏差值 long64（单位：kWh，换算：-4）	
-	{0x330A0206,	8,		MAP_SYSDB,		0x3A11,	 	 PN0,   0,		g_bEvtYKCtrlPEFmt,				sizeof(g_bEvtYKCtrlPEFmt),		NULL},//遥控事件记录单元∷控后2分钟总加组功率 array long64
 	{0x330C0206,	8,		MAP_SYSDB,		0x3A16,	 	 PN0,   0,		g_bEvtClearrOMDFmt,				sizeof(g_bEvtClearrOMDFmt),		NULL},//事件清零事件记录单元∷事件清零事件记录单元，array OMD
 	{0x330D0206,	8,		MAP_SYSDB,		0x3A17,	 	 PN0,   0,		g_bEvtMtrClkTimeFmt,				sizeof(g_bEvtMtrClkTimeFmt),		NULL},//终端对电表校时记录单元∷校时前时钟    date_time_s
 	{0x330D0207,	8,		MAP_SYSDB,		0x3A18,	 	 PN0,   0,		g_bEvtMtrClkErrFmt,				sizeof(g_bEvtMtrClkErrFmt),		NULL},//终端对电表校时记录单元∷时钟误差      integer（单位：秒，无换算）
@@ -3018,6 +3020,8 @@ ToaMap g_OIConvertClass[] =
 	{0x40150200,	8,		MAP_SYSDB,		0x4015, 	PN0,   0,		g_bZoneNumParam,		sizeof(g_bZoneNumParam),	NULL},	//备用套时区表
 	{0x40160200,	8,		MAP_SYSDB,		0x4016, 	PN0,   0,		g_bDayChartParam,		sizeof(g_bDayChartParam),	NULL},	//当前套日时段表
 	{0x40170200,	8,		MAP_SYSDB,		0x4017, 	PN0,   0,		g_bDayChartParam,		sizeof(g_bDayChartParam),	NULL},	//备用套日时段表
+	{0x40180200,	8,		MAP_SYSDB,		0x4018, 	PN0,   0,		g_bCurSetPwrPrice,		sizeof(g_bCurSetPwrPrice),	NULL},	//备用套日时段表
+	{0x40240200,	8,		MAP_SYSDB,		0x4024, 	PN0,   0,		g_bExceptFmt,			sizeof(g_bExceptFmt),	NULL},	//剔除状态
 	{0x40300200,	8,		MAP_SYSDB,		0x4030,		PN0,   0,		g_bVolParaFmt,			sizeof(g_bVolParaFmt),		NULL},	//电压合格率参数
 	{0x41000200,	8,		MAP_SYSDB,		0x4100,		PN0,   0,		g_bUnSignTypeFmt,			sizeof(g_bUnSignTypeFmt),		NULL},  //最大需量周期
 	{0x41010200,	8,		MAP_SYSDB,		0x4101, 	PN0,   0,		g_bUnSignTypeFmt,			sizeof(g_bUnSignTypeFmt),		NULL},	//滑差时间
@@ -3363,14 +3367,16 @@ BYTE g_bEsamTimeBarUpdateFmt[] = {
 BYTE g_bUrgeParaFmt[] = {
 	DT_STRUCT,	//struct
 	2,
-	DT_OCT_STR, 3,	RLF,
-	DT_VIS_STR, 200, RLV,
+	DT_OCT_STR, 3,	RLV,//RLF,
+	DT_VIS_STR, 0x81, 200, RLV,
 };
 
 BYTE g_bAddChineseInfoFmt[] = {
+	DT_STRUCT,	//struct
+	3,
 	DT_UNSIGN,	//序号
 	DT_DATE_TIME_S,	//发布时间
-	DT_VIS_STR, 200, RLV 	//信息内容
+	DT_VIS_STR, 0x81, 200, RLV 	//信息内容
 };
 
 BYTE g_bDelChineseInfoFmt[] = {
@@ -3380,23 +3386,24 @@ BYTE g_bDelChineseInfoFmt[] = {
 BYTE g_bPeriodCtrlUnitFmt[] = {
 	DT_STRUCT, 6,
 	DT_OI,	//总加组对象
-	DT_BIT_STR,	1, RLF, //方案标识
+	DT_BIT_STR,	8, RLF, //方案标识
 	DT_STRUCT, 9, //第一套定值
-	DT_BIT_STR,	1, RLF, //时段号
+	DT_BIT_STR,	8, RLF, //时段号
 	DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8个时段功控定值
 	DT_STRUCT, 9, //第二套定值
-	DT_BIT_STR,	1, RLF, //时段号
+	DT_BIT_STR,	8, RLF, //时段号
 	DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8个时段功控定值
 	DT_STRUCT, 9, //第三套定值
-	DT_BIT_STR,	1, RLF, //时段号
+	DT_BIT_STR,	8, RLF, //时段号
 	DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, DT_LONG64, //1~8个时段功控定值
 	DT_INT, //时段功控定值浮动系数
 }; //时段功控配置单元
 
 BYTE g_bPeriodCtrlChgFmt[] = {
+	DT_STRUCT, 2,
 	DT_OI,	//总加组对象
 	DT_STRUCT, 2,
-	DT_BIT_STR,	1, RLF, //时段功控投入标识
+	DT_BIT_STR,	8, RLF, //时段功控投入标识
 	DT_UNSIGN, //时段功控定值方案号
 }; //时段功控切换
 
@@ -3406,7 +3413,7 @@ BYTE g_bRestCtrlUnitFmt[] = {
 	DT_LONG64, //厂休控定值
 	DT_DATE_TIME_S, //限电起始时间
 	DT_LONG_U, //限电延续时间
-	DT_BIT_STR,	1, RLF, //每周限电日
+	DT_BIT_STR,	8, RLF, //每周限电日
 }; //厂休控配置单元
 
 BYTE g_bShutoutCtrlUnitFmt[] = {
@@ -3418,6 +3425,7 @@ BYTE g_bShutoutCtrlUnitFmt[] = {
 }; //营业报停控配置单元
 
 BYTE g_bInputTmpCtrlFmt[] = {
+	DT_STRUCT, 2,
 	DT_OI,	//总加组对象
 	DT_STRUCT, 8,
 	DT_UNSIGN, //当前功率下浮控定值滑差时间    unsigned（单位：分钟），
@@ -3478,8 +3486,8 @@ static BYTE g_bRS485PortParaCfgFmt[] = {
 
 
 static BYTE g_bInfraPortParaCfgFmt[] = {
-	//		DT_ARRAY,	//array
-	//		MAX_HW_PORT_NUM,	//最大个数
+//		DT_ARRAY,	//array
+//		MAX_HW_PORT_NUM,	//最大个数
 	DT_STRUCT,	//struct
 	2,	//成员个数
 	DT_OAD,
@@ -3488,8 +3496,8 @@ static BYTE g_bInfraPortParaCfgFmt[] = {
 
 
 static BYTE g_bRelayParaCfgFmt[] = {
-	//		DT_ARRAY,	//array
-	//		MAX_RLY_PORT_NUM,	//最大个数
+//		DT_ARRAY,	//array
+//		MAX_RLY_PORT_NUM,	//最大个数
 	DT_STRUCT,	//struct
 	2,	//成员个数
 	DT_OAD,
@@ -3497,8 +3505,8 @@ static BYTE g_bRelayParaCfgFmt[] = {
 };
 
 static BYTE g_bMulPortCfgFmt[] = {
-	//		DT_ARRAY,	//array
-	//		MAX_MUL_PORT_NUM,	//最大个数
+//		DT_ARRAY,	//array
+//		MAX_MUL_PORT_NUM,	//最大个数
 	DT_STRUCT,	//struct
 	2,	//成员个数
 	DT_OAD,
@@ -3513,8 +3521,8 @@ static BYTE g_bPlcTransCfgFmt[] = {//透明转发（参数）
 	DT_OCT_STR, 0x7f,RLV,
 };
 static BYTE g_bPlcPortParaCfgFmt[] = {
-	//		DT_ARRAY,	//array
-	//		MAX_PLC_PORT_NUM,	//最大个数
+//		DT_ARRAY,	//array
+//		MAX_PLC_PORT_NUM,	//最大个数
 	DT_STRUCT,	//struct
 	2,	//成员个数
 	DT_OAD,
@@ -3923,6 +3931,7 @@ TOmMap g_OmMap[] =
 	{0x43000400,	19,				NULL,		NULL,						DoDevInterfaceClass19,			NULL},	//恢复出厂参数
 	{0x43000500,	19,				NULL,		NULL,						DoDevInterfaceClass19,			NULL},	//事件初始化
 	{0x43000600,	19,				NULL,		NULL,						DoDevInterfaceClass19,			NULL},	//需量初始化
+	{0x4300AB00,	19,				NULL,		NULL,						IRCtrlCommandMethod171,			NULL},	//红外控制命令
 
 	{0x45000100,	25,				NULL,		NULL,						DoGprsInterfaceClass25,			NULL},	//公网设备初始化
 	{0x45010100,	25,				NULL,		NULL,						DoGprsInterfaceClass25,			NULL},	//公网设备初始化
@@ -4108,7 +4117,10 @@ TOmMap g_OmMap[] =
 
 	{0x80028000,	8,				NULL,		NULL,						QuitUrgeFeeMethod128,			NULL},	//OI=0x8002 方法：128	取消催费告警
 	{0x80037F00,	8,	g_bAddChineseInfoFmt,sizeof(g_bAddChineseInfoFmt),	AddChineseInfoMethod127,		NULL},	//OI=0x8003 方法：127	添加中文信息
-	{0x80038000,	8,	g_bAddChineseInfoFmt,sizeof(g_bAddChineseInfoFmt),	DelChineseInfoMethod128,		NULL},	//OI=0x8003 方法：128	删除中文信息
+	{0x80038000,	8,	g_bDelChineseInfoFmt,sizeof(g_bDelChineseInfoFmt),	DelChineseInfoMethod128,		NULL},	//OI=0x8003 方法：128	删除中文信息
+
+	{0x80047F00,	8,	g_bAddChineseInfoFmt,sizeof(g_bAddChineseInfoFmt),	AddChineseInfoMethod127,		NULL},	//OI=0x8004 方法：127	添加重要中文信息
+	{0x80048000,	8,	g_bDelChineseInfoFmt,sizeof(g_bDelChineseInfoFmt),	DelChineseInfoMethod128,		NULL},	//OI=0x8004 方法：128	删除重要中文信息
 
 	{0x81030300,	13,	g_bPeriodCtrlUnitFmt,sizeof(g_bPeriodCtrlUnitFmt),	AddCtrlUnitMethod3,				NULL},	//OI=0x8103 方法：3	添加控制单元
 	{0x81030400,	13,	g_bDelCtrlUnitFmt,	 sizeof(g_bDelCtrlUnitFmt),		DelCtrlUnitMethod4,				NULL},	//OI=0x8103 方法：4	删除控制单元
@@ -4327,10 +4339,12 @@ int AddGrpCfgMethod3(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPa
 	{
 		if (bPnNum < MAX_GRP_PN)
 		{
-			int iParaLen = OoDataFieldScan(bBuf, pOadMap->pFmt, pOadMap->wFmtLen);
-			if (iParaLen > 0)
+			int iLen = OoDataFieldScan(bBuf, pOadMap->pFmt, pOadMap->wFmtLen);
+			if (iLen>0 || IsAllAByte(bBuf, 0, sizeof(bBuf)))
 			{
-				memcpy(&bBuf[iParaLen], pbPara, iParaLen);
+				if (iLen <= 0)
+					iLen = 2;
+				memcpy(&bBuf[iLen], pbPara, iParaLen);
 				bPnNum++;
 				bBuf[0] = DT_ARRAY;
 				bBuf[1] = bPnNum;
@@ -4402,7 +4416,7 @@ int DelGrpCfgMethod5(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPa
 	for (BYTE i=0; i<bPnNum; i++)
 	{
 		pbBuf = OoGetField(bBuf, pOadMap->pFmt, pOadMap->wFmtLen, i, &wLen, &bType);
-		if (memcmp(pbBuf, pbPara, iParaLen) == 0)
+		if (memcmp(pbBuf+2, pbPara, iParaLen) == 0)
 		{
 			memset(pbBuf, 0, wLen);
 			memmove(pbBuf, pbBuf+wLen, GRPPARA_LEN-(pbBuf-bBuf)-wLen);
@@ -4560,11 +4574,15 @@ int DoClass11Method127_AddMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 	if (iRet > 0)
 	{
 		if (!fSameMtr)
-		{
+		{  //  下发不同表计时，处理完信号(INFO_MTR_UPDATE)后,再发档案同步信号(INFO_SYNC_MTR)
 			SetMtrSnToPn(wPn, wSn);
 			TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
 			SetDelayInfo(INFO_MTR_UPDATE);
 		}
+        else
+        { //  下发相同表计时，出发档案同步
+            SetInfo(INFO_SYNC_MTR);
+        }
 		
 #ifdef EN_SBJC_V2_CVTEXTPRO
 		BYTE bAddL = bBuf[9];
@@ -4620,6 +4638,7 @@ int DoClass11Method129_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 	TOobMtrInfo tMtrInfo;
 	WORD wMtrSn, wPn;
 	BYTE *pbPara0 = pbPara;
+	BYTE bSecurity[2] = {0};
 
 	if (*pbPara++ != DT_STRUCT)
 		return -1;
@@ -4673,7 +4692,10 @@ int DoClass11Method129_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 	*piRetLen = pbPara - pbPara0;
 	if (SetMeterInfo(wPn, tMtrInfo))
 	{
+		memset(bSecurity, 0, sizeof(bSecurity));	
+		WriteItemEx(BN0, wPn, 0xF116, bSecurity);//清除电表安全模式参数
 		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
+		TrigerSaveBank(BN0, SECT_ESAM, -1);
 		DTRACE(DB_FAPROTO, ("Update meter successful.\n"));
 		pbRes[0] = DAR_SUCC;
 		return 1;
@@ -4689,6 +4711,7 @@ int DoClass11Method130_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 	TOobMtrInfo tMtrInfo;
 	WORD wMtrSn, wPn;
 	BYTE *pbPara0 = pbPara;
+	BYTE bSecurity[2] = {0};
 
 	if (*pbPara++ != DT_STRUCT)
 		return -1;
@@ -4727,6 +4750,9 @@ int DoClass11Method130_UpdataMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* p
 	
 	if (SetMeterInfo(wPn, tMtrInfo))
 	{
+		memset(bSecurity, 0, sizeof(bSecurity));	
+		WriteItemEx(BN0, wPn, 0xF116, bSecurity);//清除电表安全模式参数
+		TrigerSaveBank(BN0, SECT_ESAM, -1);
 		DTRACE(DB_FAPROTO, ("Update meter successful.\n"));
 		pbRes[0] = DAR_SUCC;
 		return 1;
@@ -4743,7 +4769,7 @@ int DoClass11Method131_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 {
 	WORD wMtrSn, wPn;
 	BYTE bBuf[256];
-
+	BYTE bSecurity[2] = {0};
 
 	*piRetLen = 3;
 
@@ -4758,6 +4784,9 @@ int DoClass11Method131_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 		WriteItemEx(BN0, wPn, 0x6000, bBuf);
 		SetMtrSnToPn(wPn, 0);	//清除映射
 		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
+		memset(bSecurity, 0, sizeof(bSecurity));	
+		WriteItemEx(BN0, wPn, 0xF116, bSecurity);//清除电表安全模式参数
+		TrigerSaveBank(BN0, SECT_ESAM, -1);
 		DTRACE(DB_FAPROTO, ("Delete meter successful wPn=%d.\n", wPn));
 		SetRdMtrCtrlMask(wPn);
 	}
@@ -4774,6 +4803,7 @@ int DoClass11Method132_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 	BYTE bBuf[256];
 	BYTE *pbPara0 = pbPara;
 	bool fDelMtrFlg;
+	BYTE bSecurity[2] = {0};
 
 	memset((BYTE*)&tDelMtrInfo, 0, sizeof(tDelMtrInfo));
 	if ((*pbPara++ != DT_STRUCT) || (*pbPara++ != 0x0a))
@@ -4841,6 +4871,8 @@ int DoClass11Method132_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 			WriteItemEx(BN0, wPn, 0x6000, bBuf);
 			SetMtrSnToPn(wPn, 0);	//清除映射
 			SetRdMtrCtrlMask(wPn);	//待清除的抄表控制结构
+			memset(bSecurity, 0, sizeof(bSecurity));	
+			WriteItemEx(BN0, wPn, 0xF116, bSecurity);//清除电表安全模式参数
 			fDelMtrFlg  = true;
 			break;
 		}
@@ -4851,6 +4883,7 @@ int DoClass11Method132_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 		iRet = 1;
 		pbRes[0] = DAR_SUCC;
 		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
+		TrigerSaveBank(BN0, SECT_ESAM, -1);
 		DTRACE(DB_FAPROTO, ("Delete meter successful wPn=%d.\n", wPn));
 	}
 	else
@@ -4875,6 +4908,7 @@ int DoClass11Method133_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 	BYTE *pbPara0 = pbPara;
 	BYTE bBuf[256];
 	bool fDelMtrFlg = false;
+	BYTE bSecurity[2] = {0};
 
 	if (*pbPara++ != DT_STRUCT)
 		return -1;
@@ -4901,6 +4935,8 @@ int DoClass11Method133_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 				WriteItemEx(BN0, wPn, 0x6000, bBuf);
 				SetMtrSnToPn(wPn, 0);	//清除映射
 				SetRdMtrCtrlMask(wPn);	//待清除的抄表控制结构
+				memset(bSecurity, 0, sizeof(bSecurity));	
+				WriteItemEx(BN0, wPn, 0xF116, bSecurity);//清除电表安全模式参数
 				fDelMtrFlg = true;
 				DTRACE(DB_FAPROTO, ("DoClass11Method133_DelMeter: Delete meter wPn=%d.\n", wPn));
 				break;
@@ -4909,8 +4945,11 @@ int DoClass11Method133_DelMeter(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPa
 	}
 
 	if (fDelMtrFlg)
+	{
 		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
-
+		TrigerSaveBank(BN0, SECT_ESAM, -1);
+	}
+	
 	*piRetLen = pbPara - pbPara0;
 
 	pbRes[0] = DAR_SUCC;
@@ -4923,6 +4962,7 @@ int DoClass11Method134_DelAllMtr(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbP
 	WORD wPn;
 	BYTE bBuf[MTR_PARA_LEN];
 	bool fDelMtrFlg = false;
+	BYTE bSecurity[2] = {0};
 
 	if(*pbPara != 0)//协议一致性判断入参
 		return -1;
@@ -4934,13 +4974,18 @@ int DoClass11Method134_DelAllMtr(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbP
 			memset(bBuf, 0, sizeof(bBuf));	
 			WriteItemEx(BN0, wPn, 0x6000, bBuf);
 			SetMtrSnToPn(wPn, 0);	//清除映射
+			memset(bSecurity, 0, sizeof(bSecurity));	
+			WriteItemEx(BN0, wPn, 0xF116, bSecurity);//清除电表安全模式参数
 			fDelMtrFlg = true;
 		}
 	}
 
 	if (fDelMtrFlg)
+	{
 		TrigerSaveBank(BN0, SECT_ACQ_MONI, -1);
-
+		TrigerSaveBank(BN0, SECT_ESAM, -1);
+	}
+	
 	DTRACE(DB_FAPROTO, ("Delete all meter successful.\n"));
 	SetDelayInfo(INFO_MTR_ALL_CLEAR);
 
@@ -5494,7 +5539,7 @@ int YkCtrlDisAlertMethod128(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, 
 int YkCtrlOpenMethod129(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	BYTE *pbPtr = pbPara;
-	BYTE bNum, bTurn, bBuf[2];
+	BYTE bNum, bTurn, bBuf[4];
 	int iLen = iParaLen;
 	TTime t;
 	GetCurTime( &t );
@@ -5515,9 +5560,11 @@ int YkCtrlOpenMethod129(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 
 		ReadItemEx(BN0, PN0, 0x8202, bBuf);
 		bBuf[0] = DT_BIT_STR;
-		bBuf[1] |= (0x01<<(bTurn-1));		//保存当前轮次'遥控命令状态'.
+		bBuf[1] = 8;
+		bBuf[2] |= (0x01<<(bTurn-1));		//保存当前轮次'遥控命令状态'.
 		WriteItemEx(BN0, PN0, 0x8202, bBuf);	//写"终端当前控制状态".
 	}
+	Sleep(1000); //台体下发命令后立即读取状态，延时1秒，等待控制线程扫描命令
 
 	return 0;
 }
@@ -5525,7 +5572,7 @@ int YkCtrlOpenMethod129(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int 
 int YkCtrlCloseMethod130(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	BYTE *pbPtr = pbPara;
-	BYTE bNum, bTurn, bBuf[2];
+	BYTE bNum, bTurn, bBuf[4];
 	int iLen = iParaLen;
 	TTime t;
 	GetCurTime( &t );
@@ -5546,9 +5593,11 @@ int YkCtrlCloseMethod130(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int
 
 		ReadItemEx(BN0, PN0, 0x8202, bBuf);
 		bBuf[0] = DT_BIT_STR;
-		bBuf[1] &= ~(0x01<<(bTurn-1));		//保存当前轮次'遥控命令状态'.
+		bBuf[1] = 8;
+		bBuf[2] &= ~(0x01<<(bTurn-1));		//保存当前轮次'遥控命令状态'.
 		WriteItemEx(BN0, PN0, 0x8202, bBuf);	//写"终端当前控制状态".
 	}
+	Sleep(1000); //台体下发命令后立即读取状态，延时1秒，等待控制线程扫描命令
 
 	return 0;
 }
@@ -5562,6 +5611,7 @@ int InputGuaranteeMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, 
 
 	bBuf[0] = 1; //保电投入
 	WriteItemEx(BN0, PN0, 0x8213, bBuf, dwSecs);
+	Sleep(1000); //台体下发命令后立即读取状态，延时1秒，等待控制线程扫描命令
 	return 0;
 }
 
@@ -5574,6 +5624,7 @@ int QuitGuaranteeMethod128(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, i
 
 	bBuf[0] = 2; //保电解除
 	WriteItemEx(BN0, PN0, 0x8213, bBuf, dwSecs);
+	Sleep(1000); //台体下发命令后立即读取状态，延时1秒，等待控制线程扫描命令
 	return 0;
 }
 
@@ -5591,7 +5642,7 @@ int QuitAutoGuaranteeMethod129(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPar
 
 int InputUrgeFeeMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
-	BYTE bBuf[210];
+	BYTE bBuf[256];
 	TTime t;
 	GetCurTime( &t );
 	DWORD dwSecs = TimeToSeconds( t );
@@ -5599,12 +5650,13 @@ int InputUrgeFeeMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, in
 	bBuf[0] = 1; //催费告警投入
 	memcpy(&bBuf[1], pbPara, iParaLen);
 	WriteItemEx(BN0, PN0, 0x8220, bBuf, dwSecs);
+	Sleep(1000); //台体下发命令后立即读取状态，延时1秒，等待控制线程扫描命令
 	return 0;
 }
 
 int QuitUrgeFeeMethod128(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
-	BYTE bBuf[210];
+	BYTE bBuf[256];
 	TTime t;
 	GetCurTime( &t );
 	DWORD dwSecs = TimeToSeconds( t );
@@ -5612,6 +5664,7 @@ int QuitUrgeFeeMethod128(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int
 	memset(bBuf, 0, sizeof(bBuf));
 	bBuf[0] = 2; //取消催费告警
 	WriteItemEx(BN0, PN0, 0x8220, bBuf, dwSecs);
+	Sleep(1000); //台体下发命令后立即读取状态，延时1秒，等待控制线程扫描命令
 	return 0;
 }
 
@@ -5623,7 +5676,7 @@ int AddChineseInfoMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, 
 	GetCurTime( &t );
 	DWORD dwSecs = TimeToSeconds( t );
 
-	bNo = pbPara[1]; //中文信息编号
+	bNo = pbPara[3]; //中文信息编号
 	bSerialNo = 0;
 	for (i=0; i<GB_MAXCOMCHNNOTE; i++)
 	{
@@ -5641,13 +5694,13 @@ int AddChineseInfoMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, 
 	if ( bSerialNo!=0 && bSerialNo<=GB_MAXCOMCHNNOTE)
 	{
 		memset(bBuf, 0, sizeof(bBuf));
-		bBuf[0] = iParaLen + 4;
+		bBuf[0] = iParaLen + 4 - 2;
 		bBuf[1] = DT_STRUCT;
 		bBuf[2] = 4;
-		memcpy(&bBuf[3], pbPara, 10); //序号+发布时间
+		memcpy(&bBuf[3], pbPara + 2, 10); //序号+发布时间
 		bBuf[13] = DT_BOOL;
 		bBuf[14] = false; //阅读标志
-		memcpy(&bBuf[15], pbPara+10, iParaLen-10); //内容
+		memcpy(&bBuf[15], pbPara+12, iParaLen-12); //内容
 		WriteItemEx(BN0, bSerialNo-1, wOI, bBuf, dwSecs); //替换原来的短信
 	}
 	else //压桟方式存储
@@ -5657,13 +5710,13 @@ int AddChineseInfoMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, 
 			if (i == (GB_MAXCOMCHNNOTE-1))//写入最新的一条
 			{
 				memset(bBuf, 0, sizeof(bBuf));
-				bBuf[0] = iParaLen + 4;
+				bBuf[0] = iParaLen + 4 - 2;
 				bBuf[1] = DT_STRUCT;
 				bBuf[2] = 4;
-				memcpy(&bBuf[3], pbPara, 10); //序号+发布时间
+				memcpy(&bBuf[3], pbPara + 2, 10); //序号+发布时间
 				bBuf[13] = DT_BOOL;
 				bBuf[14] = false; //阅读标志
-				memcpy(&bBuf[15], pbPara+10, iParaLen-10); //内容
+				memcpy(&bBuf[15], pbPara+12, iParaLen-12); //内容
 				WriteItemEx(BN0, 0, wOI, bBuf);//从0开始
 			}
 			else //调整顺序
@@ -5743,19 +5796,21 @@ int DelCtrlUnitMethod4(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int i
 int InputCtrlMethod6(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	TTime t;
-	BYTE bAct = 1; //投入
+	BYTE bBuf[20]; //按下浮控投入命令最大长度
 	WORD wInID, wGrp, wGrpOI;
 	GetCurTime( &t );
 	DWORD dwSecs = TimeToSeconds( t );
 
 	if (wOI>=0x8103 && wOI<=0x8108)
 	{
-		wInID = 0x8203 + ((wOI&0x000f)<<8);
+		wInID = 0x8203 + ((wOI&0x000f)<<4);
 		wGrpOI = OoOiToWord(pbPara+1);
 		if ((wGrpOI&0xfff0) == 0x2300)
 		{
 			wGrp = wGrpOI - 0x2300;
-			WriteItemEx(BN0, wGrp, wInID, &bAct, dwSecs);
+			memset(bBuf, 0, sizeof(bBuf));
+			bBuf[0] = 1; //投入
+			WriteItemEx(BN0, wGrp, wInID, bBuf, dwSecs);
 			return 0;
 		}
 	}
@@ -5773,7 +5828,7 @@ int QuitCtrlMethod7(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPar
 
 	if (wOI>=0x8103 && wOI<=0x8108)
 	{
-		wInID = 0x8203 + ((wOI&0x000f)<<8);
+		wInID = 0x8203 + ((wOI&0x000f)<<4);
 		wGrpOI = OoOiToWord(pbPara+1);
 		if ((wGrpOI&0xfff0) == 0x2300)
 		{
@@ -5791,21 +5846,23 @@ int QuitCtrlMethod7(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iPar
 int InputCtrlMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
 {
 	TTime t;
-	BYTE bBuf[20]; //按下浮控投入命令最大长度
+	BYTE bBuf[30]; //按下浮控投入命令最大长度
 	WORD wInID, wGrp, wGrpOI;
 	GetCurTime( &t );
 	DWORD dwSecs = TimeToSeconds( t );
 
 	if (wOI>=0x8103 && wOI<=0x8108)
 	{
-		wInID = 0x8203 + ((wOI&0x000f)<<8);
-		wGrpOI = OoOiToWord(pbPara+1);
+		wInID = 0x8203 + ((wOI&0x000f)<<4);
+		//wGrpOI = OoOiToWord(pbPara+1);
+		wGrpOI = OoOiToWord(pbPara+3); //组态下发的不对，暂时编移多2字节
 		if ((wGrpOI&0xfff0) == 0x2300)
 		{
 			wGrp = wGrpOI - 0x2300;
 			memset(bBuf, 0, sizeof(bBuf));
 			bBuf[0] = 1; //投入
-			memcpy(&bBuf[1], pbPara+3, iParaLen);
+			//memcpy(&bBuf[1], pbPara+3, iParaLen);
+			memcpy(&bBuf[1], pbPara+5, iParaLen); //组态下发的不对，暂时编移多2字节
 			WriteItemEx(BN0, wGrp, wInID, bBuf, dwSecs);
 			return 0;
 		}
@@ -6457,7 +6514,26 @@ int ResetStatAll(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLe
 	return 0;
 }
 
+int IRCtrlCommandMethod171(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int iParaLen, void* pvAddon, BYTE* pFmt, WORD wFmtLen, BYTE* pbRes, int* piRetLen)
+{
+	BYTE bBuf[4] = {0};
+	
+	if(ReadItemEx(BN2, PN0, 0x4300, bBuf)<=0)
+	{
+		return -1;
+	}
 
+	if(*pbPara++ == DT_ENUM)
+	{
+		if(*pbPara == 1 || *pbPara == 0)
+		{
+			bBuf[1] = *pbPara + 1;//为0时保存为1,为1时保存为2
+			WriteItemEx(BN2, PN0, 0x4300, bBuf);
+			return 0;			
+		}
+	}
 
+	return -1;
+}
 
 

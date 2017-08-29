@@ -16,7 +16,7 @@
 #ifndef DRVCONST_H
 #define DRVCONST_H
 
-#define DRIVER_VER_STR	  "Ver1.3.9s"  //
+#define DRIVER_VER_STR	  "Ver1.3.9u"  //
 
 #define YK_MODE_LEVEL	0   //电平输出方式
 #define YK_MODE_PULSE	1	//脉冲输出方式

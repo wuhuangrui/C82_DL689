@@ -340,7 +340,7 @@ void CStatMgr::DoTermStat()
 	
 	m_TermStatInfo.wMonPowerTime += dwSec;//更新月供电时间
 	DWORD dwData = m_TermStatInfo.wDayPowerTime;
-	if ((dwData % 60) > 30 /*47*/)//第二步时把终端的复位时间都包括在内的2分钟也要按2分钟来算
+	if ((dwData % 60) > 30/*47*/)//第二步时把终端的复位时间都包括在内的2分钟也要按2分钟来算
 		dwData = dwData/60 + 1;//过台子
 	else
 		dwData = dwData/60;
@@ -349,7 +349,7 @@ void CStatMgr::DoTermStat()
 	bBuf[2] = DT_DB_LONG_U;
 	OoDWordToDoubleLongUnsigned(dwData, &bBuf[3]);
 	dwData = m_TermStatInfo.wMonPowerTime;
-	if ((dwData % 60) > 30 /*47*/)
+	if ((dwData % 60) > 30/*47*/)
 		dwData = dwData/60 + 1;
 	else
 		dwData = dwData/60;
@@ -397,7 +397,12 @@ bool CStatMgr::DoDataStat()
 	int	i;
 	TTime now;
 	GetCurTime(&now);
-	
+
+#ifdef SYS_WIN
+	DebugPulsePwr(TimeToSeconds(now));
+	DebugPulseEng(TimeToSeconds(now));//写入脉冲测量点的正向有功电能量	
+#endif
+
 	//测试点参数改变
 	if (GetInfo(INFO_STAT_PARA))//记得重新装载一下电压统计的那些参数
 	{
@@ -827,15 +832,17 @@ void  CStatMgr::DoVoltStat(void)
 		fMonOver = true;
 		fDayOver = true;
 		memset(bBuf3, 0, sizeof(bBuf3));
+		DTRACE(DB_FAPROTO, ("DoVoltStat:Mon Change wIntvSec=%d\r\n",wIntvSec));//DB_DP
 		for (i=0; i<4; i++)
 		{
 			//转存冻结，然后清当前数据
 			SavePhaseVoltStat(0x2130+i, RW_ATTR_FRZ, &m_PhaseVoltStat[i]);
+//			DTRACE(DB_FAPROTO, ("%d 相mon 总时间=%d 合格时间=%d\r\n",i+1,m_PhaseVoltStat[i].monStat.dwMoniSecs,m_PhaseVoltStat[i].monStat.dwQualSecs));
+//			DTRACE(DB_FAPROTO, ("上限时间=%d   下限时间=%d  总越限时间=%d\r\n",m_PhaseVoltStat[i].monStat.dwUpperSecs,m_PhaseVoltStat[i].monStat.dwLowerSecs,m_PhaseVoltStat[i].monStat.dwOverSecs));
 		}
 
 		memset(m_PhaseVoltStat, 0, sizeof(TPhaseVoltStat)*4);//日\月合格率清零
 		wIntvSec = 0;
-		DTRACE(DB_FAPROTO, ("DoVoltStat:Mon Change\r\n"));//DB_DP
 		for (i=0; i<4; i++)
 		{
 			SavePhaseVoltStat(0x2130+i, RW_ATTR_RES, &m_PhaseVoltStat[i]);
@@ -851,14 +858,16 @@ void  CStatMgr::DoVoltStat(void)
 	{
 		fDayOver = true;
 		//转存冻结，然后清当前数据
+		DTRACE(DB_FAPROTO, ("DoVoltStat:Day Change  wIntvSec=%d\r\n",wIntvSec));//DB_DP
 		for (i=0; i<4; i++)
 		{
 			//转存冻结，然后清当前数据
 			SavePhaseVoltStat(0x2130+i, RW_ATTR_FRZ, &m_PhaseVoltStat[i]);
+//			DTRACE(DB_FAPROTO, ("%d 相day 总时间=%d 合格时间=%d\r\n",i+1,m_PhaseVoltStat[i].dayStat.dwMoniSecs,m_PhaseVoltStat[i].dayStat.dwQualSecs));
+//			DTRACE(DB_FAPROTO, ("上限时间=%d   下限时间=%d  总越限时间=%d\r\n",m_PhaseVoltStat[i].dayStat.dwUpperSecs,m_PhaseVoltStat[i].dayStat.dwLowerSecs,m_PhaseVoltStat[i].dayStat.dwOverSecs));
 			memset((BYTE*)&m_PhaseVoltStat[i].dayStat, 0, sizeof(TVoltStat));
 		}
 		wIntvSec = 0;
-		DTRACE(DB_FAPROTO, ("DoVoltStat:Day Change\r\n"));//DB_DP
 
 		for (i=0; i<4; i++)
 		{
@@ -1924,3 +1933,106 @@ void CStatMgr::ResetStat(WORD wOI)
 	}
 }
 
+#ifdef SYS_WIN
+void CStatMgr::DebugData(DWORD wID, DWORD dwSec)
+{
+	int64 iVal64[5] = {0};	
+	BYTE bBuf[64];
+	int i, iRet = 0;	
+
+	m_bPn = 0;
+	iRet = ReadItemEx(BN0, m_bPn, wID, bBuf);
+	if (iRet > 0)
+	{
+		for (i=0; i<BLOCK_ITEMNUM;i++)
+			iVal64[i] = OoDoubleLongToInt(&bBuf[3+5*i]);
+
+		for(i=0; i<5; i++)
+		{
+			if (i == 0)
+				iVal64[i] += 4;
+			else
+				iVal64[i] = iVal64[0]/4;
+		}
+
+		bBuf[0] = DT_ARRAY;
+		bBuf[1] = RATE_NUM+1;
+		for (i=0; i<BLOCK_ITEMNUM;i++)
+		{
+			bBuf[2+5*i] = DT_DB_LONG_U;
+			OoIntToDoubleLong(iVal64[i], &bBuf[3+5*i]);
+		}
+		WriteItemEx(BN0, m_bPn, wID, bBuf, dwSec);
+	}
+}
+
+void CStatMgr::DebugPulseEng(DWORD dwSec)
+{
+	BYTE bBuf[100];
+	memset(bBuf, 0,	sizeof(bBuf));
+	m_bPn = 0;
+	ReadItemEx(BN0, (WORD)m_bPn, 0x2403, bBuf);
+
+	BYTE bCfgNum = bBuf[1];	//脉冲实际配置路数
+
+	for (BYTE j=0; j<bCfgNum; j++)
+	{
+		DWORD dwOA = OoOadToDWord(bBuf+j*PULSE_CFG_LEN+5);	//OAD
+
+		if ((dwOA>>16) != OI_PULSE_INPUT)	//判断参数是否有效
+			continue;
+
+		switch (bBuf[j*PULSE_CFG_LEN+10])
+		{
+		case 0:
+			DebugData(0x2419, dwSec);	break;
+		case 1:
+			DebugData(0x241a, dwSec);	break;
+		case 2:
+			DebugData(0x241b, dwSec);	break;
+		case 3:
+			DebugData(0x241c, dwSec);	break;
+		default:
+			break;
+		}
+	}
+}
+
+void CStatMgr::DebugPulsePwr(DWORD dwSec)
+{
+	BYTE bBuf[100], bPwrBuf[10];
+	memset(bBuf, 0,	sizeof(bBuf));
+	m_bPn = 0;
+	ReadItemEx(BN0, (WORD)m_bPn, 0x2403, bBuf);
+
+	BYTE bCfgNum = bBuf[1];	//脉冲实际配置路数
+
+	for (BYTE j=0; j<bCfgNum; j++)
+	{
+		DWORD dwOA = OoOadToDWord(bBuf+j*PULSE_CFG_LEN+5);	//OAD
+
+		if ((dwOA>>16) != OI_PULSE_INPUT)	//判断参数是否有效
+			continue;
+
+		switch (bBuf[j*PULSE_CFG_LEN+10])
+		{
+		case 0:
+		case 2:
+			bPwrBuf[0] = DT_DB_LONG;
+			OoIntToDoubleLong(10000, &bPwrBuf[1]);
+			WriteItemEx(BN0, m_bPn, 0x2404, bPwrBuf, dwSec);
+			break;
+
+		case 1:
+		case 3:
+			bPwrBuf[0] = DT_DB_LONG;
+			OoIntToDoubleLong(10000, &bPwrBuf[1]);
+			WriteItemEx(BN0, m_bPn, 0x2405, bPwrBuf, dwSec);
+			break;
+
+		default:
+			break;
+		}
+	}
+}
+#endif

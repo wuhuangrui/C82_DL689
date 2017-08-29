@@ -23,6 +23,7 @@
 #include "BuyCtrl.h"
 #include "DpGrp.h"
 #include "DbOIAPI.h"
+#include "TermEvtTask.h"
 
 //========================================== CBuyCtrl ==============================================
 CBuyCtrl::CBuyCtrl(void)
@@ -138,12 +139,14 @@ bool CBuyCtrl::DoCtrl(void)
 			if (m_fAlrStauts)
 				SetSysCtrlAlr(m_iGrp, false); //清电控告警状态的购电控越限
 			m_fAlrStauts = false;
+			DTRACE(DB_LOADCTRL, ("CBuyCtrl::DoCtrl: ######################## Group[%d] m_fAlrStauts=%d!\n", m_iGrp, m_fAlrStauts));
 		}
 	}
 	else if (IsGuarantee())	//检测是否处在保电状态.
 	{
 		RstCtrl();					//复位内存中本类控制的所有相关状态.
 		m_fIfOverLimit = true;
+		DTRACE(DB_LOADCTRL, ("CBuyCtrl::DoCtrl: ######################## Group[%d] IsGuarantee()!\n", m_iGrp));
 		return true;
 	}
 	else	//(m_iBuyRemain <= m_BuyCtrlPara.iActLimit)
@@ -155,6 +158,7 @@ bool CBuyCtrl::DoCtrl(void)
 			if (m_fAlrStauts)
 				SetSysCtrlAlr(m_iGrp, false); //清电控告警状态的购电控越限
 			m_fAlrStauts = false; //无闸可跳了,报警没有意义,禁止报警.
+			DTRACE(DB_LOADCTRL, ("CBuyCtrl::DoCtrl: ************** Group[%d] i < 0, m_fAlrStauts=%d!\n", m_iGrp, m_fAlrStauts));
 			return true;
 		}
 
@@ -277,6 +281,28 @@ bool CBuyCtrl::ClrSysCmd(int iGrp)
 	WriteItemEx(BN0, (WORD)iGrp, 0x8273, bCmd);	//写相应轮次的"购电控投入投入命令"ID
 
 	TrigerSaveBank(BN0, SECT_CTRL, 0); //触发保存.
+
+	return true;
+}
+
+//描述: 设置系统库本类控制轮次输出状态.
+//参数:@iGrp	当前控制的总加组.
+//		@bTurnsStatus	轮次状态
+//返回: 如果设置成功返回 true,否则返回 false.
+bool CBuyCtrl::SetSysCtrlTurnsStatus(int iGrp, BYTE bTurnsStatus)
+{
+	BYTE bBuf[10];
+	memset(bBuf, 0, sizeof(bBuf));
+
+	BYTE *pbtr = bBuf;
+	*pbtr++ = DT_STRUCT;
+	*pbtr++ = 2;					//结构成员个数
+	*pbtr++ = DT_OI;				//总加组对象
+	pbtr += OoWordToOi(0x2300+iGrp, pbtr);
+	*pbtr++ = DT_BIT_STR;
+	*pbtr++ = 8;
+	*pbtr++ = bTurnsStatus;
+	WriteItemEx(BN0, iGrp, 0x8271, bBuf);
 
 	return true;
 }
@@ -433,10 +459,9 @@ void CBuyCtrl::UpdateBuyRemainEng()
 											 BuyCtrlPara.iBuyEng, m_iCurBuyRemainEng[i]));
 					}
 
-					//Val64ToFmt(m_iCurBuyRemainEng[i], bBuf+22, FMT3, 4);   //本次购电后剩余电量；
-					//SaveAlrData(ERC_BUYPARA, m_tmNow, bBuf);
-
-					//WriteItemVal64(BN0, i, 0x083f, &m_iCurBuyRemainEng[i]); //保存购电后的剩余电量.
+					g_PurchParaChg.bEvtSrcOI[0] = DT_OI;
+					OoWordToOi(0x2300+i, &g_PurchParaChg.bEvtSrcOI[1]);
+					SetInfo(INFO_ENERGYBUY_PARACHG);
 					m_dwBillIdx[i] = BuyCtrlPara.dwBillIdx; //更新购电单号；
 				}				
 				//更新系统库中的剩余电量.

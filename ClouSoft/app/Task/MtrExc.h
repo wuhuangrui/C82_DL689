@@ -98,5 +98,6 @@ void SetMtrExcOadDefCfg(WORD wOI);
 //========================电能表数据变更监控记录==========================
 //描述：电能表数据变更监控记录，获取任务OAD
 int GetMtrDataChgCSD(BYTE* bCfg);
+extern bool RefreshMtrExcMem();
 
 #endif //MTREXC_H

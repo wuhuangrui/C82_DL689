@@ -84,6 +84,8 @@ WORD Data645to645V07(WORD w645Id, BYTE* pbBuf, WORD wLen);//½«97°æ645¶Á»ØµÄÊý¾Ý×
 Toad645Map* GetOad645Map(DWORD dwOAD);
 Toad645Map* GetOad645ExtMap(DWORD dwOAD);
 TErcRdCtrl* GetOad07645ErcMap(DWORD dwOAD);
+DWORD GetMtrEvtTimesID(BYTE bBit);
+TErcRdCtrl* GetRd07645ErcMap(DWORD dwErcNumID);
 
 /////////////////////////////////////////////////////////////////////////////////////
 //´®¿Ú²Ù×÷º¯Êý
