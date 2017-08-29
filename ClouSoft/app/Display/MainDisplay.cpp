@@ -17336,8 +17336,10 @@ TThreadRet DisplayThread(void* pvArg)
 					 } 
 				}
                 
-                UsbAutoProcess();
+                
 			}
+
+			UsbAutoProcess();
 			
 			DWORD dwTick = GetTick();
 			if (g_dwStateTaskClick==0 || dwTick>(g_dwStateTaskClick+500))
