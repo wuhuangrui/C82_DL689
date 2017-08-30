@@ -30,6 +30,7 @@ void AcPQToLFmt(int iVal, BYTE* pbBuf, WORD wLen);
 
 void VoltValToDb(int* piVal, BYTE* pbBuf, WORD wLen);
 void CurrValToDb(int* piVal, BYTE* pbBuf, WORD wLen);
+void ZeroLineCurrValToDb(int* piVal, BYTE* pbBuf, WORD wLen);
 void PowerValToDb(int* piVal, BYTE* pbBuf, WORD wLen);
 void CosValToDb(int* piVal, BYTE* pbBuf, WORD wLen);
 void AngValToDb(int* piVal, BYTE* pbBuf, WORD wLen);
@@ -40,7 +41,8 @@ TAcValToDbCtrl g_AcValToDbCtrl[] =
 {
 //		PN	 BANK	ID	 内部计算的索引		子ID个数, 长度,格式转换函数
 	{DUO_PN, BN0, 0x2000, AC_VAL_UA, 			1, 			11, 	VoltValToDb},
-	{DUO_PN, BN0, 0x2001, AC_VAL_IA, 			1, 			22, 	CurrValToDb},
+	{DUO_PN, BN0, 0x2001, AC_VAL_IA, 			1, 			22, 	CurrValToDb},//A/B/C电流
+	{DUO_PN, BN0, 0x2610, AC_VAL_IA, 			1, 			5, 		ZeroLineCurrValToDb},//零线电流单独处理
 	{DUO_PN, BN0, 0x2002, AC_VAL_ANG_UA,  		1, 			11, 	AngValToDb},	 //电压角度
 	{DUO_PN, BN0, 0x2003, AC_VAL_ANG_IA,  		1, 			11, 	AngValToDb},	 //电流角度 要不要加零序电流?
 	{DUO_PN, BN0, 0x2004, AC_VAL_P,  			1, 			22, 	PowerValToDb},
@@ -98,13 +100,19 @@ void VoltValToDb(int* piVal, BYTE* pbBuf, WORD wLen)
 void CurrValToDb(int* piVal, BYTE* pbBuf, WORD wLen)
 {
 		pbBuf[0] = 0x01;
-		pbBuf[1] = 0x04;
-		for (BYTE b=0; b<4; b++)
+		pbBuf[1] = 0x03;
+		for (BYTE b=0; b<3; b++)
 		{
 			pbBuf[2+b*5] = DT_DB_LONG;	//格式double-long
 //				memcpy(&pbBuf[3+b*5], (BYTE *)&piVal[b], 4);
 			OoIntToDoubleLong(piVal[b],&pbBuf[3+b*5]);
 		}
+}
+
+void ZeroLineCurrValToDb(int* piVal, BYTE* pbBuf, WORD wLen)
+{
+		pbBuf[0] = DT_DB_LONG;	//格式double-long
+		OoIntToDoubleLong(piVal[3],&pbBuf[1]);
 }
 
 void PowerValToDb(int* piVal, BYTE* pbBuf, WORD wLen)
@@ -133,7 +141,7 @@ void DemandValToDb(int* piVal, BYTE* pbBuf, WORD wLen)
 
 //总功率入库
 void GeneralPowerValToDb(int* piVal, BYTE* pbBuf, WORD wLen)
-{
+{	
 	pbBuf[0] = DT_DB_LONG;	//格式double-long
 	OoIntToDoubleLong(piVal[0], &pbBuf[1]);
 }
@@ -521,14 +529,13 @@ BYTE AcFmtToEng(WORD wID, int64 *pi64E, BYTE* pbBuf, bool fHigPre, bool fSign, B
 		if (fSign && (bSign & (1<<j)))  //本数据块支持符号 && 符号位为负
 			pi64E[j] = -pi64E[j];
 
-		//DTRACE(DB_CRITICAL, ("i=%d, j=%d, i64E[i][j]=%lld, m_i64E[i][j]=%lld\r\n", i, j, i64E[i][j], m_i64E[i][j]));
+		//DTRACE(DB_CRITICAL, ("j=%d, i64E[j]=%lld.\r\n",  j, pi64E[j]));
 		
 		p += wLen;
 	}	
 	
 	return bSign;
 }
-
 
 
 //从高精度ID(8字节，4位小数位)数据库读出数据到脉冲电量
@@ -588,10 +595,6 @@ BYTE PulseEngToFmt(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum)
 
 	return (p-pbBuf);
 }
-
-
-
-
 
 
 bool IsDemFmt5(WORD wOI)

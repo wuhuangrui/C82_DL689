@@ -3442,3 +3442,22 @@ void CheckDownSoft(void)
 
 }
 
+bool g_fIsGprsOnLine = false;  // GPRS在线状态
+void SetGprsOnlineState(bool fIsOnline)
+{
+	g_fIsGprsOnLine = fIsOnline;
+}
+bool GetGprsOnlineState()
+{
+	return g_fIsGprsOnLine;
+}
+
+bool g_fIsEthOnLine = false;  //以太网在线状态
+void SetEthOnlineState(bool fIsOnline)
+{
+	g_fIsEthOnLine = fIsOnline;
+}
+bool GetEthOnlineState()
+{
+	return g_fIsEthOnLine;
+}

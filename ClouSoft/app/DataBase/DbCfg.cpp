@@ -327,7 +327,7 @@ TItemDesc g_DemDataDesc[] =   //最大需量类对象
 TItemDesc g_VariableDesc[] =   //变量类对象
 {
     {0x2000, 	11, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//电压A/B/C，带格式，02 03 12 ********
-    {0x2001, 	22, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//电流A/B/C/零序，带格式，
+    {0x2001, 	17, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//电流A/B/C/零序，带格式，	//已将零序电流单独存放在0x2610中，放在一起导致交釆项测试不过
     {0x2002, 	11, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//电压相角A/B/C，带格式，
     {0x2003, 	11, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//电压电流夹角A/B/C，带格式，
     {0x2004, 	22, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//有功功率总，A/B/C，带格式，
@@ -459,7 +459,7 @@ TItemDesc g_VariableDesc[] =   //变量类对象
 	{0x2605,	(2+(HARMONIC_NUM-1)*3), 		DI_HIGH_PERM, DI_READ, 0,	INFO_NONE,	FMT_UNK,		1,		},//C相电流谐波还有量，带格式，总及2~n次，
 	{0x2606,	(2+2), 		DI_HIGH_PERM, DI_READ, 0,	INFO_NONE,	FMT_UNK,		1,		},//谐波次数，
 
-
+    {0x2610, 	5, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//0x20010400，零线电流，带格式
 
 };
 

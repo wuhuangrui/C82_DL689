@@ -1744,43 +1744,6 @@ void PrintInfo(TRdItem *pRdItem, TMtrPara *pMtrPara)
 	}
 }
 
-//描述：获取表交采测量点号
-//返回：交采测量点序号
-WORD GetAcMtrSn()
-{
-	TOobMtrInfo tMtrInfo;
-    WORD wMtrSn;
-    for(wMtrSn=0;wMtrSn<POINT_NUM;wMtrSn++)
-    {
-    	if (GetMeterInfo(wMtrSn, &tMtrInfo))
-    	{
-    	    if(0xf2080200 == (tMtrInfo.dwPortOAD&0xffffff00) )
-    		{
-    			return PORT_AC;
-    		}
-    	}
-    }
-	return 0;
-}
 
-bool g_fIsGprsOnLine = false;  // GPRS在线状态
-void SetGprsOnlineState(bool fIsOnline)
-{
-    g_fIsGprsOnLine = fIsOnline;
-}
-bool GetGprsOnlineState()
-{
-    return g_fIsGprsOnLine;
-}
-
-bool g_fIsEthOnLine = false;  //以太网在线状态
-void SetEthOnlineState(bool fIsOnline)
-{
-    g_fIsEthOnLine = fIsOnline;
-}
-bool GetEthOnlineState()
-{
-    return g_fIsEthOnLine;
-}
 
 

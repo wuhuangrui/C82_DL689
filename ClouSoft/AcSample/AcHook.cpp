@@ -390,8 +390,8 @@ void AcTransSaveCurDemand(WORD wId, BYTE* pbValue)
 		case 0x3118:
 		OoWriteAttr(0x2018, 0x02, pbValue);
 		break;
-		default:
-			break;
+        default:
+            break;
 	}	
 }
 

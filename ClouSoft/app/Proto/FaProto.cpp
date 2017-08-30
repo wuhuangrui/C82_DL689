@@ -3717,7 +3717,7 @@ int CFaProto::ProxyTransCommandRequest()
 		{
 			iRet = MtrDoFwd376(pApdu, dwSendLen, pTmpTxApdu, sizeof(m_TxAPdu.bBuf)-(pTmpTxApdu-m_TxAPdu.bBuf)-bOffsetLen, wFrmTimeOut, wByteTimeOut);
 			if (iRet<0)
-				MtrDoFwd(CommPara, pApdu, dwSendLen, pTmpTxApdu, sizeof(m_TxAPdu.bBuf)-(pTmpTxApdu-m_TxAPdu.bBuf)-bOffsetLen, wFrmTimeOut, wByteTimeOut);
+				iRet = MtrDoFwd(CommPara, pApdu, dwSendLen, pTmpTxApdu, sizeof(m_TxAPdu.bBuf)-(pTmpTxApdu-m_TxAPdu.bBuf)-bOffsetLen, wFrmTimeOut, wByteTimeOut);
 		}
 		else
 		{
@@ -6247,7 +6247,7 @@ void CFaProto::ReRpt(BYTE * pbNSend)
 void CFaProto::EventRpt(BYTE * pbNSend)
 {
 	int nRet = 0;
-	BYTE bBuf[200] = {0};
+	BYTE bBuf[1200] = {0};
 	WORD wLen = 0;
 	TEvtMsg tEvnMsg;
 	int *ptr = NULL;//读取任务库的当前记录指针
@@ -6261,6 +6261,11 @@ void CFaProto::EventRpt(BYTE * pbNSend)
 		return;
 	if (m_queEvt.Remove(bBuf, 2) >= 7)
 	{
+		if (sizeof(bBuf) < sizeof(TEvtMsg))
+		{
+			DTRACE(DB_FAPROTO, ("EventRpt no space! \r\n"));	
+			return ;
+		}
 		memcpy((BYTE *)&tEvnMsg, bBuf, sizeof(TEvtMsg));
 		//pEvnMsg = (TEvtMsg *)bBuf;
 		

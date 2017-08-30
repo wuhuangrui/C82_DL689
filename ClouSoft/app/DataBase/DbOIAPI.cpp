@@ -3463,7 +3463,38 @@ int DoObjMethod(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int* piParaL
 			//扫描参数，求参数长度、对字节顺序进行调整
 			iParaLen = OoDataFieldScan(pbPara, pOmMap->pFmt, pOmMap->wFmtLen);
 			if (iParaLen< 0)
-				return -1;
+			{
+				//兼容旧的协议任务配置优先级类型为16的配置，国网电科院互换性测试下发的优先级类型为16
+				if (pOmMap->dwOM == 0x60127f00)	
+				{
+					int iLen;
+					WORD wDataLen;
+					BYTE *pbPrio, bType;
+					BYTE *pbPara0 = pbPara;
+
+					pbPara0++;	//array
+					BYTE bArryNum = *pbPara0++;	//跳过 array
+					for (BYTE wIndex = 0; wIndex < bArryNum; wIndex++)
+					{
+						pbPrio = OoGetField(pbPara0, pOmMap->pFmt+2, pOmMap->wFmtLen-2, 6, &wDataLen, &bType); //只能扫描到前一个数据项
+						if (pbPrio == NULL)
+							return -1;
+						if (pbPrio[4] == DT_ENUM)
+						{
+							pbPrio[4] = DT_UNSIGN; //强制改为最新协议格式类型
+						}
+						iLen = OoScanData(pbPara0, pOmMap->pFmt+2, pOmMap->wFmtLen-2, false, -1, &wDataLen, &bType); //扫描一个结构体的长度
+						if (iLen <= 0)	
+							return -1;
+						pbPara0 += iLen;
+					}
+					iParaLen = pbPara0 - pbPara;
+				}
+				else
+				{
+					return -1;
+				}
+			}
 		}
 	}
 

@@ -262,7 +262,7 @@ Toad645Map g_OodTo645Map[] = {
 	{0x20010201,	0xb621,		g_bPhaseCurDataFmt,	sizeof(g_bPhaseCurDataFmt),		5,			3},			//（当前）A相电流
 	{0x20010202,	0xb622,		g_bPhaseCurDataFmt,	sizeof(g_bPhaseCurDataFmt),		5,			3},			//（当前）B相电流
 	{0x20010203,	0xb623,		g_bPhaseCurDataFmt,	sizeof(g_bPhaseCurDataFmt),		5,			3},			//（当前）C相电流
-	{0x20010204,	0xb6a0,		g_bPhaseCurDataFmt,	sizeof(g_bPhaseCurDataFmt),		5,			3},			//（当前）零序电流
+	{0x20010400,	0xb6a0,		g_bPhaseCurDataFmt,	sizeof(g_bPhaseCurDataFmt),		5,			3},			//（当前）零序电流
 	{0x20010212,	0x3692,		g_bCurDataFmt,		sizeof(g_bCurDataFmt),			17,			9},			//电流曲线
 
 	{0x20020300,	0xb66f,		g_bAngleFmt,		sizeof(g_bAngleFmt),			11,			6},			//（当前）相角

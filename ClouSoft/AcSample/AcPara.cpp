@@ -1381,6 +1381,4 @@ void LoadNewAdjPara(BYTE *pbBuf)
 	ReadItemEx(BN28, PN0, 0x001f, pbBuf);  //0x503f 
 }
 
-
-
 #endif

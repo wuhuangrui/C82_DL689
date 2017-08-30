@@ -172,11 +172,6 @@ void GetRooterTermAddr(BYTE *pbTermAddr, BYTE &bTermAddrLen);
 void PrintInfo(TRdItem *pRdItem, TMtrPara* pMtrPara);
 
 void InitTOobMtrInfo(TOobMtrInfo *pInfo);
-WORD GetAcMtrSn();
 
-void SetGprsOnlineState(bool fIsOnline);
-bool GetGprsOnlineState();
-void SetEthOnlineState(bool fIsOnline);
-bool GetEthOnlineState();
 
 #endif 

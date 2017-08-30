@@ -5,8 +5,8 @@
 * 文件名称：DpGrp.cpp
 * 摘    要: 本文件提供总加组相关数据的实现
 * 当前版本：1.0
-* 作    者：潘香玲
-* 完成日期：2008年3月
+* 作    者：李锦仙
+* 完成日期：2017年4月
 * 备    注：$总加组使用到的测量点的15分钟、日、月起点值由CDpMtr负责保存
 ****************************************************************************************************/
 #include "stdafx.h"
@@ -463,7 +463,7 @@ bool  CDpGrp::IsNeedReset()
 	BYTE bMtrIntv = GetMeterInterv(); //终端抄表间隔设置
 	if (m_bPnProp == 0) //全为交采脉冲等测量点则按1分钟计算
 		bMtrIntv = 1;
-	
+
 	if (bMtrIntv != m_bMtrIntv)
 	{			
 		DTRACE(DB_DP, ("CDpGrp::IsNeedReset() GPN =%d!\n", m_wPn));
@@ -501,16 +501,16 @@ void CDpGrp::UpdDayMonStartVal(BYTE bInterv, TTime tmNow)
 	SetArrVal64(iGrpE, INVALID_VAL64, BLOCK_ITEMNUM);
 	SetArrVal64(iNewMtrE, INVALID_VAL64, BLOCK_ITEMNUM);
 	for (n=0; n<2; n++)	//有功、无功
-	{	
+	{
 		TimeToIntvS(tmNow, bInterv, &isNow); //取当前日月间隔的起始时间
 
 		if (n == 0)
-				pGrpInf = m_GrpInfEp;	
-			else 
-				pGrpInf = m_GrpInfEq;
+			pGrpInf = m_GrpInfEp;
+		else
+			pGrpInf = m_GrpInfEq;
 
-		if (bInterv == INTVDAY)		
-		{	
+		if (bInterv == INTVDAY)
+		{
 			piDeltaVal = &m_iDayDeltaE[n][0];			//当日电量差值量
 			pStartData	= &m_gfsdDayStart[n];			//测量点日起始量
 			wDeltaID	= g_wGrpDayDeltaID[n];			//当日总加电能量
@@ -1174,15 +1174,15 @@ void CDpGrp::DayChange(TTime tmNow)
 	GetCurTime(&time);
 	TimeToIntvS(tmNow, INTVDAY, &isNow);		
 
-	//日冻结电量数据转存
+	//日电量数据清零
 	if (m_bPnProp == 0)//无电表测量点
-	{		
+	{
 		for (i=0; i<2; i++)
 		{
-			//转存上日及清当日 相邻的上日才可以写有效累计数据			
-			UpdClsFrzData(i, INTVDAY, isNow.dwS, isNow.dwS);			
+			//当日数据清零
+			UpdClsFrzData(i, INTVDAY, isNow.dwS, isNow.dwS);
 			DTRACE(DB_DP, ("CDpGrp::DayChange()1:PN=%d,DayDeltaID=%x \n ",m_wPn, g_wGrpDayDeltaID[i]));
-		}		
+		}
 
 		if (m_bPnProp != PN_PROP_METER)
 		{
@@ -1231,12 +1231,12 @@ void CDpGrp::MonChange(TTime tmNow)
 	GetCurTime(&time);
 	TimeToIntvS(tmNow, INTVMON, &isNow);
 
-	//月冻结电量数据转存
+	//月电量数据清零
 	if (m_bPnProp == 0)//无电表测量点
 	{
 		for (BYTE i=0; i<2; i++)
 		{
-			//转存上月及清当月 	
+			//当月数据清零
 			UpdClsFrzData(i, INTVMON, isNow.dwS, isNow.dwS);	
 			DTRACE(DB_DP, ("CDpGrp::MonChange()1:PN=%d,MonDeltaID=%x \n ",m_wPn, g_wGrpMonDeltaID[i]));
 		}	
