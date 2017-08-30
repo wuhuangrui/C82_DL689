@@ -2651,6 +2651,8 @@ int DL645V07DirAskItemEx(struct TMtrPro* pMtrPro, BYTE bRespType, BYTE bChoice, 
 	}
 
 	return pbDataTmp - pbData;
+
+
 }
 
 int DL645V07pfnWriteItem(struct TMtrPro* pMtrPro, DWORD dwOAD, DWORD dwId, WORD wLen)

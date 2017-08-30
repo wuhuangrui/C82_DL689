@@ -4747,9 +4747,6 @@ int MsToMtrNum(BYTE *pbMs)
 	return 0;
 }
 
-
-
-
 //当日冻结上报时间与电表时间相差1天时，把记录中的数据改为无效数据填充，浙江测试需求
 int FillInValueData(BYTE *pSrc, BYTE *pRcsd)
 {

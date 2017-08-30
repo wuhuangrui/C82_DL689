@@ -459,7 +459,7 @@ TItemDesc g_VariableDesc[] =   //变量类对象
 	{0x2605,	(2+(HARMONIC_NUM-1)*3), 		DI_HIGH_PERM, DI_READ, 0,	INFO_NONE,	FMT_UNK,		1,		},//C相电流谐波还有量，带格式，总及2~n次，
 	{0x2606,	(2+2), 		DI_HIGH_PERM, DI_READ, 0,	INFO_NONE,	FMT_UNK,		1,		},//谐波次数，
 
-
+    {0x2610, 	5, 		DI_HIGH_PERM, DI_READ, 0, 	INFO_NONE,	FMT_UNK,		1,		},//0x20010400，零线电流，带格式
 
 };
 
