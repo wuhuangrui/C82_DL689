@@ -1483,6 +1483,25 @@ bool IsV07Mtr(WORD wPn)
 		return false;	
 }
 
+//描述：获取表交采测量点号
+//返回：交采测量点序号
+WORD GetAcMtrSn()
+{
+	TOobMtrInfo tMtrInfo;
+	WORD wMtrSn;
+	for(wMtrSn=0;wMtrSn<POINT_NUM;wMtrSn++)
+	{
+		if (GetMeterInfo(wMtrSn, &tMtrInfo))
+		{
+			if(0xf2080200 == (tMtrInfo.dwPortOAD&0xffffff00) )
+			{
+				return PORT_AC;
+			}
+		}
+	}
+	return 0;
+}
+
 //////////////////////////////////////////////////////////////////////////
 //以下为黑龙江62056协议所用到的辅助接口函数
 // 增加电表参数

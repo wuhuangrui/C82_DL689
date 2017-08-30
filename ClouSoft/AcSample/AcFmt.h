@@ -22,6 +22,7 @@ void PulseValToDb(BYTE bPnIndex, int* piVal);
 //交采电能数据格式的转换
 void VoltValToDb(int* piVal, BYTE* pbBuf, WORD wLen);
 void CurrValToDb(int* piVal, BYTE* pbBuf, WORD wLen);
+void ZeroLineCurrValToDb(int* piVal, BYTE* pbBuf, WORD wLen);
 void PowerValToDb(int* piVal, BYTE* pbBuf, WORD wLen);
 void CosValToDb(int* piVal, BYTE* pbBuf, WORD wLen);
 void AngValToDb(int* piVal, BYTE* pbBuf, WORD wLen);
@@ -59,8 +60,8 @@ void AcTTimeToDemandTime(BYTE* pbTime, TTime *pTime );
 BYTE AcDemandTimeGetMonth(BYTE* pbTime);
 
 BYTE PulseHiFmtToLoEng(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum);
-BYTE PulseFmtToEng(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum);		//′óêy?Y?a?á3???3?μ?á?
-BYTE PulseEngToFmt(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum);	
+BYTE PulseFmtToEng(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum);		//从数据库读出脉冲电量
+BYTE PulseEngToFmt(WORD wID, int64 *pi64E, BYTE* pbBuf, WORD wRateNum);		//脉冲电量入库
 
 
 #endif //ACFMT_H

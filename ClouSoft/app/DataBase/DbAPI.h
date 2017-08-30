@@ -95,6 +95,7 @@ bool IsSinglePhaseV97Mtr(WORD wPn);
 BYTE IsSIDV97Mtr(WORD wPn);
 DWORD GetMeterBaudRate(WORD wPn);//返回测量点波特率
 DWORD NumToBaudrateTest(BYTE n);
+WORD GetAcMtrSn();
 //////////////////////////////////////////////////////////////////////////
 //以下为黑龙江62056协议所用到的辅助接口函数
 int AddMtrPara(BYTE* pbBuf);

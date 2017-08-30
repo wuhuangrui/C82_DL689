@@ -7077,6 +7077,11 @@ int GetEvtRec(TEvtMsg* pEvtMsg, BYTE* pbRecBuf, WORD wBufSize, BYTE bType)
 	}
 	else if (pEvtMsg->bStage == EVT_STAGE_ERCRPT)
 	{
+		if (wBufSize < pEvtMsg->wRcsdLen)
+		{
+			DTRACE(DB_FAPROTO, ("GetEvtRec: no space.\r\n"));
+			return -1;
+		}
 		memcpy(pbRecBuf, pEvtMsg->bRcsd, pEvtMsg->wRcsdLen);
 
 		return pEvtMsg->wRcsdLen;

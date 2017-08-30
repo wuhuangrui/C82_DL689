@@ -446,6 +446,7 @@ public:
 	int DL645V07AskItemErc(TRdItem* pRdItem, BYTE* pbAddr, BYTE bAddrLen, BYTE bProId, DWORD dwOAD, BYTE* pbRxBuf);
 	int DL645V07ProIdTxRx(TRdItem* pRdItem, BYTE* pbAddr, BYTE bAddrLen, BYTE bProId, DWORD dwProId, BYTE* pbRxBuf, WORD wMaxRxLen);
 	int DL645V07AskItemErcHapEndEng(TRdItem* pRdItem, BYTE* pbAddr, BYTE bAddrLen, BYTE bProId,  DWORD dwOAD, TErcRdCtrl* pErcRdCtrl, BYTE* pbDstBuf);
+	bool SaveRepErcData(BYTE *pbBuf, WORD wLen);
 
 	//不同协议类型表抄读接口
 	int ReadDLT_645(TMtrRdCtrl* pMtrRdCtrl, TRdItem* pRdItem, TMtrPara* pMtrPara, BYTE* pbRxBuf, WORD wMaxRxLen);

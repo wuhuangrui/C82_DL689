@@ -50,7 +50,8 @@ BYTE g_bComHiPreEngFmt[] = {0x01, 0x05, DT_LONG64};	//高精度组合电能量
 BYTE g_bHiPreEngFmt[] = {0x01, 0x05, DT_LONG64_U};	//高精度电能量
 
 BYTE g_bVoltDataFmt[3] = {0x01, 0x03, DT_LONG_U};
-BYTE g_bCurDataFmt[3] = {0x01, 0x04, DT_DB_LONG};
+BYTE g_bCurDataFmt[3] = {0x01, 0x03, DT_DB_LONG};
+//BYTE g_bCurDataFmt[3] = {0x01, 0x04, DT_DB_LONG};
 BYTE g_bPowerDataFmt[3] = {0x01, 0x04, DT_DB_LONG};
 BYTE g_bEngUnitFmt[] = {0x0f};
 BYTE g_bMaxDemFmt[6] = {0x01,0x05,0x02,0x02,0x06,DT_DATE_TIME_S};
@@ -2022,6 +2023,7 @@ ToaMap g_OIConvertClass[] =
 	//变量类对象标识
 	{0x20000200,	3,		MAP_SYSDB,		0x2000,	  PN0,   0,		g_bVoltDataFmt, sizeof(g_bVoltDataFmt), NULL},	//电压配置
 	{0x20010200,	3,		MAP_SYSDB,		0x2001,	  PN0,   0,		g_bCurDataFmt,  sizeof(g_bCurDataFmt), NULL},	//电流配置
+	{0x20010400,	3,		MAP_SYSDB,		0x2610,   PN0,	 0, 	g_bPhaseCurDataFmt,	sizeof(g_bPhaseCurDataFmt), NULL},	//电流配置
 	{0x20020200,	3,		MAP_SYSDB,		0x2002,	  PN0,   0,		g_bVoltDataFmt, sizeof(g_bVoltDataFmt), NULL},	//电压相角
 	{0x20030200,	3,		MAP_SYSDB,		0x2003,	  PN0,   0,		g_bVoltDataFmt, sizeof(g_bVoltDataFmt), NULL},	//电压电流相角
 	{0x20040200,	4,		MAP_SYSDB,		0x2004,	  PN0,   0,		g_bPowerDataFmt, sizeof(g_bPowerDataFmt), NULL},	//有功功率
@@ -3463,8 +3465,8 @@ BYTE g_bDelCtrlUnitFmt[] = {
 };
 
 static BYTE g_bRS232PortParaCfgFmt[] = {
-	//		DT_ARRAY,	//array
-	//		MAX_232_PORT_NUM,	//最大个数
+//		DT_ARRAY,	//array
+//		MAX_232_PORT_NUM,	//最大个数
 	DT_STRUCT,	//struct
 	3,	//成员个数
 	DT_OAD,
@@ -3473,8 +3475,8 @@ static BYTE g_bRS232PortParaCfgFmt[] = {
 };
 
 static BYTE g_bRS485PortParaCfgFmt[] = {
-	//		DT_ARRAY,	//array
-	//		MAX_485_PORT_NUM,	//最大个数
+//		DT_ARRAY,	//array
+//		MAX_485_PORT_NUM,	//最大个数
 	DT_STRUCT,	//struct
 	3,	//成员个数
 	DT_OAD,
@@ -6488,7 +6490,10 @@ int CctTransmitMethod127(WORD wOI, BYTE bMethod, BYTE bOpMode, BYTE* pbPara, int
 				pbPara++;	//octet-string
 				pbPara += DecodeLength(pbPara, &wTxLen);
 
-				iRet = CctTransmit(bTsa, bTsaLen, pbPara, wTxLen, wTimeOut, pbRes+2);
+				iRet = CctTransmit376(pbPara, wTxLen, wTimeOut, pbRes+2, 1024);
+				if (iRet < 0)
+					iRet = CctTransmit(bTsa, bTsaLen, pbPara, wTxLen, wTimeOut, pbRes+2);
+				
 				if (iRet < 10)
 				{
 					pbRes[0] = DT_OCT_STR;

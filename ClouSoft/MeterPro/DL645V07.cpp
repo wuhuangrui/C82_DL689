@@ -2602,7 +2602,7 @@ int DL645V07DirAskItemEx(struct TMtrPro* pMtrPro, BYTE bRespType, BYTE bChoice, 
 				pbTxTmp += 4;
 				pbDataTmp += OoDWordToOad(dwOAD, pbDataTmp);
 
-				iRet = DL645V07AskItemEx(pMtrPro, 1, dwOAD, pbDataTmp+1);
+				iRet = DL645V07AskItemEx(pMtrPro, 1, dwOAD, pbDataTmp+1);  //偏移一个字节是给后面填充 "结果"用. whr 20170828
 			}
 			else if (bChoice == 3)
 			{

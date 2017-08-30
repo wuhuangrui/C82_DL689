@@ -930,12 +930,12 @@ BYTE DoMtrExc(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModifi
 			}
 		}
 
-		if (pMtrExcTmp->dwLastExeClick[i]!=0 && pMtrExcTmp->dwLastExeClick[i]== pMtrExcTmp->dwItemRdTime[EP_POS_ITEM_INDEX] && wOI==OI_MTR_STOP)	//停走事件
+		if (pMtrExcTmp->dwLastExeClick[i]!=0 && pMtrExcTmp->dwLastExeClick[i]== pMtrExcTmp->dwItemRdTime[EP_POS_ITEM_INDEX] && (wOI==OI_MTR_STOP || wOI==OI_MTR_FLEW || wOI==OI_MTR_ENERGY_ERR))	//停走事件
 			continue;
 
 		//if (i>=1 && i<=4)
 		//	DTRACE(DB_METER_EXC, ("DoMtrExc: wOI = %04x at dwClick=%ld.\r\n", wOI, GetClick()));
-		if (wOI == OI_MTR_STOP)
+		if (wOI == OI_MTR_STOP  || wOI == OI_MTR_FLEW || wOI == OI_MTR_ENERGY_ERR)
 			pMtrExcTmp->dwLastExeClick[i] = pMtrExcTmp->dwItemRdTime[EP_POS_ITEM_INDEX];
 
 		if (IsMtrErr(wPn) && wOI!=OI_MTR_RD_FAIL)	//抄表失败时不判断抄表相关事件，防止事件误报（抄表取的是间隔缓存数据）
@@ -1839,13 +1839,13 @@ bool DoMtrEnergyDec(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pf
 			{
 				bTotalErcFlag = ERC_STATE_HAPPEN;
 				if (pCtrl->bState == EVT_S_BF_HP)
-					DTRACE(DB_METER_EXC, ("EnergyDec::###### EnergyDec event happened, ui64Energy=%u, ui64PreEnergy=%u!!! ######\r\n", ui64Energy, ui64PreEnergy));
+					DTRACE(DB_METER_EXC, ("EnergyDec::###### EnergyDec event happened, ui64Energy=%llu, ui64PreEnergy=%llu!!! ######\r\n", ui64Energy, ui64PreEnergy));
 			}
 			else if (bCurErcFlag[0]==ERC_STATE_RECOVER && bCurErcFlag[1]==ERC_STATE_RECOVER)	//正有和反有都恢复
 			{
 				bTotalErcFlag = ERC_STATE_RECOVER;
 				if (pCtrl->bState == EVT_S_BF_END)
-					DTRACE(DB_METER_EXC, ("EnergyDec::###### EnergyDec event recover, ui64Energy=%u, ui64PreEnergy=%u!!! ######\r\n", ui64Energy, ui64PreEnergy));
+					DTRACE(DB_METER_EXC, ("EnergyDec::###### EnergyDec event recover, ui64Energy=%llu, ui64PreEnergy=%llu!!! ######\r\n", ui64Energy, ui64PreEnergy));
 			}
 			else
 			{
@@ -1930,6 +1930,12 @@ bool DoMtrEnergyErr(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pf
 	memset(bAddr, 0, sizeof(bAddr));
 	memset(&time, 0, sizeof(time));
 	memset(fInit, 0, sizeof(fInit));
+
+	if(GetClick() < pCtrl->dwSeconds[0] || GetClick() < pCtrl->dwSeconds[1])
+	{
+		InitEnergyErr(wPn, pCtrl);
+		DTRACE(DB_METER_EXC, ("DoMtrEnergyErr:pn=%d, GetClick()=%d, dwSeconds[0]=%u, dwSeconds[1]=%u.\r\n", wPn, GetClick(), pCtrl->dwSeconds[0], pCtrl->dwSeconds[1]));
+	}
 
 	if (!GetMtrExcRdItem(wOI, &dwJudgeOAD[0], &wJudgeOadNum, bRelaOAD))
 		return false;
@@ -2061,13 +2067,16 @@ bool DoMtrEnergyErr(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pf
 					continue;
 				}
 
-				//DTRACE(DB_METER_EXC, ("EnergyErr::******RunTask:pn=%d, TimeDec=%d, dwFlewHold=%ld.\r\n", wPn, GetClick()-pCtrl->dwSeconds[i], dwFlewHold));
+			/*	//DTRACE(DB_METER_EXC, ("EnergyErr::******RunTask:pn=%d, TimeDec=%d, dwFlewHold=%ld.\r\n", wPn, GetClick()-pCtrl->dwSeconds[i], dwFlewHold));
 				dwTimePast = (GetClick()-pCtrl->dwSeconds[i]) / ((DWORD) bMtrInterv*60) * ((DWORD)bMtrInterv*60);
 				if (dwTimePast == 0)	//不到一个抄表间隔的时间
 				{
 					dwTimePast = GetClick() - pCtrl->dwSeconds[i];
-					DTRACE(DB_METER_EXC, ("EnergyErr::******RunTask:pn=%d, dwTimePast=%d\r\n", wPn, dwTimePast));
+					DTRACE(DB_METER_EXC, ("EnergyErr::******RunTask:pn=%d, dwTimePast=%u\r\n", wPn, dwTimePast));
 				}
+			*///没必要对时间进行规整
+			
+				dwTimePast = GetClick()-pCtrl->dwSeconds[i];
 
 				ui64PastEnergy = ((uint64) wUn) * wIn * btemp * dwTimePast;	//w（２位小数）
 
@@ -2076,18 +2085,18 @@ bool DoMtrEnergyErr(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pf
 				ui64PastEnergy *= dwFlewHold;			//电表按照最大功率走过的电量
 				ui64DeltEnergy *= (3600 * 1000 * 100);	//电表示度走过的电量
 
-				DTRACE(DB_METER_EXC, ("EnergyErr::******RunTask:pn=%d, ui64DeltEnergy=%u, ui64PastEnergy=%u, dwTimePast=%d\r\n", wPn, ui64DeltEnergy, ui64PastEnergy, dwTimePast));
+				DTRACE(DB_METER_EXC, ("EnergyErr::******RunTask:pn=%d, ui64DeltEnergy=%llu, ui64PastEnergy=%llu, dwTimePast=%u\r\n", wPn, ui64DeltEnergy, ui64PastEnergy, dwTimePast));
 				if (ui64DeltEnergy >= ui64PastEnergy)	//有功电能值下降且发生标志置0；（防止电表走到满刻度重新走字）
 				{
 					bCurErcFlag[i] = ERC_STATE_HAPPEN;	//发生
 					if (pCtrl->bState == EVT_S_BF_HP)
-						DTRACE(DB_METER_EXC, ("EnergyErr::###### EnergyErr event happened! ui64DeltEnergy=%u,  ui64PastEnergy=%u, wPn=%d.######\r\n", ui64DeltEnergy, ui64PastEnergy, wPn));
+						DTRACE(DB_METER_EXC, ("EnergyErr::###### EnergyErr event happened! ui64DeltEnergy=%llu,  ui64PastEnergy=%llu, wPn=%d.######\r\n", ui64DeltEnergy, ui64PastEnergy, wPn));
 				}
 				else if (ui64DeltEnergy < ui64PastEnergy)	//有功电能值没有下降且发生标志置1；
 				{
 					bCurErcFlag[i] = ERC_STATE_RECOVER;	//恢复
 					if (pCtrl->bState == EVT_S_BF_END)
-						DTRACE(DB_METER_EXC, ("EnergyErr::###### EnergyErr event recover! ui64DeltEnergy=%u,  ui64PastEnergy=%u, wPn=%d.######\r\n", ui64DeltEnergy, ui64PastEnergy, wPn));					
+						DTRACE(DB_METER_EXC, ("EnergyErr::###### EnergyErr event recover! ui64DeltEnergy=%llu,  ui64PastEnergy=%llu, wPn=%d.######\r\n", ui64DeltEnergy, ui64PastEnergy, wPn));					
 				}
 				else
 				{
@@ -2189,6 +2198,12 @@ bool DoMtrFlew(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 	memset(&time, 0, sizeof(time));
 	memset(fInit, 0, sizeof(fInit));
 
+	if(GetClick() < pCtrl->dwSeconds[0] || GetClick() < pCtrl->dwSeconds[1])
+	{
+		InitMtrFlew(wPn, pCtrl);
+		DTRACE(DB_METER_EXC, ("DoMtrFlew:pn=%d, GetClick()=%u, dwSeconds[0]=%u, dwSeconds[1]=%u.\r\n", wPn, GetClick(), pCtrl->dwSeconds[0], pCtrl->dwSeconds[1]));
+	}
+	
 	if (!GetMtrExcRdItem(wOI, &dwJudgeOAD[0], &wJudgeOadNum, bRelaOAD))
 		return false;
 
@@ -2224,7 +2239,7 @@ bool DoMtrFlew(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 				iLen = 9;	//取出总电能
 
 			memmove(pbBuf, pbBuf+2, iLen);
-			//DTRACE(DB_METER_EXC, ("EnergyErr::stepDDD :pn=%d, iLen=%d, wIndex=%d bBuf[0]=0x%02x, bBuf[1]=0x%02x, bBuf[2]=0x%02x, bBuf[3]=0x%02x, bBuf[4]=0x%02x.\r\n", wPn, iLen, wIndex, pbBuf[0], pbBuf[1], pbBuf[2], pbBuf[3], pbBuf[4]));
+			//DTRACE(DB_METER_EXC, ("DoMtrFlew::stepDDD :pn=%d, iLen=%d, wIndex=%d bBuf[0]=0x%02x, bBuf[1]=0x%02x, bBuf[2]=0x%02x, bBuf[3]=0x%02x, bBuf[4]=0x%02x.\r\n", wPn, iLen, wIndex, pbBuf[0], pbBuf[1], pbBuf[2], pbBuf[3], pbBuf[4]));
 			pbBuf += iLen;
 		}
 
@@ -2321,14 +2336,17 @@ bool DoMtrFlew(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 					continue;
 				}
 
-				//DTRACE(DB_METER_EXC, ("DoMtrFlew::******RunTask:pn=%d, TimeDec=%d, dwFlewHold=%ld.\r\n", wPn, GetClick()-pCtrl->dwSeconds[i], dwFlewHold));
+			/*	//DTRACE(DB_METER_EXC, ("DoMtrFlew::******RunTask:pn=%d, TimeDec=%d, dwFlewHold=%ld.\r\n", wPn, GetClick()-pCtrl->dwSeconds[i], dwFlewHold));
 				dwTimePast = (GetClick()-pCtrl->dwSeconds[i]) / ((DWORD) bMtrInterv*60) * ((DWORD)bMtrInterv*60);
 				if (dwTimePast == 0)	//不到一个抄表间隔的时间
 				{
 					dwTimePast = GetClick() - pCtrl->dwSeconds[i];
-					DTRACE(DB_METER_EXC, ("DoMtrFlew::******RunTask:pn=%d, dwTimePast=%d\r\n", wPn, dwTimePast));
+					DTRACE(DB_METER_EXC, ("DoMtrFlew::******RunTask:pn=%d, dwTimePast=%u\r\n", wPn, dwTimePast));
 				}
+			*///没必要对时间规整
 
+				dwTimePast = GetClick()-pCtrl->dwSeconds[i];
+			
 				ui64PastEnergy = ((uint64) wUn) * wIn * btemp * dwTimePast;	//w（２位小数）
 
 				//当电表的示度走过的电量超过wE0,重新开始判断；
@@ -2336,18 +2354,18 @@ bool DoMtrFlew(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModif
 				ui64PastEnergy *= dwFlewHold;			//电表按照最大功率走过的电量
 				ui64DeltEnergy *= (1000 * 3600 * 100);	//电表示度走过的电量
 
-				DTRACE(DB_METER_EXC, ("DoMtrFlew::******RunTask:pn=%d, ui64DeltEnergy=%u, ui64PastEnergy=%u, dwTimePast=%d\r\n", wPn, ui64DeltEnergy, ui64PastEnergy, dwTimePast));
+				DTRACE(DB_METER_EXC, ("DoMtrFlew::******RunTask:pn=%d, ui64DeltEnergy=%llu, ui64PastEnergy=%llu, dwTimePast=%u\r\n", wPn, ui64DeltEnergy, ui64PastEnergy, dwTimePast));
 				if (ui64DeltEnergy >= ui64PastEnergy)	//有功电能值下降且发生标志置0；（防止电表走到满刻度重新走字）
 				{
 					bCurErcFlag[i] = ERC_STATE_HAPPEN;	//发生
 					if (pCtrl->bState == EVT_S_BF_HP)
-						DTRACE(DB_METER_EXC, ("DoMtrFlew::###### EnergyFlew event happened! ui64DeltEnergy=%u,  ui64PastEnergy=%u, wPn=%d.######\r\n", ui64DeltEnergy, ui64PastEnergy, wPn));
+						DTRACE(DB_METER_EXC, ("DoMtrFlew::###### EnergyFlew event happened! ui64DeltEnergy=%llu,  ui64PastEnergy=%llu, wPn=%d.######\r\n", ui64DeltEnergy, ui64PastEnergy, wPn));
 				}
 				else if (ui64DeltEnergy < ui64PastEnergy)	//有功电能值没有下降且发生标志置1；
 				{
 					bCurErcFlag[i] = ERC_STATE_RECOVER;	//恢复
 					if (pCtrl->bState == EVT_S_BF_END)
-						DTRACE(DB_METER_EXC, ("DoMtrFlew::###### EnergyFlew event recover! ui64DeltEnergy=%u,  ui64PastEnergy=%u, wPn=%d.######\r\n", ui64DeltEnergy, ui64PastEnergy, wPn));
+						DTRACE(DB_METER_EXC, ("DoMtrFlew::###### EnergyFlew event recover! ui64DeltEnergy=%llu,  ui64PastEnergy=%llu, wPn=%d.######\r\n", ui64DeltEnergy, ui64PastEnergy, wPn));
 				}
 				else
 				{

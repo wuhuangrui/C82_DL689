@@ -18,7 +18,7 @@
 //#define TSA_OCTSTR_TYPE				1		//TSA类型定义：TSA(0x55) + OCT_STR_LEN(N+2) + TSA_LEN(N) + ADDR[0] ~ ADDR[N]
 
 #define TERM_EXC_NUM				33		//终端事件个数
-#define MTR_EXC_NUM				7		//sizeof(g_wMtrExcOI)/sizeof(WORD) 抄表事件个数
+#define MTR_EXC_NUM					7		//sizeof(g_wMtrExcOI)/sizeof(WORD) 抄表事件个数
 #define ITEM_RD_TIME_NUM			3		//时标个数
 
 #define MAX_JUDGE_OAD				5		//判断抄表事件需抄读OAD最大个数
@@ -45,10 +45,10 @@
 #define OI_MTR_CLOCK_ERR		0x3105	//电能表时钟超差
 #define OI_MTR_ENERGY_DEC		0x310B	//电能表示度下降
 #define OI_MTR_ENERGY_ERR		0x310C	//电能量超差
-#define OI_MTR_FLEW			0x310D	//电能表飞走
+#define OI_MTR_FLEW				0x310D	//电能表飞走
 #define OI_MTR_STOP				0x310E	//电能表停走
 #define OI_MTR_RD_FAIL			0x310F	//抄表失败事件
-#define OI_MTR_DATA_CHG		0x311C	//电能表数据变更监控记录
+#define OI_MTR_DATA_CHG			0x311C	//电能表数据变更监控记录
 
 #define OI_UN					0x4104	//额定电压
 

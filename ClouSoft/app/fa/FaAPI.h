@@ -98,6 +98,7 @@ extern bool IsMountUsb();
 extern bool SetMountUsb(BYTE bState);
 extern bool IsInUsbProcess();
 extern bool SetUsbProcessState(BYTE bState);
+extern void DoCheckUsb(void);
 
 extern DWORD g_dwFileTransCurSec;
 extern bool g_fDownSoft;	//是否在下载软件
@@ -230,6 +231,10 @@ void RequestThreadsSem();
 void ReleaseThreadsSem();
 void CheckDownSoft();
 
+void SetGprsOnlineState(bool fIsOnline);
+bool GetGprsOnlineState();
+void SetEthOnlineState(bool fIsOnline);
+bool GetEthOnlineState();
 #endif  //FAAPI_H
 
 

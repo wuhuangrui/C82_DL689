@@ -79,7 +79,7 @@ void SaveMtrDataHook(DWORD dwOAD, TMtrExcTmp* pMtrExcTmp, BYTE bType);
 extern void InitMtrExcCtrl(BYTE bPn, TMtrExcTmp* pCtrl);
 extern bool AllocateMtrExcMem(BYTE* pbGlobal, TAllocTab* pAllocTab, WORD wTabNum);
 extern BYTE DoMtrExc(TMtrRdCtrl* pMtrRdCtrl, TMtrPro* pMtrPro, WORD wPn, bool* pfModified);
-extern void SaveMangerMtrCacheCtrl(bool fSigLock=false);	//±￡′?3-±í?????á11￡?×￠òa2??áêí·?D?o?á?￡?￡?￡?
+extern void SaveMangerMtrCacheCtrl(bool fSigLock=false);	//保存抄表控制结构，注意不会释放信号量！！！
 extern void ClearMtrCacheCtrl();
 
 

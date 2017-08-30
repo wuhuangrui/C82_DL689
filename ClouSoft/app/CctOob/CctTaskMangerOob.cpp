@@ -2481,8 +2481,8 @@ int SpecReadRecord(BYTE* pbOAD, BYTE* pbRSD, BYTE* pbRCSD, int* piStart, BYTE* p
 				}
 			}
 			break;
-		case 0x60120200:	//任务采集方案集
-			for (WORD i=0; i<SCH_NO_NUM; i++)
+		case 0x60120200:	//任务配置单元
+			for (WORD i=0; i<TASK_ID_NUM; i++)
 			{
 				memset(bBuf, 0, sizeof(bBuf));
 				if ((iRet = GetTaskConfigFromTaskDb(i, bBuf)) > 0)
