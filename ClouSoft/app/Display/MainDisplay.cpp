@@ -521,9 +521,13 @@ int UsbUpdate2(void *arg)
 	items[i].text = NULL;
 	CListBoxEx listbox;
 
+	int tmpValue=0;
+
 	while(1)
 	{	
-		listbox.Show(0, title ,items, KEY_ESC|(KEY_OK<<8), 60000);
+		tmpValue = listbox.Show(0, title ,items, KEY_ESC|(KEY_OK<<8), 60000);
+
+		DTRACE(DB_DISPLAY, ("tmpValue = %d\r\n"));
 		
 		if(!IsInUsbProcess())
 		{
