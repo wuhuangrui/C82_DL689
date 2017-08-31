@@ -101,7 +101,7 @@ int CVirtualComm::Read(LPVOID buf, DWORD dwLength)
 		if (memcmp(module_frame_table[i].pSend, m_sendBuf, module_frame_table[i].iSendLen) == 0)
 		{
 			memcpy(m_RecBuf, module_frame_table[i].pRec , module_frame_table[i].iRecLen);
-			iLen = module_frame_table[i].iRecLen;
+			m_RecLen = module_frame_table[i].iRecLen;
 			break;
 		}
 	}
@@ -110,11 +110,21 @@ int CVirtualComm::Read(LPVOID buf, DWORD dwLength)
 	{
 		memcpy(buf, m_autoBuf, m_iAutoLen);
 		iLen = m_iAutoLen;
-	}else if (iLen != 0)
-		memcpy(buf, m_RecBuf, iLen);
+	}else if (m_RecLen != 0)
+	{
+		memcpy(buf, m_RecBuf, m_RecLen);
+		iLen = m_RecLen;
+	}
 
 
 	return iLen;
+}
+
+int CVirtualComm::SetRecBuf(LPCVOID lpBuf, DWORD dwLength)
+{
+	memcpy(m_RecBuf, lpBuf, dwLength);
+	m_RecLen = dwLength;
+	return 0;
 }
 
 int CVirtualComm::SetAutoRecBuf(LPCVOID lpBuf, DWORD dwLength)

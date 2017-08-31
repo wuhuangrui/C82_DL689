@@ -31,6 +31,7 @@ public:
 private:
    BYTE m_sendBuf[1024];
    BYTE m_RecBuf[1024];
+   int m_RecLen;
    BYTE m_autoBuf[1024];
    int  m_iAutoLen;
    void RunThread(void);
