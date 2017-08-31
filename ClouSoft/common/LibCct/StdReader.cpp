@@ -3072,7 +3072,7 @@ bool CStdReader::Copy376ToBuf(BYTE * pbData, int iMaxLen, TFrm13762 *pRcv13762)
 	{
 		BYTE bRelayNum = (pRcv13762->bR[0]>>4);
 
-		memcpy(pbData, pRcv13762->bDesAddr, 6); 
+		memcpy(pbData, pRcv13762->bSrcAddr, 6); 
 		pbData += 6;
 
 		for (BYTE j = 0; j < bRelayNum; j++)
@@ -3095,8 +3095,6 @@ bool CStdReader::Copy376ToBuf(BYTE * pbData, int iMaxLen, TFrm13762 *pRcv13762)
 	}
 	else
 	{
-		WordToByte(pRcv13762->wDtLen, pbData);
-		pbData += 2;
 		memcpy(pbData, pRcv13762->bDtBuf, pRcv13762->wDtLen);
 		pbData += pRcv13762->wDtLen;
 	}
